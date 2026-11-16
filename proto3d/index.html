@@ -30,6 +30,7 @@ header span{margin-left:auto;color:var(--mut);font-variant-numeric:tabular-nums}
 button.chip{font:inherit;font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:7px 11px;text-align:left}
 button.chip small{color:var(--mut)}
 button.chip.o{border-color:#2563eb}button.chip.i{border-color:#ea580c}
+button.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .tg{display:inline-block;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700}
 .tg.o{background:#2563eb}.tg.i{background:#ea580c}
 </style>
@@ -38,8 +39,8 @@ button.chip.o{border-color:#2563eb}button.chip.i{border-color:#ea580c}
 <body>
 <header><b>Prototipo 3D</b><span id="fps"></span></header>
 <div id="bar">
- <button data-v="front">Davanti</button><button data-v="back">Dietro</button><button data-v="right">Lato destro</button><button data-v="left">Lato sinistro</button><button data-v="top">Dall'alto</button>
- <button id="lm" class="on">Reperi</button><button id="outline" class="on">Contorno</button>
+ <button id="layers">🧩 Strati</button><button data-v="front">Davanti</button><button data-v="back">Dietro</button><button data-v="right">Lato destro</button><button data-v="left">Lato sinistro</button><button data-v="top">Dall'alto</button>
+ <button id="outline" class="on">Contorno</button>
 </div>
 <div id="view"><div id="msg">Caricamento del modello…</div></div>
 <div id="panel"><div class="mut">Caricamento…</div></div>

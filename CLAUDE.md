@@ -79,6 +79,25 @@ riportata sulla superficie. Posizioni prese dall'AI (in parte per geometria, in 
 a memoria: da verificare su un atlante. Mancano ancora: muscoli della mano e del piede, muscoli profondi
 dell'anca e del dorso, addominali obliqui, muscoli mimici e del collo anteriore; il cervello resta in 2D.
 
+Requisiti dell'autore per il 3D (16/11/2026):
+- Fluidità: 60 fps fissi su iPhone 15 con lo scheletro attuale (383k triangoli, contorno attivo). Va tenuta.
+- Strati sovrapponibili, come nei software di visualizzazione anatomica: scheletro, muscoli (forme vere, non
+  solo linee da origine a inserzione) e cervello con le sue aree, ciascuno da accendere o spegnere sopra gli altri.
+- Precisione scientifica in ogni modalità di gioco: l'app serve per studiare e passare gli esami.
+- Anche il sistema nervoso come strato da accendere o spegnere.
+
+Strati del prototipo (pannello "Strati", ogni file si scarica solo quando si accende lo strato):
+- `skeleton.glb` ossa (visibili, trasparenti o nascoste), `muscoli.glb` (422 parti, 362k triangoli),
+  `encefalo.glb` (97 parti in quattro gruppi: corteccia, strutture profonde, tronco e cervelletto, meningi),
+  `nervi.glb` (40 parti: solo nervi dell'orbita e vie ottiche).
+- `strati.json` (da `build/strati.py`): nomi italiani, colori, gruppi e descrizioni dell'encefalo; nomi dei nervi;
+  per i muscoli il collegamento tra forma e scheda di `reperi.json` e i nomi italiani (dove mancano resta il
+  nome latino della fonte). I file .glb si rigenerano con `build/layers.mjs`.
+- Limiti della fonte (BodyParts3D): niente midollo spinale né nervi periferici (plessi, sciatico…); mancano
+  le forme di gran dorsale, retto dell'addome, obliquo interno, trasverso, quadrato dei lombi, massetere,
+  temporale, pterigoidei e muscoli mimici. Per questi serve un'altra fonte (es. Z-Anatomy, CC BY-SA, richiede Blender).
+- Le aree funzionali (Broca, Wernicke, motoria primaria…) sono indicate nella descrizione del giro corrispondente.
+
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
 2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
