@@ -1,0 +1,5 @@
+# comando  pacchetto_brew  pacchetto_apt
+git   git   git
+node  node  nodejs
+npm   node  npm
+gh    gh    gh
