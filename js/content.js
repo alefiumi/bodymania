@@ -1,10 +1,12 @@
 /* Carica i contenuti da content/ e li trasforma nelle strutture usate dal gioco. */
 import {renderShape} from './shapes.js';
 
-const get=f=>fetch('content/'+f).then(r=>{if(!r.ok)throw new Error(f+': HTTP '+r.status);return r.json();});
+const getRaw=f=>fetch('content/'+f).then(r=>{if(!r.ok)throw new Error(f+': HTTP '+r.status);return r.json();});
 
 export async function loadContent(){
- const idx=await get('index.json');
+ const idx=await getRaw('index.json');
+ // ?v= dice al service worker di servire tutti i file della stessa versione dell'indice.
+ const get=f=>getRaw(f+'?v='+encodeURIComponent(idx.version));
  const [mods,nc]=await Promise.all([Promise.all(idx.modules.map(id=>get(id+'.json'))),get(idx.nc)]);
  const catNames=[...new Set(mods.map(m=>m.catalog).filter(Boolean))];
  const cats=Object.fromEntries(await Promise.all(catNames.map(async f=>[f,(await get(f)).items])));

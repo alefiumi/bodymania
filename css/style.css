@@ -60,3 +60,4 @@ button.btn.alt{background:var(--bg);color:var(--ink);border:1px solid var(--line
 .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .dots{letter-spacing:2px;color:#f0c75e}
 .leg{font-size:12px;color:var(--mut);margin-top:8px}
+#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:10;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;box-shadow:0 2px 10px #0004}

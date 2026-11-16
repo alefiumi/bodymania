@@ -26,6 +26,16 @@ Prototipo diviso in:
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`
   (tipi in `js/shapes.js`). Quando cambi un contenuto, aumenta la `version` del file e quella di `index.json`.
 - Serve un server locale (`npx serve .`): con il doppio clic su `index.html` (`file://`) moduli e JSON non si caricano.
+- PWA: `manifest.webmanifest`, icone in `icons/` (PNG generate da uno script, non nel repo), `sw.js`.
+  Il service worker copia in cache l'elenco `APP_FILES` all'installazione e serve l'app dalla cache.
+  **Quando modifichi o aggiungi un file dell'app, aumenta `APP_VERSION` in `sw.js`** (e aggiorna `APP_FILES`
+  se aggiungi o togli file), altrimenti chi ha l'app installata continua a usare la versione vecchia.
+  I contenuti stanno in una cache separata per versione: a ogni avvio con rete il service worker legge
+  `content/index.json` e, se `version` è cambiata, scarica tutto il set (moduli, `nc` e `files`) e lo usa
+  dall'apertura successiva, mostrando un avviso. `content.js` chiede i file con `?v=<versione>` così una pagina
+  aperta non mescola versioni diverse. Un file di contenuto nuovo che non è un modulo va elencato in `files`.
+- Durante lo sviluppo il service worker serve i file vecchi finché `APP_VERSION` non cambia: per vedere subito
+  le modifiche usa una finestra in incognito, oppure "Update on reload" negli strumenti per sviluppatori.
 
 Contenuto del gioco:
 - Moduli: `corpo` (22 gruppi di ossa, 26 muscoli con origine e inserzione), `lat` e `sag`
@@ -39,8 +49,8 @@ Mai provato su un dispositivo reale dall'AI: il tocco e il trascinamento li ha p
 
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
-2. PWA: `manifest.webmanifest`, service worker che mette in cache app e contenuti,
-   controllo delle versioni dei contenuti quando c'è rete.
+2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
+   installazione su telefono vero ancora da provare).
 3. Supabase: schema e regole in file SQL versionati (`supabase/migrations/`).
 4. Registrazione e login (il primo accesso richiede la rete), pagina profilo.
 5. Sincronizzazione: coda locale in IndexedDB, invio idempotente (ogni partita ha un id
