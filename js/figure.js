@@ -103,15 +103,17 @@ const ptrs=new Map();let pan=null,pinch=null,wasPan=false;
 // Dice al gestore del clic se il gesto appena finito era un trascinamento (e lo azzera).
 export function takePan(){if(!wasPan)return false;wasPan=false;return true;}
 const fg=$('fig');
+// Un dito: spostamento (con zoom attivo), con eventi pointer. Due dita: vedi il pizzico più sotto.
+// Mouse e penna con due puntatori (raro) restano sugli eventi pointer.
 fg.addEventListener('pointerdown',e=>{
  if(e.target.closest('.tbar'))return;
  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});wasPan=false;
  if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,vx:app.VB.x,vy:app.VB.y};
- else if(ptrs.size===2){pan=null;const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}
+ else{pan=null;if(e.pointerType!=='touch'&&ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}}
 });
 fg.addEventListener('pointermove',e=>{
  if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
- const s=svgEl();if(!s)return;
+ const s=svgEl();if(!s||tp)return;
  if(ptrs.size===2&&pinch){
   const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mid=svgPt((a.x+b.x)/2,(a.y+b.y)/2);
   wasPan=true;zoomAt(d/pinch,mid.x,mid.y);pinch=d;
@@ -124,4 +126,27 @@ fg.addEventListener('pointermove',e=>{
 });
 const endPtr=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)pan=null;};
 fg.addEventListener('pointerup',endPtr);fg.addEventListener('pointercancel',endPtr);
+
+// Pizzico con due dita su telefoni e tablet: eventi touch, che funzionano anche su iPhone
+// (lì il sistema annulla gli eventi pointer per fare lo zoom della pagina). Lo zoom resta centrato
+// tra le due dita e, spostandole insieme, si sposta anche la figura.
+let tp=null;
+const twoFingers=t=>({x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2,d:Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)});
+fg.addEventListener('touchstart',e=>{
+ if(e.touches.length!==2||!svgEl()||e.target.closest('.tbar'))return;
+ e.preventDefault();tp=twoFingers(e.touches);pan=null;wasPan=true;
+},{passive:false});
+fg.addEventListener('touchmove',e=>{
+ if(!tp||e.touches.length<2)return;
+ e.preventDefault();
+ const m=twoFingers(e.touches),s=svgEl();if(!s)return;
+ if(tp.d>0&&m.d>0){const p=svgPt(m.x,m.y);zoomAt(m.d/tp.d,p.x,p.y);}
+ const sc=1/s.getScreenCTM().a,VB=app.VB;
+ setVB({x:VB.x-(m.x-tp.x)*sc,y:VB.y-(m.y-tp.y)*sc,w:VB.w,h:VB.h},false);
+ tp=m;wasPan=true;
+},{passive:false});
+const endTouch=e=>{if(e.touches.length<2)tp=null;};
+fg.addEventListener('touchend',endTouch);fg.addEventListener('touchcancel',endTouch);
+// Safari: niente zoom della pagina quando si pizzica sulla figura
+for(const ev of ['gesturestart','gesturechange'])fg.addEventListener(ev,e=>e.preventDefault());
 fg.addEventListener('wheel',e=>{if(!svgEl())return;e.preventDefault();const p=svgPt(e.clientX,e.clientY);zoomAt(e.deltaY<0?1.2:1/1.2,p.x,p.y);},{passive:false});

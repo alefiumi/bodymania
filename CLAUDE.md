@@ -24,6 +24,8 @@ Prototipo diviso in:
   `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
 - Figura: barra `.tbar` sopra il disegno (moduli a sinistra, zoom a destra), mai sovrapposta; l'svg occupa
   tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
+  Zoom: pulsanti, rotella, pizzico a due dita con eventi touch (su iPhone gli eventi pointer a due dita
+  vengono annullati dal sistema); un dito sposta la figura quando è ingrandita.
 - Puzzle: `slotAt(x,y,id)` in `figure.js` sceglie il posto vuoto più vicino entro `SLOT_PX` (28 px), anche se
   coperto da altre ossa, con precedenza al pezzo in mano; altrimenti l'osso sotto il dito (errore).
   Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito.
