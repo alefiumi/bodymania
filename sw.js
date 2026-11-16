@@ -3,7 +3,7 @@
      Quando cambi uno di questi file, aumenta APP_VERSION: il browser scarica di nuovo tutto l'elenco.
    - Contenuti (content/): serviti dalla cache. A ogni avvio, se c'è rete, si controlla content/index.json:
      se la versione è cambiata si scarica l'intero set in una cache nuova e lo si usa dall'avvio successivo. */
-const APP_VERSION = '4';
+const APP_VERSION = '5';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
 const APP_FILES = [
@@ -89,7 +89,9 @@ self.addEventListener('fetch', e => {
   }
   e.respondWith((async () => {
     const cache = await caches.open(APP_CACHE);
-    const hit = await cache.match(req.mode === 'navigate' ? abs('index.html') : req, {ignoreSearch: true});
+    // solo l'apertura dell'app va su index.html: le altre pagine nella cartella (es. proto3d/) passano dalla rete
+    const home = req.mode === 'navigate' && (rel === '' || rel === 'index.html');
+    const hit = await cache.match(home ? abs('index.html') : req, {ignoreSearch: true});
     return hit || fetch(req);
   })());
 });

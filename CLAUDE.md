@@ -61,6 +61,14 @@ Contenuto del gioco:
 
 Mai provato su un dispositivo reale dall'AI: il tocco e il trascinamento li ha provati solo l'autore.
 
+## Prototipo 3D (in valutazione)
+`proto3d/` è una pagina di prova separata dall'app: scheletro 3D ruotabile in stile cartoon (three.js in
+`proto3d/vendor/`, `skeleton.glb` da 1,6 MB). Il modello viene da BodyParts3D (© The Database Center for Life
+Science, CC BY 4.0, da citare): 200 ossa separate più sterno in tre parti e cartilagini costali; mancano gli
+ossicini dell'orecchio. Ogni parte ha il codice FMA come nome e il nome inglese. Gli script che lo hanno
+prodotto sono in `proto3d/build/` (`bones.mjs` elenca le ossa, `build.mjs` semplifica e comprime; servono
+i file scaricati da BodyParts3D e i pacchetti npm `@gltf-transform/*` e `meshoptimizer`). Obiettivo: sostituire la figura 2D, con reperi (SIAS, SIPS…) come punti sul modello.
+
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
 2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
