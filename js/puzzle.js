@@ -36,6 +36,9 @@ export function placeAttempt(tid){
   puzzlePanel(`❌ Non è qui: quello è <b>${bone(tid).n}</b>. Riprova.`);
  }
 }
+// Tra strutture sovrapposte vince il posto vuoto del pezzo in mano, poi un altro posto vuoto:
+// così si possono rimettere anche i pezzi che stanno sotto altri (vertebre sotto lo sterno, bacino sotto il sacro).
+export const pickSlot=gs=>gs.find(g=>g.dataset.id===app.G.sel)||gs.find(g=>g.classList.contains('ghost'))||gs[0];
 let drag=null;
 $('panel').addEventListener('pointerdown',e=>{
  const G=app.G;
@@ -48,10 +51,10 @@ $('panel').addEventListener('pointermove',e=>{
  if(!drag)return;
  if(!drag.el&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){const f=document.createElement('div');f.id='flt';f.innerHTML=thumb(drag.id);document.body.appendChild(f);drag.el=f;}
  if(drag.el){drag.el.style.left=(e.clientX-28)+'px';drag.el.style.top=(e.clientY-70)+'px';
-  document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const hb=boneAt(e.clientX,e.clientY-42);if(hb)hb.classList.add('hov');}
+  document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const hb=boneAt(e.clientX,e.clientY-42,pickSlot);if(hb)hb.classList.add('hov');}
 });
 $('panel').addEventListener('pointerup',e=>{
  if(!drag)return;const d=drag;drag=null;
- if(d.el){d.el.remove();document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const g=boneAt(e.clientX,e.clientY-42);if(g)placeAttempt(g.dataset.id);}
+ if(d.el){d.el.remove();document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const g=boneAt(e.clientX,e.clientY-42,pickSlot);if(g)placeAttempt(g.dataset.id);}
 });
 $('panel').addEventListener('pointercancel',()=>{if(drag&&drag.el)drag.el.remove();drag=null;});

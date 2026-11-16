@@ -3,13 +3,13 @@
      Quando cambi uno di questi file, aumenta APP_VERSION: il browser scarica di nuovo tutto l'elenco.
    - Contenuti (content/): serviti dalla cache. A ogni avvio, se c'è rete, si controlla content/index.json:
      se la versione è cambiata si scarica l'intero set in una cache nuova e lo si usa dall'avvio successivo. */
-const APP_VERSION = '1';
+const APP_VERSION = '2';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
 const APP_FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/main.js', 'js/util.js', 'js/state.js', 'js/content.js', 'js/shapes.js', 'js/figure.js',
-  'js/explore.js', 'js/game.js', 'js/puzzle.js', 'js/progress.js', 'js/ui.js',
+  'js/explore.js', 'js/game.js', 'js/puzzle.js', 'js/progress.js', 'js/ui.js', 'js/install.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 const abs = p => new URL(p, self.registration.scope).href;

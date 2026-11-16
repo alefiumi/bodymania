@@ -34,10 +34,30 @@ function focusPts(pts,pad){
  setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},true);
  return w;
 }
-export function boneAt(x,y){
+// Con choose si usa slotAt; senza, vale la struttura più in alto nel punto o nei dintorni, come prima.
+export function boneAt(x,y,choose){
+ if(choose)return slotAt(x,y,choose);
  const test=(px,py)=>{const el=document.elementFromPoint(px,py),g=el&&el.closest&&el.closest('.bone');return g&&$('fig').contains(g)?g:null;};
  let g=test(x,y);if(g)return g;
  for(const r of [8,16,24])for(let a=0;a<8;a++){const t=a*Math.PI/4;g=test(x+r*Math.cos(t),y+r*Math.sin(t));if(g)return g;}
+ return null;
+}
+// Aggiunge a gs le strutture sotto il punto, dalla più in alto; si ferma su ciò che copre la figura.
+function stackAt(px,py,gs){
+ const svg=svgEl();
+ for(const el of document.elementsFromPoint(px,py)){
+  if(!svg||!svg.contains(el))break;
+  const g=el.closest('.bone');if(g&&!gs.includes(g))gs.push(g);
+ }
+}
+// Raccoglie anche le strutture coperte da altre e quelle a pochi pixel (le fessure tra le vertebre),
+// anello per anello, e lascia scegliere a choose. Serve nel puzzle per i posti vuoti sotto altri pezzi.
+function slotAt(x,y,choose){
+ const gs=[];stackAt(x,y,gs);
+ for(const r of [8,16,24]){
+  for(let a=0;a<8;a++){const t=a*Math.PI/4;stackAt(x+r*Math.cos(t),y+r*Math.sin(t),gs);}
+  if(gs.length)return choose(gs);
+ }
  return null;
 }
 export const gEl=id=>document.querySelector(`.bone[data-id="${id}"]`);

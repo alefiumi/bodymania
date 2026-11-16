@@ -4,8 +4,9 @@ import {app} from './state.js';
 import {buildFig,boneAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
-import {placeAttempt} from './puzzle.js';
+import {placeAttempt,pickSlot} from './puzzle.js';
 import {renderProg} from './progress.js';
+import {showInstall,promptInstall} from './install.js';
 
 export function useMod(id){
  const MOD=app.MODS[id];
@@ -23,7 +24,7 @@ $('fig').addEventListener('click',e=>{
  const mb=e.target.closest('.mods button');
  if(mb){useMod(mb.dataset.mod);return;}
  if(takePan())return;
- const g=boneAt(e.clientX,e.clientY);if(!g)return;const id=g.dataset.id,G=app.G;
+ const G=app.G,g=boneAt(e.clientX,e.clientY,app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?pickSlot:null);if(!g)return;const id=g.dataset.id;
  if(app.tab==='explore')selectBone(id);
  else if(app.tab==='play'&&G){
   if(G.mode==='puzzle')placeAttempt(id);
@@ -39,7 +40,7 @@ $('panel').addEventListener('click',e=>{
  else if(t.classList.contains('opt')&&G&&G.cur.t==='musc')answerMusc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='func')answerFunc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='nc')answerNc(t.dataset.k);
- else if(t.classList.contains('act')){if(t.dataset.act==='ncl')showNc();else renderExplore();}
+ else if(t.classList.contains('act')){const a=t.dataset.act;if(a==='ncl')showNc();else if(a==='inst')showInstall();else if(a==='prompt')promptInstall();else renderExplore();}
  else if(t.classList.contains('opt')&&G&&G.cur.t==='case')answerCase(t.dataset.o);
  else if(t.classList.contains('more')&&G&&G.cur.t==='case'){G.cur.clues++;casePanel();}
  else if(t.classList.contains('undo')&&G&&G.cur.t==='bridge'){G.cur.step=0;G.cur.first=null;clearMarks();bridgePrompt();}

@@ -20,7 +20,11 @@ Prototipo diviso in:
 - `index.html` (solo struttura), `css/style.css`.
 - `js/`: moduli ES. `main.js` avvia, `content.js` carica i JSON, `shapes.js` trasforma le forme in SVG,
   `state.js` (stato condiviso `app`, salvataggio), `figure.js` (figura, zoom, pan), `explore.js`,
-  `game.js`, `puzzle.js`, `progress.js`, `ui.js` (cambio di modulo e tab, clic).
+  `game.js`, `puzzle.js`, `progress.js`, `ui.js` (cambio di modulo e tab, clic),
+  `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
+- Tocco sulla figura: gli elementi sovrapposti alla figura (`.mods`, `.zc`) hanno `pointer-events:none`,
+  solo i loro pulsanti ricevono il tocco. Nel puzzle `boneAt(x,y,pickSlot)` guarda anche sotto le altre ossa
+  e a pochi pixel, e dà la precedenza al posto vuoto del pezzo in mano.
 - `content/`: `index.json` (versione globale, ordine dei moduli), `corpo.json`, `lat.json`, `sag.json`,
   `neuro-strutture.json` (testi in comune tra `lat` e `sag`), `nervi-cranici.json`. Ogni file ha `version`.
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`
@@ -36,6 +40,10 @@ Prototipo diviso in:
   aperta non mescola versioni diverse. Un file di contenuto nuovo che non è un modulo va elencato in `files`.
 - Durante lo sviluppo il service worker serve i file vecchi finché `APP_VERSION` non cambia: per vedere subito
   le modifiche usa una finestra in incognito, oppure "Update on reload" negli strumenti per sviluppatori.
+- Su iPhone l'app installata può avere una memoria separata da Safari: va aperta dall'icona una volta con la
+  rete. L'app avvisa con "Pronta: da ora funziona anche senza connessione" e lo stato è nel pannello di installazione.
+- Browser: iPhone con Safari, Chrome, Edge e Firefox (iOS 16.4+, voce "Aggiungi alla schermata Home");
+  Android con Chrome, Firefox, Samsung Internet, Edge. Provati dall'AI solo Chrome desktop ed emulazione mobile.
 
 Contenuto del gioco:
 - Moduli: `corpo` (22 gruppi di ossa, 26 muscoli con origine e inserzione), `lat` e `sag`
