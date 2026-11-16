@@ -7,7 +7,7 @@ import {isStandalone} from './install.js';
 export function renderExplore(){
  app.sel=null;const body=app.MOD.id==='corpo';
  $('panel').innerHTML=`<div class="h">${body?'Esplora lo scheletro':'Esplora il cervello'}</div><p class="mut">${body?'Tocca un osso per vedere nome, funzione, note cliniche e muscoli collegati. Tocca un muscolo per vedere origine (O) e inserzione (I) sulla figura.':'Tocca una struttura per vedere nome, funzione e note cliniche. Cambia vista in alto a sinistra.'} Usa ＋ − o pizzica per ingrandire.</p>`+(body?'':'<button class="btn alt act" data-act="ncl">📖 Nervi cranici</button>')+`<div class="leg">Colori: beige/pastello = da studiare · verde = in corso · oro = padroneggiato</div>`+
-  `<button class="btn alt act" data-act="inst">📲 ${isStandalone()?'Uso offline':'Installa e usa offline'}</button>`;
+  (isStandalone()?'':'<button class="btn alt act" data-act="inst">📲 Installa l\'app</button>');
 }
 export function showNc(){
  clearMarks();

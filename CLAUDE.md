@@ -22,9 +22,13 @@ Prototipo diviso in:
   `state.js` (stato condiviso `app`, salvataggio), `figure.js` (figura, zoom, pan), `explore.js`,
   `game.js`, `puzzle.js`, `progress.js`, `ui.js` (cambio di modulo e tab, clic),
   `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
-- Tocco sulla figura: gli elementi sovrapposti alla figura (`.mods`, `.zc`) hanno `pointer-events:none`,
-  solo i loro pulsanti ricevono il tocco. Nel puzzle `boneAt(x,y,pickSlot)` guarda anche sotto le altre ossa
-  e a pochi pixel, e dà la precedenza al posto vuoto del pezzo in mano.
+- Figura: barra `.tbar` sopra il disegno (moduli a sinistra, zoom a destra), mai sovrapposta; l'svg occupa
+  tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
+- Puzzle: `slotAt(x,y,id)` in `figure.js` sceglie il posto vuoto più vicino entro `SLOT_PX` (28 px), anche se
+  coperto da altre ossa, con precedenza al pezzo in mano; altrimenti l'osso sotto il dito (errore).
+  Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito.
+- Spunta verde in alto a destra (`#off`) quando la copia offline è pronta; il pulsante "Installa l'app"
+  in Esplora compare solo fuori dall'app installata.
 - `content/`: `index.json` (versione globale, ordine dei moduli), `corpo.json`, `lat.json`, `sag.json`,
   `neuro-strutture.json` (testi in comune tra `lat` e `sag`), `nervi-cranici.json`. Ogni file ha `version`.
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`

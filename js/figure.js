@@ -7,7 +7,7 @@ export function buildFig(){
  let h='';
  B.forEach(b=>{h+=`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s}</g>${b.pair?`<g transform="translate(300 0) scale(-1 1)">${b.s}</g>`:''}</g>`;});
  const mods=Object.keys(MODS).map(k=>`<button data-mod="${k}" class="${k===MOD.id?'on':''}">${MODS[k].label}</button>`).join('');
- $('fig').innerHTML=`<div class="mods">${mods}</div><div class="zc"><button data-z="in">＋</button><button data-z="out">－</button><button data-z="reset">⟲</button></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs><g>${h}</g><g id="ov" pointer-events="none"></g></svg>`;
+ $('fig').innerHTML=`<div class="tbar"><div class="mods">${mods}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs><g>${h}</g><g id="ov" pointer-events="none"></g></svg>`;
 }
 let tw=0;
 export const svgEl=()=>$('fig').querySelector('svg');
@@ -34,31 +34,51 @@ function focusPts(pts,pad){
  setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},true);
  return w;
 }
-// Con choose si usa slotAt; senza, vale la struttura più in alto nel punto o nei dintorni, come prima.
-export function boneAt(x,y,choose){
- if(choose)return slotAt(x,y,choose);
+export function boneAt(x,y){
  const test=(px,py)=>{const el=document.elementFromPoint(px,py),g=el&&el.closest&&el.closest('.bone');return g&&$('fig').contains(g)?g:null;};
  let g=test(x,y);if(g)return g;
  for(const r of [8,16,24])for(let a=0;a<8;a++){const t=a*Math.PI/4;g=test(x+r*Math.cos(t),y+r*Math.sin(t));if(g)return g;}
  return null;
 }
-// Aggiunge a gs le strutture sotto il punto, dalla più in alto; si ferma su ciò che copre la figura.
-function stackAt(px,py,gs){
- const svg=svgEl();
- for(const el of document.elementsFromPoint(px,py)){
-  if(!svg||!svg.contains(el))break;
-  const g=el.closest('.bone');if(g&&!gs.includes(g))gs.push(g);
+
+/* ---------- posti vuoti del puzzle ---------- */
+// Punti campione (in unità della figura) sul disegno di ogni struttura, calcolati una volta per modulo.
+const samples=new Map();
+function samplesOf(g){
+ const key=app.MOD.id+'/'+g.dataset.id;
+ if(samples.has(key))return samples.get(key);
+ const pts=[],step=2,inner=g.firstElementChild;
+ for(const el of inner.querySelectorAll('.l,.f')){
+  if(el.tagName==='line'||el.tagName==='path'&&el.classList.contains('l')){
+   const L=el.getTotalLength();for(let d=0;d<=L;d+=step){const p=el.getPointAtLength(d);pts.push([p.x,p.y]);}
+  }else{
+   const b=el.getBBox();
+   for(let x=b.x;x<=b.x+b.width;x+=step)for(let y=b.y;y<=b.y+b.height;y+=step)
+    if(el.isPointInFill(new DOMPoint(x,y)))pts.push([x,y]);
+   pts.push([b.x+b.width/2,b.y+b.height/2]);
+  }
  }
+ if(g.childElementCount>1)for(const [x,y] of pts.slice())pts.push([app.MOD.W-x,y]); // copia specchiata (lato sinistro)
+ samples.set(key,pts);
+ return pts;
 }
-// Raccoglie anche le strutture coperte da altre e quelle a pochi pixel (le fessure tra le vertebre),
-// anello per anello, e lascia scegliere a choose. Serve nel puzzle per i posti vuoti sotto altri pezzi.
-function slotAt(x,y,choose){
- const gs=[];stackAt(x,y,gs);
- for(const r of [8,16,24]){
-  for(let a=0;a<8;a++){const t=a*Math.PI/4;stackAt(x+r*Math.cos(t),y+r*Math.sin(t),gs);}
-  if(gs.length)return choose(gs);
+const SLOT_PX=28; // distanza massima, in pixel sullo schermo, tra il punto di rilascio e un posto vuoto
+// Nel puzzle: il posto vuoto più vicino al punto (entro SLOT_PX), anche se coperto da altre ossa;
+// a pari distanza vince quello del pezzo in mano (want). Se non ce n'è, la struttura sotto il dito.
+export function slotAt(x,y,want){
+ const svg=svgEl();if(!svg)return null;
+ const r=svg.getBoundingClientRect();
+ if(x<r.left||x>r.right||y<r.top||y>r.bottom)return null;
+ const ctm=svg.getScreenCTM(),p=svgPt(x,y),max=SLOT_PX/ctm.a;
+ let best=null,bestD=Infinity,wantG=null,wantD=Infinity;
+ for(const g of document.querySelectorAll('.bone.ghost')){
+  let d=Infinity;for(const [sx,sy] of samplesOf(g)){const e=Math.hypot(sx-p.x,sy-p.y);if(e<d)d=e;}
+  if(d<bestD){bestD=d;best=g;}
+  if(g.dataset.id===want){wantG=g;wantD=d;}
  }
- return null;
+ if(wantG&&wantD<=max&&wantD<=bestD+1.5)return wantG;
+ if(best&&bestD<=max)return best;
+ return boneAt(x,y);
 }
 export const gEl=id=>document.querySelector(`.bone[data-id="${id}"]`);
 const MARKS=['sel','org','ins','ok','bad','hov'];
@@ -84,7 +104,7 @@ const ptrs=new Map();let pan=null,pinch=null,wasPan=false;
 export function takePan(){if(!wasPan)return false;wasPan=false;return true;}
 const fg=$('fig');
 fg.addEventListener('pointerdown',e=>{
- if(e.target.closest('.zc,.mods'))return;
+ if(e.target.closest('.tbar'))return;
  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});wasPan=false;
  if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,vx:app.VB.x,vy:app.VB.y};
  else if(ptrs.size===2){pan=null;const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}
@@ -98,7 +118,7 @@ fg.addEventListener('pointermove',e=>{
  }else if(ptrs.size===1&&pan&&app.VB.w<app.MOD.W-1){
   const dx=e.clientX-pan.x,dy=e.clientY-pan.y;
   if(!wasPan&&Math.hypot(dx,dy)<7)return;
-  wasPan=true;const sc=app.VB.w/s.getBoundingClientRect().width;
+  wasPan=true;const sc=1/s.getScreenCTM().a;
   setVB({x:pan.vx-dx*sc,y:pan.vy-dy*sc,w:app.VB.w,h:app.VB.h},false);
  }
 });

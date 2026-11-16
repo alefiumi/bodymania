@@ -3,7 +3,7 @@
      Quando cambi uno di questi file, aumenta APP_VERSION: il browser scarica di nuovo tutto l'elenco.
    - Contenuti (content/): serviti dalla cache. A ogni avvio, se c'è rete, si controlla content/index.json:
      se la versione è cambiata si scarica l'intero set in una cache nuova e lo si usa dall'avvio successivo. */
-const APP_VERSION = '2';
+const APP_VERSION = '3';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
 const APP_FILES = [

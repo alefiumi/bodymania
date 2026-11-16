@@ -54,3 +54,13 @@ export async function promptInstall(){
  try{deferred.prompt();await deferred.userChoice;}catch(e){}
  deferred=null;showInstall();
 }
+
+// Spunta verde nell'intestazione quando l'app funziona senza connessione; clessidra mentre si prepara.
+export async function refreshOfflineBadge(){
+ const b=$('off');if(!b)return;
+ if(!('serviceWorker' in navigator)||location.protocol==='file:'){b.hidden=true;return;}
+ const ok=await offlineReady();
+ b.hidden=false;b.className=ok?'ok':'wait';b.textContent=ok?'✓':'⏳';
+ b.title=ok?'Disponibile offline':'Copia offline in preparazione';
+ b.setAttribute('aria-label',b.title);
+}

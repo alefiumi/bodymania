@@ -1,10 +1,10 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
 import {app} from './state.js';
-import {buildFig,boneAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan} from './figure.js';
+import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
-import {placeAttempt,pickSlot} from './puzzle.js';
+import {placeAttempt} from './puzzle.js';
 import {renderProg} from './progress.js';
 import {showInstall,promptInstall} from './install.js';
 
@@ -23,8 +23,9 @@ $('fig').addEventListener('click',e=>{
  if(zb){const k=zb.dataset.z,VB=app.VB;if(k==='reset')resetZoom(true);else zoomAt(k==='in'?1.5:1/1.5,VB.x+VB.w/2,VB.y+VB.h/2);return;}
  const mb=e.target.closest('.mods button');
  if(mb){useMod(mb.dataset.mod);return;}
+ if(e.target.closest('.tbar'))return;
  if(takePan())return;
- const G=app.G,g=boneAt(e.clientX,e.clientY,app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?pickSlot:null);if(!g)return;const id=g.dataset.id;
+ const G=app.G,g=app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?slotAt(e.clientX,e.clientY,G.sel):boneAt(e.clientX,e.clientY);if(!g)return;const id=g.dataset.id;
  if(app.tab==='explore')selectBone(id);
  else if(app.tab==='play'&&G){
   if(G.mode==='puzzle')placeAttempt(id);

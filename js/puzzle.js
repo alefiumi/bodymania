@@ -1,13 +1,16 @@
 /* Ricomponi: pezzi da rimettere al posto, con tocco o trascinamento. */
 import {$,shuffle} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump} from './state.js';
-import {gEl,clearMarks,refreshMastery,boneAt} from './figure.js';
+import {gEl,clearMarks,refreshMastery,slotAt,svgEl} from './figure.js';
 import {gh,endGame} from './game.js';
 
+const thumbSide=id=>{const bb=gEl(id).firstElementChild.getBBox();return Math.max(bb.width,bb.height)+16;};
 function thumb(id){
- const b=bone(id),bb=gEl(id).firstElementChild.getBBox(),s=Math.max(bb.width,bb.height)+16;
+ const b=bone(id),bb=gEl(id).firstElementChild.getBBox(),s=thumbSide(id);
  return `<svg viewBox="${bb.x+bb.width/2-s/2} ${bb.y+bb.height/2-s/2} ${s} ${s}"><g class="bone m0">${b.s}</g></svg>`;
 }
+// Il pezzo trascinato ha la stessa scala della figura (con zoom compreso), così combacia con il suo posto.
+const floatSize=id=>Math.max(36,Math.min(160,thumbSide(id)*svgEl().getScreenCTM().a));
 export function startPuzzle(){
  const G=app.G;
  clearMarks();
@@ -36,9 +39,6 @@ export function placeAttempt(tid){
   puzzlePanel(`❌ Non è qui: quello è <b>${bone(tid).n}</b>. Riprova.`);
  }
 }
-// Tra strutture sovrapposte vince il posto vuoto del pezzo in mano, poi un altro posto vuoto:
-// così si possono rimettere anche i pezzi che stanno sotto altri (vertebre sotto lo sterno, bacino sotto il sacro).
-export const pickSlot=gs=>gs.find(g=>g.dataset.id===app.G.sel)||gs.find(g=>g.classList.contains('ghost'))||gs[0];
 let drag=null;
 $('panel').addEventListener('pointerdown',e=>{
  const G=app.G;
@@ -49,12 +49,13 @@ $('panel').addEventListener('pointerdown',e=>{
 });
 $('panel').addEventListener('pointermove',e=>{
  if(!drag)return;
- if(!drag.el&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){const f=document.createElement('div');f.id='flt';f.innerHTML=thumb(drag.id);document.body.appendChild(f);drag.el=f;}
- if(drag.el){drag.el.style.left=(e.clientX-28)+'px';drag.el.style.top=(e.clientY-70)+'px';
-  document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const hb=boneAt(e.clientX,e.clientY-42,pickSlot);if(hb)hb.classList.add('hov');}
+ if(!drag.el&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){const f=document.createElement('div');f.id='flt';f.innerHTML=thumb(drag.id);drag.size=floatSize(drag.id);f.style.width=f.style.height=drag.size+'px';document.body.appendChild(f);drag.el=f;}
+ // il centro del pezzo sta 42 px sopra il dito, che così non lo copre: è lì che verrà lasciato
+ if(drag.el){drag.el.style.left=(e.clientX-drag.size/2)+'px';drag.el.style.top=(e.clientY-42-drag.size/2)+'px';
+  document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const hb=slotAt(e.clientX,e.clientY-42,app.G.sel);if(hb)hb.classList.add('hov');}
 });
 $('panel').addEventListener('pointerup',e=>{
  if(!drag)return;const d=drag;drag=null;
- if(d.el){d.el.remove();document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const g=boneAt(e.clientX,e.clientY-42,pickSlot);if(g)placeAttempt(g.dataset.id);}
+ if(d.el){d.el.remove();document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const g=slotAt(e.clientX,e.clientY-42,app.G.sel);if(g)placeAttempt(g.dataset.id);}
 });
 $('panel').addEventListener('pointercancel',()=>{if(drag&&drag.el)drag.el.remove();drag=null;});
