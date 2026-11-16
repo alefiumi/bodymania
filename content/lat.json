@@ -1,0 +1,32 @@
+{
+ "version": 1,
+ "id": "lat",
+ "label": "🧠 Laterale",
+ "W": 300,
+ "H": 220,
+ "catalog": "neuro-strutture.json",
+ "structures": [
+  {"id":"temporale","c":[150,124],"s":[{"poly":"M95 108 L138 96 L205 86 L240 98 L238 112 C220 140 160 150 120 142 C100 136 90 125 95 108Z"}]},
+  {"id":"frontale","c":[80,62],"s":[{"poly":"M32 100 C30 55 80 20 150 18 L165 22 L138 96 L95 108 C70 112 45 115 32 100Z"}]},
+  {"id":"parietale","c":[205,52],"s":[{"poly":"M165 22 C195 20 225 32 235 55 L240 98 L205 86 L138 96Z"}]},
+  {"id":"occipitale","c":[255,88],"s":[{"poly":"M235 55 C262 65 274 90 268 108 C262 120 245 120 238 112 L240 98Z"}]},
+  {"id":"cerebello","c":[232,153],"s":[{"poly":"M205 138 C225 126 255 133 258 150 C255 170 222 175 205 160Z"}]},
+  {"id":"tronco","c":[176,176],"s":[{"poly":"M158 140 L190 140 L196 200 L170 208Z"}]},
+  {"id":"precentrale","c":[150,58],"s":[{"poly":"M146 20 L165 22 L138 96 L120 93Z"}]},
+  {"id":"postcentrale","c":[172,60],"s":[{"poly":"M165 22 L184 26 L158 98 L138 96Z"}]},
+  {"id":"broca","c":[92,88],"s":[{"ell":[92,88,11,8]}]},
+  {"id":"wernicke","c":[190,86],"s":[{"ell":[190,86,12,8]}]},
+  {"id":"solcocentrale","c":[152,60],"s":[{"pth":["M165 22 L138 96",3.5]}]},
+  {"id":"solcolaterale","c":[150,98],"s":[{"pth":["M95 108 Q150 100 205 86",3.5]}]}
+ ],
+ "cases": [
+  {"id":"l1","clues":["Uomo di 65 anni dopo un ictus: capisce quello che gli si dice ma parla a fatica, con frasi brevi e spezzate.","Il deficit riguarda la produzione del linguaggio, non la comprensione.","La lesione è nel giro frontale inferiore dell'emisfero dominante (di solito il sinistro)."],"a":"Area di Broca","opts":["Area di Broca","Area di Wernicke","Giro postcentrale","Lobo occipitale"],"bid":"broca","r":"È un'afasia non fluente (di Broca)."},
+  {"id":"l2","clues":["Donna di 70 anni: parla in modo fluente ma con parole inventate e frasi senza senso, e non capisce le domande.","Il deficit riguarda la comprensione, non la fluenza.","La lesione è nella parte posteriore del giro temporale superiore dell'emisfero dominante."],"a":"Area di Wernicke","opts":["Area di Wernicke","Area di Broca","Cerebello","Giro precentrale"],"bid":"wernicke","r":"È un'afasia fluente (di Wernicke)."},
+  {"id":"l3","clues":["Dopo un ictus un paziente non muove più la mano destra, ma sente il tocco.","Il deficit è motorio e controlaterale alla lesione; la sensibilità è conservata.","Il giro si trova davanti al solco centrale."],"a":"Giro precentrale","opts":["Giro precentrale","Giro postcentrale","Lobo occipitale","Cerebello"],"bid":"precentrale","r":"Una lesione della corteccia motoria primaria causa paresi controlaterale."},
+  {"id":"l4","clues":["Dopo un trauma un paziente non sente più il tatto e la posizione della mano sinistra, ma la muove.","Il deficit è sensitivo e controlaterale.","Il giro si trova dietro il solco centrale."],"a":"Giro postcentrale","opts":["Giro postcentrale","Giro precentrale","Lobo occipitale","Cerebello"],"bid":"postcentrale","r":"Una lesione della corteccia somatosensitiva primaria causa deficit sensitivi controlaterali."},
+  {"id":"l5","clues":["Dopo un ictus un paziente non vede più la metà destra del campo visivo con entrambi gli occhi.","Il deficit è visivo; movimento e sensibilità sono normali.","La lesione è nel lobo più posteriore del cervello."],"a":"Lobo occipitale","opts":["Lobo occipitale","Lobo frontale","Lobo temporale","Cerebello"],"bid":"occipitale","r":"È un'emianopsia omonima, tipica delle lesioni occipitali."},
+  {"id":"l6","clues":["Paziente con cammino instabile a base larga, tremore nel raggiungere un oggetto e difficoltà nei movimenti alternati rapidi.","Il deficit è di coordinazione, non di forza.","La struttura è nella fossa cranica posteriore, dietro il tronco encefalico."],"a":"Cerebello","opts":["Cerebello","Lobo frontale","Giro precentrale","Lobo parietale"],"bid":"cerebello","r":"Atassia, dismetria e tremore intenzionale indicano un danno cerebellare."},
+  {"id":"l7","clues":["Dopo un ictus emisferico destro un paziente ignora la metà sinistra dello spazio: mangia solo metà piatto.","Non è cieco: è un deficit di attenzione spaziale (eminegligenza).","La lesione è nel lobo posteriore al solco centrale."],"a":"Lobo parietale","opts":["Lobo parietale","Lobo occipitale","Lobo temporale","Area di Broca"],"bid":"parietale","r":"L'eminegligenza si associa tipicamente a lesioni parietali destre."},
+  {"id":"l8","clues":["Un uomo dopo un trauma frontale diventa apatico, disinibito e non riesce a pianificare le attività quotidiane.","I deficit riguardano funzioni esecutive e comportamento.","La lesione è nella parte anteriore del cervello, davanti al solco centrale."],"a":"Lobo frontale","opts":["Lobo frontale","Lobo occipitale","Cerebello","Area di Wernicke"],"bid":"frontale","r":"Apatia, disinibizione e disturbi esecutivi orientano verso il lobo frontale."}
+ ]
+}

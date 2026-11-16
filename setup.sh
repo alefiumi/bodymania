@@ -35,7 +35,8 @@ fi
 
 echo
 if [ "$missing" = 0 ]; then
-  echo "Tutto pronto. La CLI di Supabase si usa senza installarla: npx supabase <comando>"
+  echo "Tutto pronto. Per provare l'app: npx serve .  (poi apri l'indirizzo indicato)"
+  echo "La CLI di Supabase si usa senza installarla: npx supabase <comando>"
 else
   echo "Mancano alcuni strumenti: vedi le righe MANCA o VECCHIO qui sopra."
   exit 1

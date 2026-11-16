@@ -1,0 +1,17 @@
+{
+ "version": 1,
+ "items": [
+  {"n":"I","nm":"Olfattivo","t":"sensitivo","f":"Olfatto"},
+  {"n":"II","nm":"Ottico","t":"sensitivo","f":"Vista"},
+  {"n":"III","nm":"Oculomotore","t":"motorio","f":"Movimenti dell'occhio, sollevamento della palpebra, restringimento della pupilla"},
+  {"n":"IV","nm":"Trocleare","t":"motorio","f":"Muscolo obliquo superiore dell'occhio"},
+  {"n":"V","nm":"Trigemino","t":"misto","f":"Sensibilità del volto e masticazione"},
+  {"n":"VI","nm":"Abducente","t":"motorio","f":"Muscolo retto laterale (sposta l'occhio verso l'esterno)"},
+  {"n":"VII","nm":"Facciale","t":"misto","f":"Mimica del volto, gusto dei due terzi anteriori della lingua, secrezione lacrimale e salivare"},
+  {"n":"VIII","nm":"Vestibolococleare","t":"sensitivo","f":"Udito ed equilibrio"},
+  {"n":"IX","nm":"Glossofaringeo","t":"misto","f":"Gusto del terzo posteriore della lingua e sensibilità della faringe"},
+  {"n":"X","nm":"Vago","t":"misto","f":"Parasimpatico di cuore, polmoni e visceri; deglutizione e voce"},
+  {"n":"XI","nm":"Accessorio","t":"motorio","f":"Muscoli sternocleidomastoideo e trapezio"},
+  {"n":"XII","nm":"Ipoglosso","t":"motorio","f":"Muscoli della lingua"}
+ ]
+}

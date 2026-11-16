@@ -1,0 +1,33 @@
+{
+ "version": 1,
+ "id": "sag",
+ "label": "🧠 Sagittale",
+ "W": 300,
+ "H": 240,
+ "catalog": "neuro-strutture.json",
+ "structures": [
+  {"id":"frontale","c":[85,70],"s":[{"poly":"M30 118 C28 62 78 22 150 18 L152 95 L118 118 L60 128 C40 128 30 124 30 118Z"}]},
+  {"id":"parietale","c":[200,48],"s":[{"poly":"M150 18 C210 16 252 40 262 78 L232 92 L152 95Z"}]},
+  {"id":"occipitale","c":[250,105],"s":[{"poly":"M262 78 C276 100 270 128 246 140 L232 130 L232 92Z"}]},
+  {"id":"temporale","c":[130,128],"s":[{"poly":"M60 128 L118 118 L152 95 L232 92 L232 130 C200 140 150 138 120 140 C90 142 70 138 60 128Z"}]},
+  {"id":"calloso","c":[152,62],"s":[{"pth":["M88 100 C110 52 195 52 222 100",10]}]},
+  {"id":"talamo","c":[152,106],"s":[{"ell":[152,106,20,13]}]},
+  {"id":"ipotalamo","c":[130,128],"s":[{"ell":[130,128,13,7]}]},
+  {"id":"epifisi","c":[185,112],"s":[{"ell":[185,112,5,4]}]},
+  {"id":"adeno","c":[117,152],"s":[{"ell":[117,152,7,7]}]},
+  {"id":"neuro","c":[131,152],"s":[{"ell":[131,152,6,7]}]},
+  {"id":"cerebello","c":[222,172],"s":[{"ell":[222,172,38,28]}]},
+  {"id":"mesencefalo","c":[163,150],"s":[{"poly":"M146 136 L176 136 L178 162 L150 162Z"}]},
+  {"id":"ponte","c":[164,176],"s":[{"ell":[164,176,20,13]}]},
+  {"id":"bulbo","c":[165,206],"s":[{"poly":"M150 188 L178 188 L174 226 L154 226Z"}]}
+ ],
+ "cases": [
+  {"id":"s1","clues":["Paziente con poliuria (molti litri di urina diluita) e sete intensa dopo un trauma cranico.","Le urine sono molto diluite: manca un ormone che fa riassorbire acqua ai reni.","L'ormone è l'ADH, rilasciato da una parte dell'ipofisi."],"a":"Neuroipofisi (ipofisi posteriore)","opts":["Neuroipofisi (ipofisi posteriore)","Adenoipofisi (ipofisi anteriore)","Epifisi (ghiandola pineale)","Corpo calloso"],"bid":"neuro","r":"Il deficit di ADH causa diabete insipido."},
+  {"id":"s2","clues":["Paziente con mal di testa e perdita del campo visivo laterale in entrambi gli occhi (emianopsia bitemporale).","Una massa nella sella turcica comprime il chiasma ottico.","La struttura produce GH, prolattina, ACTH, TSH, FSH e LH."],"a":"Adenoipofisi (ipofisi anteriore)","opts":["Adenoipofisi (ipofisi anteriore)","Neuroipofisi (ipofisi posteriore)","Talamo","Ipotalamo"],"bid":"adeno","r":"Un adenoma ipofisario può comprimere il chiasma ottico."},
+  {"id":"s3","clues":["Dopo un ictus profondo un paziente perde la sensibilità su metà corpo e sviluppa dolore intenso e persistente.","Quasi tutte le vie sensitive passano da questa struttura prima di arrivare alla corteccia.","È una massa ovale di sostanza grigia ai lati del terzo ventricolo."],"a":"Talamo","opts":["Talamo","Ipotalamo","Corpo calloso","Ponte"],"bid":"talamo","r":"Il talamo smista le vie sensitive verso la corteccia."},
+  {"id":"s4","clues":["Paziente con alterazioni della temperatura corporea, fame e sete anomale e disturbi del ritmo sonno-veglia.","La struttura regola l'omeostasi e controlla l'ipofisi.","Si trova sotto il talamo e sopra l'ipofisi."],"a":"Ipotalamo","opts":["Ipotalamo","Talamo","Epifisi (ghiandola pineale)","Mesencefalo"],"bid":"ipotalamo","r":"L'ipotalamo regola omeostasi e sistema endocrino."},
+  {"id":"s5","clues":["Uomo di 70 anni con tremore a riposo, rigidità e lentezza dei movimenti.","Nel morbo di Parkinson degenera la substantia nigra, che produce dopamina.","La substantia nigra appartiene alla parte più alta del tronco encefalico."],"a":"Mesencefalo","opts":["Mesencefalo","Ponte","Bulbo","Cerebello"],"bid":"mesencefalo","r":"La substantia nigra si trova nel mesencefalo."},
+  {"id":"s6","clues":["Dopo un ictus del tronco un paziente ha difficoltà a deglutire, voce rauca e instabilità respiratoria.","Sono coinvolti i nuclei dei nervi IX e X.","È la parte più bassa del tronco, in continuità con il midollo spinale."],"a":"Bulbo","opts":["Bulbo","Mesencefalo","Ponte","Talamo"],"bid":"bulbo","r":"Il bulbo contiene i nuclei dei nervi IX e X e centri vitali."},
+  {"id":"s7","clues":["Un paziente operato per epilessia grave ha difficoltà a coordinare le due mani e a nominare oggetti tenuti nella sinistra.","I due emisferi comunicano poco tra loro.","La struttura è un grande fascio di fibre."],"a":"Corpo calloso","opts":["Corpo calloso","Talamo","Ponte","Epifisi (ghiandola pineale)"],"bid":"calloso","r":"Dopo callosotomia i due emisferi si scambiano meno informazioni."}
+ ]
+}

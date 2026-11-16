@@ -1,0 +1,5 @@
+{
+ "version": 1,
+ "modules": ["corpo","lat","sag"],
+ "nc": "nervi-cranici.json"
+}
