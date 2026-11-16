@@ -68,11 +68,16 @@ Science, CC BY 4.0, da citare): 200 ossa separate più sterno in tre parti e car
 ossicini dell'orecchio. Ogni parte ha il codice FMA come nome e il nome inglese. Gli script che lo hanno
 prodotto sono in `proto3d/build/` (`bones.mjs` elenca le ossa, `build.mjs` semplifica e comprime; servono
 i file scaricati da BodyParts3D e i pacchetti npm `@gltf-transform/*` e `meshoptimizer`). Obiettivo: sostituire la figura 2D, con reperi (SIAS, SIPS…) come punti sul modello.
-Campione già fatto: bacino e anca. `proto3d/reperi.json` contiene 76 reperi (38 per lato: id, osso FMA,
-posizione `p` in metri, normale `nrm`, nome, latino, descrizione) e 13 muscoli (origini `o` e inserzioni `i`
-come id di reperi, più testi, azione, innervazione). Si rigenera con `proto3d/build/reperi.py`.
-Assi del modello: Y in alto, +Z davanti, −X lato destro del corpo. Posizioni prese a vista dall'AI sul modello
-e testi scritti a memoria: da verificare su un atlante prima di estendere il metodo al resto.
+Reperi e muscoli coprono tutto lo scheletro: `proto3d/reperi.json` contiene 282 reperi (149 diversi: 133 per
+lato più 16 sulla linea mediana; id, osso FMA, posizione `p` in metri, normale `nrm`, nome, latino, descrizione),
+55 muscoli (origini `o`, inserzioni `i` e, se serve, coppie `seg` da disegnare; testi, azione, innervazione,
+regione `g`) e i nomi italiani di tutte le 217 parti. Si rigenera con `python3 proto3d/build/reperi.py
+proto3d/reperi.json`, che unisce i punti di bacino e anca (dentro lo script), `build/punti.json` (punti presi
+sul modello per il resto del corpo) e `build/testi.py` (testi e traduzione dei nomi delle ossa).
+Assi del modello: Y in alto, +Z davanti, −X lato destro del corpo. Il lato sinistro è la copia speculare
+riportata sulla superficie. Posizioni prese dall'AI (in parte per geometria, in parte a vista) e testi scritti
+a memoria: da verificare su un atlante. Mancano ancora: muscoli della mano e del piede, muscoli profondi
+dell'anca e del dorso, addominali obliqui, muscoli mimici e del collo anteriore; il cervello resta in 2D.
 
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).

@@ -106,7 +106,7 @@ function frame(points,minDist=0.3){
 const S={bone:null,lm:null,muscle:null,side:'dx',showLm:true};
 const sideName=s=>s==='dx'?'destro':s==='sx'?'sinistro':'';
 const chip=(cls,attr,txt,small='')=>`<button class="chip ${cls}" ${attr}>${txt}${small?` <small>${small}</small>`:''}</button>`;
-const NOTE='<p class="note">Campione da verificare su un atlante: posizioni dei punti e testi sono preparati dall\'AI.</p>';
+const NOTE='<p class="note">Da verificare su un atlante: posizioni dei punti e testi sono preparati dall\'AI.</p>';
 function refresh(){
  // ossa
  parts.forEach(p=>p.material=mats[p===S.bone?'sel':p.userData.kind]);
@@ -116,8 +116,8 @@ function refresh(){
  if(mu){
   const O=mu.o.map(k=>lmOf(k,S.side)),I=mu.i.map(k=>lmOf(k,S.side));
   O.forEach(l=>role.set(l,'o'));I.forEach(l=>role.set(l,'i'));
-  O.forEach(l=>segment(l.pos,I[0].pos));
-  for(let n=1;n<I.length;n++)segment(I[n-1].pos,I[n].pos);
+  if(mu.seg)mu.seg.forEach(([a,b])=>segment(lmOf(a,S.side).pos,lmOf(b,S.side).pos)); // coppie indicate nei dati
+  else{O.forEach(l=>segment(l.pos,I[0].pos));for(let n=1;n<I.length;n++)segment(I[n-1].pos,I[n].pos);}
  }
  for(const l of DATA.landmarks){
   l.mesh.visible=mu?role.has(l):S.showLm;
@@ -146,14 +146,16 @@ function panel(){
   const ms=DATA.muscles.filter(m=>ls.some(l=>m.o.includes(l.k)||m.i.includes(l.k)));
   h=`<div class="h">${boneName(b)}</div><div class="mut">${b.userData.kind==='cartilage'?'Cartilagine':'Osso'} · ${b.userData.label} · ${b.userData.fma}</div>`+
    (ls.length?`<div class="sub">Reperi su questo osso</div><div class="chips">${ls.map(l=>chip('',`data-lm="${l.id}"`,l.n+(l.side&&!/destr|sinistr/.test(DATA.bones[l.bone]||'')?' ('+l.side+')':''))).join('')}</div>`
-    :'<p class="mut">Per quest\'osso i reperi non sono ancora stati inseriti: il campione copre bacino e anca.</p>')+
+    :'<p class="mut">Su quest\'osso non ci sono ancora reperi.</p>')+
    (ms.length?`<div class="sub">Muscoli collegati</div><div class="chips">${ms.map(m=>chip('',`data-mu="${m.id}"`,m.n)).join('')}</div>`:'')+
    `<div class="chips"><button class="chip" data-go="home">Indietro</button></div>`;
  }else if(S.list==='muscles'){
-  h=`<div class="h">Muscoli di bacino e anca</div><div class="chips">${DATA.muscles.map(m=>chip('',`data-mu="${m.id}"`,m.n)).join('')}</div><div class="chips"><button class="chip" data-go="home">Indietro</button></div>`+NOTE;
+  const gs=[...new Set(DATA.muscles.map(m=>m.g))];
+  h=`<div class="h">Muscoli</div>`+gs.map(g=>`<div class="sub">${g}</div><div class="chips">${DATA.muscles.filter(m=>m.g===g).map(m=>chip('',`data-mu="${m.id}"`,m.n)).join('')}</div>`).join('')+`<div class="chips"><button class="chip" data-go="home">Indietro</button></div>`+NOTE;
  }else{
-  h=`<div class="h">Campione: bacino e anca</div><p class="mut">Tocca un punto rosso (repere) o un osso. Un dito ruota, due dita ingrandiscono e spostano, doppio tocco avvicina.</p>
-   <div class="chips"><button class="chip" data-go="muscles">💪 Muscoli (${DATA.muscles.length})</button><button class="chip" data-focus="1">🔎 Vai al bacino</button></div>
+  h=`<div class="h">Scheletro, reperi e muscoli</div><p class="mut">Tocca un punto rosso (repere) o un osso. Un dito ruota, due dita ingrandiscono e spostano, doppio tocco avvicina.</p>
+   <div class="chips"><button class="chip" data-go="muscles">💪 Muscoli (${DATA.muscles.length})</button></div>
+   <p class="note">${new Set(DATA.landmarks.map(l=>l.k)).size} reperi per lato · ${NOTE.replace(/<\/?p[^>]*>/g,'')}</p>
    <p class="note">${modelInfo}<br>Modello: BodyParts3D, © The Database Center for Life Science, CC Attribution 4.0 International (semplificato).</p>`;
  }
  p.innerHTML=h;p.scrollTop=0;
@@ -216,7 +218,6 @@ $('panel').addEventListener('click',e=>{
  else if(b.dataset.lm)showLandmark(LM.get(b.dataset.lm));
  else if(b.dataset.side)showMuscle(S.muscle,b.dataset.side);
  else if(b.dataset.go){S.muscle=S.lm=S.bone=null;S.list=b.dataset.go==='muscles'?'muscles':null;refresh();}
- else if(b.dataset.focus)frame(['sias_dx','sias_sx','tuber_post_dx','tuber_post_sx','gt_dx','gt_sx'].map(id=>LM.get(id).pos),0.5);
 });
 
 /* ---------- ciclo di disegno ---------- */
@@ -233,7 +234,7 @@ renderer.setAnimationLoop(now=>{
  controls.update();
  // punti e linee tengono una dimensione leggibile a qualsiasi zoom
  const px=2*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/view.clientHeight; // metri per pixel a 1 m di distanza
- for(const l of DATA.landmarks)if(l.mesh.visible){const d=camera.position.distanceTo(l.mesh.position);l.mesh.scale.setScalar(Math.max(0.0022,d*px*(l.mesh.material===mkMat.base?5:7)));}
+ for(const l of DATA.landmarks)if(l.mesh.visible){const d=camera.position.distanceTo(l.mesh.position);l.mesh.scale.setScalar(Math.max(0.0018,d*px*(l.mesh.material===mkMat.base?4:7)));}
  for(const s of lines.children){const d=camera.position.distanceTo(s.position),r=Math.max(0.0012,d*px*2.2);s.scale.set(r,s.userData.len,r);}
  if(outline)effect.render(scene,camera);else renderer.render(scene,camera);
  frames++;worst=Math.max(worst,now-prev);prev=now;
