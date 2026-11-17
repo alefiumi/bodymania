@@ -23,13 +23,15 @@ function showAtlas(on){
 // Giochi 3D: la partita si svolge nell'atlante, che rimanda qui ogni risposta per XP, serie e maestria.
 let atlasReady=false,pending3d=null;
 const atlasWin=()=>$('atlas').querySelector('iframe')?.contentWindow;
+// casi clinici e nervi cranici stanno nei contenuti dell'app: viaggiano con il messaggio
+const gameMsg=set=>({bm:1,type:'game',set,cases:(app.MODS.corpo&&app.MODS.corpo.CASES)||[],nc:app.NC});
 function play3d(set){
  setTab('atlas');
- if(atlasReady)atlasWin().postMessage({bm:1,type:'game',set},location.origin);else pending3d=set;
+ if(atlasReady)atlasWin().postMessage(gameMsg(set),location.origin);else pending3d=set;
 }
 window.addEventListener('message',e=>{
  const d=e.data;if(e.origin!==location.origin||!d||!d.bm||e.source!==atlasWin())return;
- if(d.type==='ready'){atlasReady=true;if(pending3d){atlasWin().postMessage({bm:1,type:'game',set:pending3d},location.origin);pending3d=null;}}
+ if(d.type==='ready'){atlasReady=true;if(pending3d){atlasWin().postMessage(gameMsg(pending3d),location.origin);pending3d=null;}}
  else if(d.type==='res'){touchStreak();if(d.ok){S.xp+=10;S.ok++;bump(d.key,1);}else{S.ko++;bump(d.key,-1);}save();head();}
  else if(d.type==='end'){if(d.done)S.xp+=20;queue.add({module:'3d',mode:d.set,score:d.score|0,total:d.total|0,xp:d.gain|0});save();head();}
  else if(d.type==='menu')setTab('play');

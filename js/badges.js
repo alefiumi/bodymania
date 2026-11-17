@@ -24,7 +24,7 @@ export const BADGES=[
  ['m50','🥈','Cinquanta in oro','Porta 50 strutture alla maestria piena',()=>mastered()>=50],
  ['m150','🥇','Centocinquanta in oro','Porta 150 strutture alla maestria piena',()=>mastered()>=150],
  ['d3','🧍','In tre dimensioni','Finisci una partita sul modello 3D',()=>n3d()>=1],
- ['d3tutti','🌐','Esploratore 3D','Gioca tutte e quattro le sfide sul modello 3D',()=>n3d()>=4],
+ ['d3tutti','🌐','Esploratore 3D','Gioca quattro sfide diverse sul modello 3D',()=>n3d()>=4],
  ['casi5','🩺','Occhio clinico','Finisci 5 casi clinici',()=>(st().modes||{})['case']>=5],
  ['moduli','🗺️','Giramondo','Gioca in tutti i moduli: corpo, cervello laterale e sagittale, 3D',()=>['corpo','lat','sag','3d'].every(m=>(st().mods||{})[m])]
 ].map(([id,icon,name,desc,test])=>({id,icon,name,desc,test}));

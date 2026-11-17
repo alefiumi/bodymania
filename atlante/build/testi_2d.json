@@ -310,6 +310,210 @@
     ],
     "bid": "carpo",
     "r": "Il sospetto è una frattura dello scafoide, osso del carpo."
+   },
+   {
+    "id": "c10",
+    "clues": [
+     "Uomo di 45 anni, tennista amatoriale: dolore sul lato esterno del gomito quando stringe la racchetta o solleva una borsa.",
+     "Il dolore aumenta estendendo il polso contro resistenza.",
+     "Il tendine coinvolto origina dall'epicondilo laterale dell'omero e il muscolo si inserisce alla base del III metacarpo."
+    ],
+    "a": "Estensore radiale breve del carpo",
+    "opts": [
+     "Estensore radiale breve del carpo",
+     "Flessore radiale del carpo",
+     "Brachioradiale",
+     "Pronatore rotondo"
+    ],
+    "mid": "extensor carpi radialis brevis",
+    "r": "L'epicondilite laterale (gomito del tennista) è una tendinopatia dell'origine comune degli estensori, in primo luogo dell'estensore radiale breve del carpo."
+   },
+   {
+    "id": "c11",
+    "clues": [
+     "Donna di 50 anni operata al seno con svuotamento ascellare.",
+     "Spingendo con le mani contro il muro, il margine mediale della scapola si solleva dal torace (scapola alata).",
+     "Il muscolo interessato è innervato dal nervo toracico lungo e si inserisce sul margine mediale della scapola."
+    ],
+    "a": "Dentato anteriore",
+    "opts": [
+     "Dentato anteriore",
+     "Romboide maggiore",
+     "Piccolo pettorale",
+     "Trapezio"
+    ],
+    "mid": "serratus anterior",
+    "r": "La lesione del nervo toracico lungo paralizza il dentato anteriore, che tiene la scapola aderente al torace: ne risulta la scapola alata mediale."
+   },
+   {
+    "id": "c12",
+    "clues": [
+     "Uomo di 38 anni, dopo una biopsia di un linfonodo nel triangolo posteriore del collo.",
+     "La spalla è più bassa dal lato operato e fa fatica ad alzare il braccio sopra la testa.",
+     "Il nervo lesionato è l'accessorio (XI); il muscolo va dall'occipite e dalle spinose fino a clavicola, acromion e spina della scapola."
+    ],
+    "a": "Trapezio",
+    "opts": [
+     "Trapezio",
+     "Elevatore della scapola",
+     "Deltoide",
+     "Sternocleidomastoideo"
+    ],
+    "mid": "trapezius",
+    "r": "Il nervo accessorio nel triangolo posteriore è superficiale e a rischio negli interventi: la paralisi del trapezio abbassa la spalla e limita l'elevazione del braccio."
+   },
+   {
+    "id": "c13",
+    "clues": [
+     "Neonato di 3 settimane che tiene la testa sempre inclinata da un lato e ruotata dall'altro.",
+     "Sul lato del collo si palpa un nodulo duro nel ventre di un muscolo.",
+     "Il muscolo origina da manubrio dello sterno e clavicola e si inserisce sul processo mastoideo."
+    ],
+    "a": "Sternocleidomastoideo",
+    "opts": [
+     "Sternocleidomastoideo",
+     "Scaleno anteriore",
+     "Trapezio",
+     "Splenio della testa"
+    ],
+    "mid": "sternocleidomastoid",
+    "r": "Nel torcicollo miogeno congenito l'accorciamento dello sternocleidomastoideo inclina la testa dal suo lato e ruota il viso dal lato opposto."
+   },
+   {
+    "id": "c14",
+    "clues": [
+     "Uomo di 55 anni: sollevando un mobile ha sentito uno schiocco alla spalla.",
+     "Flettendo il gomito il ventre del muscolo si raccoglie verso il basso formando una palla sul braccio (segno di Popeye).",
+     "Il tendine rotto è quello del capo lungo, che origina dal tubercolo sopraglenoideo della scapola."
+    ],
+    "a": "Bicipite brachiale",
+    "opts": [
+     "Bicipite brachiale",
+     "Brachiale",
+     "Coracobrachiale",
+     "Tricipite brachiale"
+    ],
+    "mid": "biceps brachii",
+    "r": "La rottura del tendine del capo lungo del bicipite brachiale fa scivolare in basso il ventre muscolare: è il segno di Popeye."
+   },
+   {
+    "id": "c15",
+    "clues": [
+     "Ragazzo di 20 anni dopo una lussazione anteriore di spalla.",
+     "Non riesce ad abdurre il braccio e ha la pelle insensibile sulla parte laterale alta del braccio.",
+     "Il nervo lesionato è l'ascellare; il muscolo si inserisce sulla tuberosità deltoidea dell'omero."
+    ],
+    "a": "Deltoide",
+    "opts": [
+     "Deltoide",
+     "Sovraspinato",
+     "Grande rotondo",
+     "Gran pettorale"
+    ],
+    "mid": "deltoid",
+    "r": "Il nervo ascellare gira attorno al collo chirurgico dell'omero e si può lesionare nella lussazione: deficit del deltoide e ipoestesia nella regione del distintivo."
+   },
+   {
+    "id": "c16",
+    "clues": [
+     "Calciatore di 23 anni: dolore improvviso nella parte anteriore della coscia calciando il pallone.",
+     "Fanno male sia la flessione dell'anca sia l'estensione del ginocchio contro resistenza.",
+     "È l'unico capo del quadricipite che supera due articolazioni: origina dalla spina iliaca anteriore inferiore."
+    ],
+    "a": "Retto femorale",
+    "opts": [
+     "Retto femorale",
+     "Vasto mediale",
+     "Sartorio",
+     "Ileopsoas"
+    ],
+    "mid": "rectus femoris",
+    "r": "Il retto femorale è biarticolare (anca e ginocchio) ed è il capo del quadricipite che si stira più spesso nel calcio e nello sprint."
+   },
+   {
+    "id": "c17",
+    "clues": [
+     "Donna di 70 anni con difficoltà ad alzarsi dalla sedia e a salire le scale, senza dolore.",
+     "Il problema è nell'estensione dell'anca: camminando in piano compensa portando il tronco indietro.",
+     "Il muscolo è innervato dal nervo gluteo inferiore ed è il più voluminoso della natica."
+    ],
+    "a": "Grande gluteo",
+    "opts": [
+     "Grande gluteo",
+     "Gluteo medio",
+     "Ischiocrurali",
+     "Piriforme"
+    ],
+    "mid": "gluteus maximus",
+    "r": "Il grande gluteo è l'estensore principale dell'anca negli sforzi (alzarsi, salire le scale); la sua debolezza dà l'andatura con il tronco inclinato indietro."
+   },
+   {
+    "id": "c18",
+    "clues": [
+     "Pallavolista di 25 anni: atterrando ha messo il piede in inversione forzata.",
+     "Dolore e gonfiore sul lato esterno del piede, alla base del V metatarso.",
+     "La radiografia mostra un piccolo frammento staccato dove si inserisce il tendine di un muscolo eversore che passa dietro il malleolo laterale."
+    ],
+    "a": "Peroneo breve",
+    "opts": [
+     "Peroneo breve",
+     "Tibiale posteriore",
+     "Peroneo lungo",
+     "Estensore lungo delle dita"
+    ],
+    "mid": "fibularis brevis",
+    "r": "Nella distorsione in inversione il peroneo breve può strappare un frammento della tuberosità del V metatarso, dove si inserisce (frattura da avulsione)."
+   },
+   {
+    "id": "c19",
+    "clues": [
+     "Donna di 35 anni che al risveglio ha metà del viso immobile.",
+     "Non riesce a chiudere completamente l'occhio da quel lato e non riesce a corrugare la fronte.",
+     "Il nervo colpito è il facciale (VII); il muscolo che chiude le palpebre circonda l'orbita."
+    ],
+    "a": "Orbicolare dell'occhio",
+    "opts": [
+     "Orbicolare dell'occhio",
+     "Elevatore della palpebra superiore",
+     "Frontale",
+     "Corrugatore del sopracciglio"
+    ],
+    "mid": "orbicularis oculi",
+    "r": "Nella paralisi del facciale (di Bell) il deficit dell'orbicolare dell'occhio impedisce la chiusura delle palpebre: l'occhio va protetto."
+   },
+   {
+    "id": "c20",
+    "clues": [
+     "Studente di 24 anni sotto esami: dolore alla mandibola al mattino e denti consumati.",
+     "Il dolore è all'angolo della mandibola e il muscolo si sente duro stringendo i denti.",
+     "Il muscolo va dall'arcata zigomatica alla faccia esterna del ramo e dell'angolo della mandibola."
+    ],
+    "a": "Massetere",
+    "opts": [
+     "Massetere",
+     "Temporale",
+     "Pterigoideo laterale",
+     "Buccinatore"
+    ],
+    "mid": "masseter",
+    "r": "Nel bruxismo il massetere, potente elevatore della mandibola, lavora troppo: dolore e ipertrofia all'angolo della mandibola."
+   },
+   {
+    "id": "c21",
+    "clues": [
+     "Podista di 30 anni che ha aumentato i chilometri: dolore sul lato esterno del ginocchio dopo 20 minuti di corsa.",
+     "Il dolore viene dallo sfregamento della bandelletta ileotibiale sul condilo laterale del femore.",
+     "Il muscolo che tende la fascia lata origina dalla spina iliaca anteriore superiore."
+    ],
+    "a": "Tensore della fascia lata",
+    "opts": [
+     "Tensore della fascia lata",
+     "Sartorio",
+     "Bicipite femorale",
+     "Vasto laterale"
+    ],
+    "mid": "tensor fasciae latae",
+    "r": "Il tensore della fascia lata (con il grande gluteo) mette in tensione la bandelletta ileotibiale, coinvolta nella sindrome del corridore."
    }
   ],
   "lat": [

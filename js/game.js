@@ -19,7 +19,11 @@ export function renderMenu(){
   '<div class="sub">Sul modello 3D</div>'+mb('3d-ossa','🦴 Trova l\'osso','Tocca l\'osso giusto sul modello 3D')+
   mb('3d-muscoli','💪 Trova il muscolo','Tocca il muscolo giusto tra quelli visibili')+
   mb('3d-reperi','📍 Trova il repere','Tocca il repere osseo giusto (SIAS, epicondili…)')+
-  mb('3d-oi','🎯 Origine e inserzione','Tocca sull\'osso il punto esatto dove il muscolo si attacca');
+  mb('3d-oi','🎯 Origine e inserzione','Tocca sull\'osso il punto esatto dove il muscolo si attacca')+
+  mb('3d-ricomponi','🧩 Ricomponi','Rimetti al loro posto le ossa di una zona (mano, piede, cranio…)')+
+  mb('3d-ponte','🌉 Tendine-ponte',"Tocca l'osso di origine e poi quello di inserzione")+
+  mb('3d-caso','🩺 Caso clinico','Leggi gli indizi e tocca il muscolo coinvolto')+
+  mb('3d-nervi','🔢 Nervi cranici','Tocca il nervo giusto alla base dell\'encefalo');
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){

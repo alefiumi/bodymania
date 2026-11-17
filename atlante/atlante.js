@@ -562,7 +562,29 @@ const SETS={
  ossa:{n:'Ossa',ask:'Tocca l\'osso'},
  muscoli:{n:'Muscoli',ask:'Tocca il muscolo'},
  reperi:{n:'Reperi ossei',ask:'Tocca il repere'},
- oi:{n:'Origine e inserzione',ask:''}};
+ oi:{n:'Origine e inserzione',ask:''},
+ ricomponi:{n:'Ricomponi',ask:''},
+ ponte:{n:'Tendine-ponte',ask:''},
+ caso:{n:'Caso clinico',ask:'Tocca il muscolo'},
+ nervi:{n:'Nervi cranici',ask:'Tocca il nervo'}};
+// casi clinici e nervi cranici arrivano dall'app con il messaggio del gioco (stanno nei contenuti dell'app)
+const EXTRA={cases:[],nc:[]};
+// zone del gioco Ricomponi, dai gruppi della fonte (Terminologia Anatomica)
+const ZONES=[
+ {n:'Cranio e mandibola',g:/^(Bones of cranium|Frontal bone|Sphenoid bone|Ethmoid bone|Extracranial bones of head)$/},
+ {n:'Colonna vertebrale',g:/^(Cervical vertebrae|Thoracic vertebrae|Lumbar vertebrae|Vertebral column)$/},
+ {n:'Gabbia toracica',g:/^(True ribs|False ribs|Floating ribs|Sternum)$/},
+ {n:'Spalla e braccio',g:/^Bones of pectoral girdle$/,b:/^(Humerus|Radius|Ulna)$/},
+ {n:'Mano e polso',g:/^Bones of free part of upper limb$/,x:/^(Humerus|Radius|Ulna)$/},
+ {n:'Bacino e arto inferiore',g:/^(Bones of pelvic girdle|Bones of free part of lower limb)$/},
+ {n:'Piede',g:/^(Tarsal bones|Metatarsal bones|Phalanges of foot|Bones of foot)$/}];
+const inZone=(z,u)=>(z.g.test(u.g)&&!(z.x&&z.x.test(u.base)))||(z.b&&z.b.test(u.base));
+// numero del nervo cranico di una parte dello strato nervi (rami compresi: trigemino, facciale, vestibolococleare)
+function crNum(u){
+ const m=u.base.match(/\(([IVX]+)\)$/)||(u.g||'').match(/\(([IVX]+)\)$/);if(m)return m[1];
+ return /mandibular nerve|inferior alveolar/i.test(u.g||'')?'V':null;
+}
+const slug=t=>t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const TEETH=/(incisor|canine|molar|premolar)/i,BONE_SKIP=/(cartilage|cells of ethmoid|Sinus of)/i,KEEP_CART=/^(Costal cartilage|Thyroid cartilage|Cricoid cartilage)/;
 // famiglia di un nome (tutte le coste, tutte le falangi…): si sceglie prima la famiglia, così coste e falangi non dominano
 const famOf=b=>b.replace(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\b/gi,'#').replace(/\b[CTL]\d+\b/,'#').replace(/\b(Proximal|Middle|Distal)\b/,'#');
@@ -610,6 +632,26 @@ async function poolOf(set){
   for(const [r,d] of Object.entries(DATA.mus))for(const k of ['o','e'])
    if(d[k].some(n=>vis.has(n)))items.push({key:r+'|'+k,root:r,k,n:clean(d.n),la:clean(d.la),fam:r,uq:r+'|'+k});
   return POOL[set]=items;
+ }else if(set==='ponte'){
+  // ossa di origine e di inserzione di ogni muscolo: l'osso più vicino alle sue aree (come nei giochi 2D)
+  await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
+  const bonesOf=names=>[...new Set(names.filter(n=>sideOf(n)!=='l').map(n=>byName.get(n)).filter(Boolean).map(m=>nearestBone(m)).filter(Boolean).map(b=>b.userData.base))];
+  for(const [r,d] of Object.entries(DATA.mus)){const ob=bonesOf(d.o),eb=bonesOf(d.e);if(ob.length&&eb.length)items.push({key:r,n:clean(d.n),la:clean(d.la),fam:d.g||r,ob,eb});}
+  return POOL[set]=items;
+ }else if(set==='caso'){
+  // solo i casi il cui muscolo si vede da fuori (si risponde toccandolo)
+  const vis=new Set((await poolOf('muscoli')).map(i=>i.key)),bySlug=Object.fromEntries(Object.keys(DATA.mus).map(r=>[slug(r),r]));
+  for(const c of EXTRA.cases){const r=c.mid&&bySlug[c.mid];if(r&&vis.has(r))items.push({key:c.id,root:r,n:clean(DATA.mus[r].n),la:clean(DATA.mus[r].la),fam:c.id,c});}
+  return items; // niente cache: i casi arrivano dall'app
+ }else if(set==='nervi'){
+  await loadFile('nervi');
+  const have=new Set(meshes.filter(m=>m.userData.layer==='nervi').map(m=>crNum(m.userData)).filter(Boolean));
+  for(const n of EXTRA.nc)if(have.has(n.n))items.push({key:n.n,n:'Nervo '+n.nm.toLowerCase()+' ('+n.n+')',fam:n.n,f:n.f,t:n.t,byF:Math.random()<.5});
+  return items;
+ }else if(set==='ricomponi'){
+  // pezzi possibili: le ossa che si vedono da fuori (come in Trova l'osso), divise per zona
+  const ok=new Set((await poolOf('ossa')).map(i=>i.key));
+  return POOL[set]=ZONES.map(z=>({z,bases:[...new Set(meshes.filter(m=>m.userData.layer==='ossa'&&ok.has(m.userData.base)&&inZone(z,m.userData)).map(m=>m.userData.base))]})).filter(x=>x.bases.length>=3);
  }else{
   // reperi: pallini di 5 mm sulle ossa, contati come le ossa; esclusi i nomi che sono quelli di un osso intero
   const bones=meshes.filter(m=>m.userData.layer==='ossa'),boneNames=new Set(bones.map(m=>m.userData.base)),list=LMS.filter(l=>!boneNames.has(l.b)&&l.b!=='Vertebra');
@@ -625,10 +667,11 @@ const pickQ=()=>{const G=GAME,fams=[...new Set(G.pool.map(i=>i.fam))];let it,tri
  do{const f=fams[Math.floor(Math.random()*fams.length)],c=G.pool.filter(i=>i.fam===f);it=c[Math.floor(Math.random()*c.length)];}while((G.used.has(it.key)||it.key===G.last)&&++tries<50);
  G.used.add(it.key);G.last=it.key;return it;};
 // le parti che rispondono alla domanda (tutti e due i lati)
-const targets=it=>GAME.set==='muscoli'?meshes.filter(m=>m.userData.layer==='muscoli'&&m.userData.root===it.key):GAME.set==='ossa'?meshes.filter(m=>m.userData.layer==='ossa'&&m.userData.base===it.key):[];
+const targets=it=>GAME.set==='nervi'?meshes.filter(m=>m.userData.layer==='nervi'&&crNum(m.userData)===it.key):GAME.set==='caso'?meshes.filter(m=>m.userData.layer==='muscoli'&&m.userData.root===it.root):GAME.set==='muscoli'?meshes.filter(m=>m.userData.layer==='muscoli'&&m.userData.root===it.key):GAME.set==='ossa'?meshes.filter(m=>m.userData.layer==='ossa'&&m.userData.base===it.key):[];
 const lmTargets=it=>LMS.filter(l=>l.b===it.key);
-async function startGame(set){
+async function startGame(set,extra){
  if(!SETS[set])return;
+ if(extra){if(extra.cases)EXTRA.cases=extra.cases;if(extra.nc)EXTRA.nc=extra.nc;}
  GAME={set,q:0,total:8,hearts:3,score:0,gain:0,cur:null,locked:false,used:new Set(),last:null,pool:null,marks:[]};
  document.body.classList.add('game');
  S.mus=S.combo=S.lm=S.part=null;S.list=null;S.cut.ax=null;S.lev=0;S.mv='both';
@@ -637,8 +680,59 @@ async function startGame(set){
  GAME.pool=await poolOf(set);
  if(set==='muscoli')V.muscoli=true;
  if(set==='reperi')S.allLm=true;
- if(set==='oi')await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
- S.loading=false;nextGameQ();
+ if(set==='caso')V.muscoli=true;
+ if(set==='oi'||set==='ponte')await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
+ if(set==='nervi'){await loadFile('encefalo');V.nervi=true;V.encefalo=true;S.bones='ghost';
+  meshes.forEach(m=>{if(m.userData.layer==='nervi'&&!crNum(m.userData))m.userData.hidden=true;}); // solo i 12 nervi cranici
+  if(!brainBox)brainBox=boxOf(meshes.filter(m=>m.userData.layer==='encefalo'&&m.userData.st===2));}
+ S.loading=false;
+ if(!GAME.pool.length){GAME.empty=true;refresh();return;}
+ if(set==='caso')GAME.total=Math.min(5,GAME.pool.length);
+ if(set==='ricomponi')return startZone();
+ nextGameQ();
+}
+/* Ricomponi: le ossa di una zona diventano trasparenti; si sceglie un pezzo e si tocca il suo posto sul modello */
+function startZone(){
+ const G=GAME,Z=G.pool[Math.floor(Math.random()*G.pool.length)];
+ G.zone=Z.z.n;G.left=[...Z.bases].sort(()=>Math.random()-.5).slice(0,8);G.total=G.left.length;G.sel=null;G.msg='';G.cur={zone:true};
+ G.ghosts=meshes.filter(m=>m.userData.layer==='ossa'&&G.left.includes(m.userData.base));
+ refresh(true);gameMark(G.ghosts,M_GHOST);
+ const right=G.ghosts.filter(m=>m.userData.side!=='l');frameBox(boxOf(right.length?right:G.ghosts),0.3);
+ panel();
+}
+function zoneTap(x,y){
+ const G=GAME,r=renderer.domElement.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+ // il posto vuoto (trasparente) sotto il dito, anche se un altro osso gli sta davanti
+ const free=G.ghosts.filter(m=>G.left.includes(m.userData.base)),h=ray.intersectObjects(free,false)[0];
+ if(!G.sel){G.msg='Prima scegli un pezzo qui sotto.';panel();return;}
+ if(!h){G.msg='Tocca una delle parti trasparenti.';panel();return;}
+ const base=h.object.userData.base,ok=base===G.sel,parts=G.ghosts.filter(m=>m.userData.base===(ok?G.sel:base));
+ toApp({type:'res',ok,key:'3d:ricomponi:'+G.sel});
+ if(ok){G.score++;G.q++;G.gain+=10;G.left=G.left.filter(b=>b!==G.sel);G.msg='✅ <b>'+clean(itOf(G.sel))+'</b> al suo posto.';G.sel=null;
+  parts.forEach(m=>{m.material=M_OK;setTimeout(()=>{m.material=m.userData.own;},700);});
+  G.marks=G.marks.filter(([m])=>!parts.includes(m));
+  if(!G.left.length)return setTimeout(endGame,700);
+ }else{G.hearts--;G.msg='❌ Non è qui: questo è il posto di <b>'+clean(itOf(base))+'</b>.';
+  parts.forEach(m=>{m.material=M_BAD;setTimeout(()=>{if(G.left.includes(m.userData.base))m.material=M_GHOST;},700);});
+  if(G.hearts<=0)return setTimeout(endGame,700);
+ }
+ panel();
+}
+/* Tendine-ponte: tocca l'osso di origine e poi quello di inserzione del muscolo */
+function ponteTap(x,y){
+ const G=GAME,h=boneHit(x,y);if(!h)return;
+ const base=h.object.userData.base,want=G.step==='o'?G.cur.ob:G.cur.eb,ok=want.includes(base);
+ const bonesNamed=list=>meshes.filter(m=>m.userData.layer==='ossa'&&list.includes(m.userData.base));
+ if(ok&&G.step==='o'){G.step='e';G.first=base;gameMark(bonesNamed([base]),M_OK);G.hint='';panel();return;}
+ G.locked=true;G.q++;G.hint='';
+ if(ok){G.score++;G.gain+=10;}else G.hearts--;
+ toApp({type:'res',ok,key:'3d:ponte:'+G.cur.key});
+ clearGameMarks();gameMark(bonesNamed([...G.cur.ob,...G.cur.eb]),M_OK);if(!ok)gameMark([h.object],M_BAD);
+ // le aree della fonte sul lato toccato, come in Origine e inserzione
+ const side=h.object.userData.side||S.side;S.mus=G.cur.key;S.side=side;S.mv='areas';refresh(true);
+ const d=DATA.mus[G.cur.key],all=[...d.o,...d.e].map(n=>byName.get(n)).filter(m=>m&&(!m.userData.side||m.userData.side===side));
+ if(all.length)frameBox(boxOf(all),0.3);
+ G.res={ok,hit:ok?null:clean(itOf(base)),wrongStep:ok?null:G.step};panel();
 }
 const gameDots=new THREE.Group();scene.add(gameDots);
 function gameDot(p,mat){const m=new THREE.Mesh(ball,mat);m.position.copy(p);m.scale.setScalar(0.006);m.renderOrder=12;gameDots.add(m);}
@@ -686,14 +780,27 @@ function gameMark(list,mat){for(const m of list){GAME.marks.push([m,m.material])
 function nextGameQ(){
  const G=GAME;
  if(G.hearts<=0||G.q>=G.total)return endGame();
- G.locked=false;G.cur=pickQ();G.res=null;S.mus=null;refresh();clearGameMarks();
- flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
+ G.locked=false;G.cur=pickQ();G.res=null;G.step='o';G.first=null;G.clues=1;S.mus=null;S.mv='both';refresh();clearGameMarks();
+ if(G.set==='nervi'){ // la base dell'encefalo vista da davanti e un po' dal basso, dove escono i nervi
+  const c=brainBox.getCenter(new THREE.Vector3()),r=brainBox.getSize(new THREE.Vector3()).length()/2,dist=r*1.1/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
+  flyTo(c.clone().addScaledVector(new THREE.Vector3(0,-0.55,1).normalize(),dist),c);
+ }else flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
 }
 function gameTap(x,y){
  const G=GAME;if(!G||G.locked||!G.cur)return;
  if(G.set==='oi')return oiTap(x,y);
+ if(G.set==='ricomponi')return zoneTap(x,y);
+ if(G.set==='ponte')return ponteTap(x,y);
  let ok,hit;
- if(G.set==='reperi'){
+ if(G.set==='nervi'){
+  const m=pickPart(x,y);if(!m)return;const u=m.userData;
+  if(u.layer!=='nervi'){G.hint='Hai toccato '+(u.layer==='encefalo'?'l\'encefalo':'un\'altra struttura')+': tocca un nervo.';panel();return;}
+  const n=crNum(u);hit={n:n?'Nervo '+((EXTRA.nc.find(x=>x.n===n)||{}).nm||'').toLowerCase()+' ('+n+')':clean(itOf(u.base))+' (non è un nervo cranico)',m};ok=n===G.cur.key;
+ }else if(G.set==='caso'){
+  const m=pickPart(x,y);if(!m)return;const u=m.userData;
+  if(u.layer!=='muscoli'){G.hint='Hai toccato un osso: tocca un muscolo.';panel();return;}
+  hit={n:(DATA.mus[u.root]||{n:itOf(u.base)}).n,m};ok=u.root===G.cur.root;
+ }else if(G.set==='reperi'){
   const l=pickLandmark(x,y);if(!l)return;hit={n:itOf(l.b),l};ok=l.b===G.cur.key;
  }else{
   const m=pickPart(x,y);if(!m)return;const u=m.userData;
@@ -718,7 +825,7 @@ function endGame(){
  const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
  toApp({type:'end',done,set:G.set,score:G.score,total:G.q,gain:G.gain});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
 }
-function quitGame(){if(GAME)clearGameMarks();GAME=null;S.mus=null;S.mv='both';document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+function quitGame(){if(GAME)clearGameMarks();GAME=null;S.mus=null;S.mv='both';S.bones='on';meshes.forEach(m=>m.userData.hidden=false);document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
 // risposta del gioco origine e inserzione: aree in blu (origine) e arancione (inserzione), testo della scheda
 function oiAnswer(G){
  const d=DATA.mus[G.cur.root],c=d.card,t=G.cur.k==='o'?c&&c.ot:c&&c.it;
@@ -727,24 +834,37 @@ function oiAnswer(G){
   (t?`<p>${G.cur.k==='o'?'Origine':'Inserzione'}: ${t}</p><p class="note">Testo scritto dall'AI: da verificare su un atlante. Le aree colorate vengono dalla fonte Z-Anatomy.</p>`:'')+
   (d.fix?'<p class="note">Nella fonte origine e inserzione di questo muscolo erano scambiate: qui sono corrette.</p>':'');
 }
+function ponteAnswer(G){
+ const c=DATA.mus[G.cur.key].card||{},nm=l=>l.map(b=>clean(itOf(b))).join(', ');
+ return (G.res.ok?'':`<p>Hai toccato: <b>${G.res.hit}</b> (${G.res.wrongStep==='o'?'origine':'inserzione'} sbagliata).</p>`)+
+  `<p><b>${G.cur.n}</b><br><span class="tg o">O</span> ${nm(G.cur.ob)}<br><span class="tg i">I</span> ${nm(G.cur.eb)}</p>`+
+  (c.ot?`<p class="mut">Origine: ${c.ot}. Inserzione: ${c.it}.</p><p class="note">Ossa dalle aree della fonte Z-Anatomy; testo della scheda scritto dall'AI, da verificare.</p>`:'');
+}
 function gamePanel(){
  const G=GAME,hearts=`<div class="gh"><span>${'❤️'.repeat(Math.max(0,G.hearts))}${'🖤'.repeat(3-Math.max(0,G.hearts))}</span><span>${SETS[G.set].n} · ${Math.min(G.q+(G.res?0:1),G.total)}/${G.total}</span></div>`;
  if(G.over){const st=G.score/G.q>=.9?3:G.score/G.q>=.6?2:1;
   return `<div class="res"><div class="big">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</div><div class="h">${G.score}/${G.q} corrette</div><p>+${G.gain} XP${G.hearts>0&&G.q>=G.total?' (bonus round +20)':''}</p>
    ${G.hearts<=0?'<p class="mut">Cuori finiti: ripassa esplorando il modello e riprova.</p>':''}
    <div class="chips" style="justify-content:center"><button class="chip on" data-g="again">Rigioca</button><button class="chip" data-g="menu">Cambia sfida</button><button class="chip" data-g="quit">Esplora il modello</button></div></div>`;}
+ if(G.empty)return `<p>${G.set==='nervi'||G.set==='caso'?'Questa sfida si apre dal menu Gioca dell\'app.':'Nessuna domanda disponibile.'}</p><div class="chips"><button class="chip" data-g="quit">Esci</button></div>`;
+ if(G.set==='ricomponi'&&G.cur)return hearts.replace(/\d+\/\d+/,(G.total-G.left.length)+'/'+G.total)+`<div class="q">Zona: <b>${G.zone}</b></div><p class="mut">${G.msg||'Scegli un pezzo, poi tocca il suo posto sul modello (le ossa trasparenti). Ruota e ingrandisci come vuoi: vale tutti e due i lati.'}</p>`+
+  `<div class="chips">${G.left.map(b=>`<button class="chip${G.sel===b?' on':''}" data-pc="${b}">${clean(itOf(b))}</button>`).join('')}</div><div class="chips"><button class="chip" data-g="quit">Esci</button></div>`;
  if(!G.cur)return `<p class="mut">${S.loading?(G.set==='muscoli'&&!FILES.muscoli?.loaded?'Carico i muscoli…':'Preparo le domande…'):''}</p>`;
- const ask=G.set==='oi'?`Tocca sull'osso ${G.cur.k==='o'?"l'<b>origine</b>":"l'<b>inserzione</b>"} di`:SETS[G.set].ask;
- const q=`<div class="q">${ask}:<br><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</div>`;
+ const ask=G.set==='oi'?`Tocca sull'osso ${G.cur.k==='o'?"l'<b>origine</b>":"l'<b>inserzione</b>"} di`:G.set==='ponte'?(G.step==='o'?"Tocca l'osso di <b>origine</b> di":"✅ Origine giusta. Ora tocca l'osso di <b>inserzione</b> di"):SETS[G.set].ask;
+ let q=`<div class="q">${ask}:<br><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</div>`;
+ if(G.set==='nervi'&&G.cur.byF)q=`<div class="q">Tocca il nervo cranico che serve per:<br><b>${G.cur.f}</b></div>`;
+ if(G.set==='caso'){const c=G.cur.c;q=`<div class="q"><small>Caso clinico</small></div>`+c.clues.slice(0,G.res?c.clues.length:G.clues).map(t=>`<div class="row">• ${t}</div>`).join('')+
+  (G.res?'':`<p><b>Tocca sul modello il muscolo coinvolto.</b></p>`+(G.clues<c.clues.length?'<div class="chips"><button class="chip" data-g="clue">Altro indizio</button></div>':''));}
  if(!G.res)return hearts+q+`<p class="mut">${G.hint||'Ruota e ingrandisci il modello come vuoi: vale tutti e due i lati.'}</p><div class="chips"><button class="chip" data-g="quit">Esci</button></div>`;
  const last=G.hearts<=0||G.q>=G.total;
  return hearts+`<div class="h">${G.res.ok?'✅ Esatto! +10 XP':'❌ Non proprio'}</div>`+
-  (G.set==='oi'?oiAnswer(G):G.res.ok?`<p><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</p>`:`<p>Hai toccato: <b>${G.res.hit}</b>. In verde: <b>${G.cur.n}</b>.</p>`)+
+  (G.set==='oi'?oiAnswer(G):G.set==='ponte'?ponteAnswer(G):G.set==='caso'?`<p>${G.res.ok?'':'Hai toccato: <b>'+G.res.hit+'</b>. '}In verde: <b>${G.cur.n}</b>.</p><p>${G.cur.c.r}</p><p class="note">Caso scritto dall'AI: da verificare.</p>`:
+   G.set==='nervi'?`<p>${G.res.ok?'':'Hai toccato: <b>'+G.res.hit+'</b>. '}In verde: <b>${G.cur.n}</b> (${G.cur.t}): ${G.cur.f}.</p>`:G.res.ok?`<p><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</p>`:`<p>Hai toccato: <b>${G.res.hit}</b>. In verde: <b>${G.cur.n}</b>.</p>`)+
   `<div class="chips"><button class="chip on" data-g="next">${last?'Vedi risultato':'Avanti'}</button></div>`;
 }
 window.addEventListener('message',e=>{
  if(e.origin!==location.origin||!e.data||!e.data.bm)return;
- if(e.data.type==='game')startGame(e.data.set);
+ if(e.data.type==='game')startGame(e.data.set,e.data);
  else if(e.data.type==='theme')setTheme(e.data.theme,false);
 });
 
@@ -799,6 +919,8 @@ $('bar').addEventListener('click',e=>{
 });
 $('panel').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(d.pc&&GAME){GAME.sel=GAME.sel===d.pc?null:d.pc;GAME.msg='';panel();return;}
+ if(d.g==='clue'){GAME.clues++;panel();return;}
  if(d.g){if(d.g==='next')nextGameQ();else if(d.g==='again')startGame(GAME.set);else if(d.g==='menu'){quitGame();toApp({type:'menu'});}else quitGame();}
  else if(d.mu)showMuscle(d.mu);
  else if(d.offall){if(!OFF.busy)offlineAll();}
