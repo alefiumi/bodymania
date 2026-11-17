@@ -82,8 +82,10 @@ export const google=()=>run(async()=>{const {error}=await (await client()).auth.
 export const resetPw=email=>run(async()=>{const {error}=await (await client()).auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;A.msg='Se l\'email è registrata, ti arriva un link per scegliere una nuova password.';A.view='login';});
 // uscendo i progressi restano sul dispositivo; si dimentica l'account, così all'avvio non si chiede più di accedere
 export const signOut=()=>run(async()=>{
- if(lastAccount()?.dirty&&navigator.onLine)await sync(false);
- await (await client()).auth.signOut({scope:'local'});setLast(null);A.user=null;A.profile=null;A.view='';A.msg='Sei uscito: i progressi restano su questo dispositivo.';
+ // prima di uscire si inviano i progressi, ma solo se sono di questo account (con la domanda "altri progressi" aperta no)
+ const mine=!A.conflict&&!(S.owner&&A.user&&S.owner.uid!==A.user.id);
+ if(mine&&lastAccount()?.dirty&&navigator.onLine)await sync(false);
+ await (await client()).auth.signOut({scope:'local'});setLast(null);A.user=null;A.profile=null;A.view='';A.conflict=null;A.choice=null;A.msg='Sei uscito: i progressi restano su questo dispositivo.';
 });
 export const setNewPassword=pw=>run(async()=>{const had=hasPassword();const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;if(data&&data.user)A.user=data.user;
  A.msg=had?'Password cambiata.':'Password aggiunta: ora puoi entrare anche con '+(A.user.email||'la tua email')+' e questa password.';A.view='';});

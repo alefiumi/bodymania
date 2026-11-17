@@ -103,7 +103,7 @@ function showOwner(imp){
   <p class="note">Se sono tuoi. ${hasPassword()?'':'Potrai entrare con Google e anche con email e password. '}Puoi anche eliminare il vecchio account.</p>
   <button class="btn alt wide" data-g="own-fresh">Inizia da zero con ${esc(c.me)}</button>
   <p class="note">Se sono di un'altra persona o vuoi tenere separati i due account. I progressi di ${esc(c.email)} restano salvati nel suo account${c.dirty?'; <b>attenzione</b>: alcuni non sono ancora stati inviati e da questo telefono andranno persi':''}.</p>
-  <button class="lnk" data-g="own-out">Esci da questo account</button></div>`;
+  <button class="btn alt wide" data-g="own-out">Esci ed entra con un altro account</button></div>`;
 }
 
 /* ---------- nome utente dopo la prima registrazione ---------- */
@@ -133,7 +133,7 @@ export function wireGate(){
   else if(k==='own-fresh'){box().innerHTML='<div class="spin"></div><p class="gst">Sincronizzo…</p>';resolveOwner('fresh');}
   else if(k==='own-imp'){A.err='';showOwner(true);}
   else if(k==='own-back'){A.err='';showOwner();}
-  else if(k==='own-out'){A.conflict=null;signOut().then(()=>openLogin(''));}
+  else if(k==='own-out'){A.conflict=null;mode='login';signOut().then(()=>{A.msg='';openLogin('');});}
   else if(k==='guest'){if(!reason){try{localStorage.setItem(GUEST,'1');}catch(x){}}closeGate();}
   else if(k==='later')closeGate();
   else setView(k);
