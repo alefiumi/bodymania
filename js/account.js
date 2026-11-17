@@ -69,8 +69,11 @@ const ERR={'Invalid login credentials':'Email o password sbagliate.','Email not 
 const it=e=>ERR[e&&e.message]||(!navigator.onLine?'Serve la connessione.':/fetch|network|load failed/i.test(e&&e.message||'')?'Server non raggiungibile: riprova tra poco.':(e&&e.message)||'Errore');
 async function run(f){A.busy=true;A.err='';A.msg='';onChange();try{await f();}catch(e){A.err=it(e);}A.busy=false;onChange();}
 export const signIn=(email,pw)=>run(async()=>{const {error}=await (await client()).auth.signInWithPassword({email,password:pw});if(error)throw error;A.view='';});
+// versione dell'informativa sulla privacy accettata alla registrazione (resta nei metadati dell'utente su Supabase)
+export const PRIVACY_V='2026-11-19';
 export const signUp=(email,pw)=>run(async()=>{
- const {data,error}=await (await client()).auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+ const {data,error}=await (await client()).auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname,
+  data:{privacy_v:PRIVACY_V,privacy_at:new Date().toISOString()}}});if(error)throw error;
  if(!data.session)A.msg='Ti abbiamo mandato un\'email: tocca il link per confermare, poi accedi qui.';A.view=data.session?'':'login';
 });
 export const google=()=>run(async()=>{const {error}=await (await client()).auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});if(error)throw error;});
@@ -82,6 +85,30 @@ export const signOut=()=>run(async()=>{
 });
 export const setNewPassword=pw=>run(async()=>{const {error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;A.msg='Password cambiata.';A.view='';});
 export const setView=v=>{A.view=v;A.err='';A.msg='';onChange();};
+
+/* ---------- privacy: copia dei propri dati e cancellazione (GDPR, articoli 15, 17 e 20) ---------- */
+// Tutti i dati che l'app ha su questa persona: quelli del dispositivo e, con l'account, quelli del server
+// (le regole del database fanno leggere solo i propri).
+export async function myData(){
+ const out={app:'BodyMania',creato_il:new Date().toISOString(),dispositivo:{progressi:S,partite_da_inviare:queue.all()}};
+ if(A.user&&A.sb&&navigator.onLine){
+  const sb=A.sb,uid=A.user.id;
+  const [p,g,m,b,f]=await Promise.all([sb.from('profiles').select('*').eq('id',uid).single(),sb.from('game_results').select('*').eq('user_id',uid).order('played_at'),
+   sb.from('mastery').select('item_id,level,updated_at'),sb.from('badge_assertions').select('badge_id,issued_at').eq('user_id',uid),
+   sb.from('friendships').select('user_id,friend_id,status,created_at')]);
+  out.account={email:A.user.email,registrato_il:A.user.created_at,ultimo_accesso:A.user.last_sign_in_at,consenso_privacy:A.user.user_metadata||{},
+   profilo:p.data,partite:g.data,maestria:m.data,badge:b.data,amicizie:f.data};
+ }else if(A.user)out.account={email:A.user.email,nota:'Senza connessione: qui ci sono solo i dati del dispositivo.'};
+ return out;
+}
+// cancella l'account sul server (con profilo, partite, maestria, amicizie e badge) ed esce
+export const deleteAccount=()=>run(async()=>{
+ if(!navigator.onLine)throw new Error('Per cancellare l\'account serve la connessione.');
+ const {error}=await A.sb.rpc('delete_my_account');
+ if(error)throw new Error(/function|schema cache|does not exist/i.test(error.message||'')?'Sul server manca la funzione di cancellazione: va applicato il file supabase/migrations/20261119100000_privacy_sicurezza.sql.':error.message);
+ try{await A.sb.auth.signOut({scope:'local'});}catch(e){}
+ setLast(null);A.user=null;A.profile=null;A.deleted=true;
+});
 
 /* ---------- profilo (nome, ruolo, presentazione, foto) ---------- */
 export const NAME_RE=/^[A-Za-z0-9_.]{3,20}$/;
@@ -165,7 +192,7 @@ export async function sync(full){
 }
 
 /* ---------- riquadro Account nel profilo ---------- */
-export const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+export const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hm=d=>d.toLocaleTimeString('it',{hour:'2-digit',minute:'2-digit'});
 export function accountHtml(){
  if(!configured)return '';

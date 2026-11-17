@@ -1,7 +1,7 @@
 /* Scheda Profilo: foto, nome, ruolo e presentazione (modificabili), statistiche, badge, account, maestria. */
 import {$,toast} from './util.js';
 import {app,S,level,items} from './state.js';
-import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc} from './account.js';
+import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc,myData,deleteAccount} from './account.js';
 import {BADGES} from './badges.js';
 
 let editing=false,draft=null,pmod=null; // pmod: modulo di cui si guarda la maestria (corpo o cervello)
@@ -26,8 +26,28 @@ export function renderProg(){
  const ord=Object.fromEntries(M.GR.map((g,i)=>[g.id,i]));
  const rows=IL.slice().sort((a,b)=>(ord[a.group?a.id:a.g]??99)-(ord[b.group?b.id:b.g]??99)).map(b=>{const m=S.mastery[b.id]||0;return `<div class="row" data-id="${b.id}" data-mod="${M.id}"><span>${b.n}</span><span class="dots">${'●'.repeat(m)}<span style="color:var(--line)">${'●'.repeat(3-m)}</span></span></div>`;}).join('');
  const seg=`<div class="chips seg">`+Object.values(app.MODS).map(x=>`<button class="chip${x.id===M.id?' on':''}" data-pf="mod" data-v="${x.id}">${esc(x.label)}</button>`).join('')+'</div>';
- $('panel').innerHTML=card+stats+badges+accountHtml()+
+ $('panel').innerHTML=card+stats+badges+accountHtml()+privacyHtml()+
   `<div class="sub">Maestria</div>${seg}<p class="mut">${mastered}/${IL.length} ${app.grp?'gruppi':'strutture'} padroneggiat${app.grp?'i':'e'}. ${tot?'':'Gioca un round per iniziare a riempire i progressi.'}</p>${rows}`;
+}
+
+// Privacy e dati: informativa, copia dei propri dati, cancellazione dal dispositivo e dell'account
+function privacyHtml(){
+ return `<div class="acc"><div class="sub">Privacy e dati</div><p class="mut">Cosa raccogliamo, perché e i tuoi diritti: <a href="privacy.html" target="_blank" rel="noopener">informativa sulla privacy</a>.
+  Gli altri iscritti vedono solo nome utente, foto, XP e serie; email, presentazione e ruolo restano privati.</p>
+  <div class="chips"><button class="chip" data-pf="export">⬇️ Scarica i miei dati</button><button class="chip" data-pf="wipe">🧹 Cancella i dati da questo dispositivo</button>`+
+  (A.user?`<button class="chip bad" data-pf="delacc"${navigator.onLine?'':' disabled'}>🗑️ Elimina l'account</button>`:'')+`</div></div>`;
+}
+// toglie dal dispositivo tutto ciò che l'app ha salvato (progressi, profilo, sessione, coda, scelte) e riparte
+function wipeDevice(){
+ try{for(const k of Object.keys(localStorage))if(k.startsWith('bodymania')||k.startsWith('sb-'))localStorage.removeItem(k);sessionStorage.clear();}catch(e){}
+ location.reload();
+}
+async function exportData(){
+ try{
+  const data=await myData(),blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='bodymania-i-miei-dati.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);toast('File dei tuoi dati pronto.');
+ }catch(e){toast('Non riuscito: riprova tra poco.');}
 }
 
 function editHtml(){
@@ -63,6 +83,12 @@ export function wireProfile(panel){
   else if(k==='cancel'){editing=false;A.err='';renderProg();}
   else if(k==='nophoto'){formVals();draft.avatar='';renderProg();}
   else if(k==='mod'){pmod=b.dataset.v;renderProg();}
+  else if(k==='export')exportData();
+  else if(k==='wipe'){if(confirm(A.user?'Cancellare da questo dispositivo progressi, profilo e accesso? Il tuo account e i dati sul server restano: li ritrovi accedendo di nuovo.':'Cancellare da questo dispositivo tutti i progressi e il profilo? Senza account non si possono recuperare.'))wipeDevice();}
+  else if(k==='delacc'){
+   if(prompt('Eliminare per sempre l\'account con profilo, progressi, amicizie e badge? Non si può annullare.\nScrivi ELIMINA per confermare.')!=='ELIMINA')return;
+   deleteAccount().then(()=>{if(A.deleted){alert('Account eliminato. Ora tolgo anche i dati da questo dispositivo.');wipeDevice();}else renderProg();});
+  }
  });
  panel.addEventListener('change',async e=>{
   const i=e.target.closest('input[data-pf="photo"]');if(!i||!i.files[0])return;

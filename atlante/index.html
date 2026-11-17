@@ -2,9 +2,11 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<!-- Content-Security-Policy: script dell'atlante e la mappa degli import (impronta sha256: se cambi la mappa, ricalcolala) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-DMUMbakyPffSnql8XgUOiWKLXyTzINB6e9E0l4EGHiI=' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BodyMania – atlante 3D</title>
-<script>try{const t=localStorage.getItem("bodymania-theme");if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+<script src="../js/tema.js"></script>
 <style>
 :root{--bg:#f6f4ef;--card:#fff;--ink:#1f2a30;--mut:#6b7780;--acc:#0f766e;--line:#e3ded2}
 /* tema: segue il sistema; il pulsante 🌙/☀️ lo forza (data-theme su <html>, salvato in localStorage 'bodymania-theme') */
@@ -56,7 +58,7 @@ button.chip.on small{color:#ffffffcc}
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
 </head>
 <body>
-<script>if(window.parent!==window)document.body.classList.add('emb');</script>
+<script src="pagina.js"></script>
 <header><b>Atlante 3D</b><span id="fps"></span></header>
 <div id="bar">
  <button id="home" title="Vista iniziale: tutto il corpo da davanti" aria-label="Vista iniziale">⟲</button><button id="layers">🧩 Strati</button><button id="brain">🧠 Encefalo</button><button data-v="front">Davanti</button><button data-v="back">Dietro</button><button data-v="right">Lato destro</button><button data-v="left">Lato sinistro</button><button data-v="top">Dall'alto</button>
@@ -64,13 +66,6 @@ button.chip.on small{color:#ffffffcc}
 </div>
 <div id="view"><div id="msg">Caricamento del modello…</div></div>
 <div id="pw"><button id="fold" aria-label="Abbassa la scheda" title="Abbassa la scheda"></button><div id="panel"><div class="mut">Caricamento…</div></div></div>
-<script>
-// freccia sul bordo della scheda: la abbassa (resta una striscia, il modello si allarga) e la rialza; scelta salvata
-(()=>{const w=document.getElementById('pw'),b=document.getElementById('fold');
- const set=f=>{w.classList.toggle('fold',f);b.title=f?'Rialza la scheda':'Abbassa la scheda';b.setAttribute('aria-label',b.title);try{localStorage.setItem('bodymania-fold3d',f?'1':'');}catch(e){}};
- try{set(!!localStorage.getItem('bodymania-fold3d'));}catch(e){}
- b.addEventListener('click',()=>set(!w.classList.contains('fold')));})();
-</script>
 <script type="module" src="atlante.js"></script>
 </body>
 </html>

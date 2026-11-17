@@ -250,6 +250,25 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
 - `badge_assertions` (id, user_id, badge_id, assegnato_il)
 - Viste: classifica globale e classifica amici.
 
+## Privacy (GDPR) e sicurezza (19/11/2026)
+- Database (`20261119100000_privacy_sicurezza.sql`, da applicare): ognuno legge solo il proprio profilo; degli altri si vedono
+  nome utente, foto, XP e serie solo dalle viste `leaderboard`, `leaderboard_friends`, `public_profiles` (security definer, solo
+  quelle colonne, solo per chi ha una sessione). Email solo in `auth.users` (mai leggibile dall'app: la vedono gli amministratori
+  del progetto nel pannello di Supabase). Colonne modificabili del profilo elencate nel `grant update`; nelle amicizie si cambia
+  solo `status` (prima chi riceveva una richiesta poteva cambiare `user_id`); badge visibili solo a chi li ha; limiti su lunghezze,
+  XP e formato della foto (JPEG/PNG/WebP base64). Nessun ruolo di amministratore nelle tabelle.
+  Cancellazione: `delete_my_account()` (cascata su profilo, partite, maestria, amicizie, badge).
+  Le regole sono state provate su PostgreSQL 16 con un finto schema `auth` (utenti A, B, C che provano a leggere e scrivere i dati
+  altrui): da rifare se si cambiano le policy.
+- App: l'app non scrive SQL (PostgREST passa i valori come parametri); gli id che finiscono in un filtro `.or()` passano da
+  `UUID` in `social.js`; tutto il testo degli utenti passa da `esc()`. Content-Security-Policy in `<meta>` di `index.html`,
+  `atlante/index.html` e `privacy.html`: niente script in linea (tema in `js/tema.js`, pagina dell'atlante in `atlante/pagina.js`),
+  solo la mappa degli import dell'atlante con l'impronta sha256 (se la cambi, ricalcola l'impronta), rete solo verso Supabase.
+- Informativa: `privacy.html` (da completare: nome e contatto del titolare, regione del progetto Supabase, segnati in giallo).
+  Registrazione con spunta obbligatoria (informativa letta, almeno 14 anni) e versione `PRIVACY_V` salvata nei metadati
+  dell'utente; per Google un avviso sotto il pulsante. Profilo → "Privacy e dati": scarica i miei dati (JSON con dispositivo e
+  server, `myData()`), cancella i dati da questo dispositivo, elimina l'account. Password di almeno 8 caratteri nell'app.
+
 ## Vincoli
 - Nel frontend va solo la chiave pubblica di Supabase. La chiave `service_role` non entra mai
   nel repository né nel codice del browser.

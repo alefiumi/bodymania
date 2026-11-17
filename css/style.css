@@ -168,3 +168,7 @@ nav button.dot:after{content:"";position:absolute;top:5px;left:calc(50% + 8px);w
 .gap{text-align:center;color:var(--mut);padding:2px}
 .soq{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;margin-bottom:4px}
 .err{color:var(--bad)}
+/* privacy: consenso alla registrazione, pulsante di cancellazione dell'account */
+.cons{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;text-align:left;margin:2px 0 6px;color:var(--mut)}
+.cons input{flex:none;width:18px;height:18px;margin:1px 0 0}
+.chip.bad{color:var(--bad);border-color:var(--bad)}

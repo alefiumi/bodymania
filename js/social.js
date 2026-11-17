@@ -39,7 +39,7 @@ export async function loadSocial(){
   // nomi e foto di chi compare nelle richieste
   const other=f=>f.user_id===uid?f.friend_id:f.user_id;
   const ids=[...new Set(rel.data.map(other))];
-  let ps=[];if(ids.length){const r=await sb.from('profiles').select('id,username,avatar').in('id',ids);if(r.error)throw r.error;ps=r.data;}
+  let ps=[];if(ids.length){const r=await sb.from('public_profiles').select('id,username,avatar').in('id',ids);if(r.error)throw r.error;ps=r.data;}
   const who=Object.fromEntries(ps.map(p=>[p.id,p]));
   const person=f=>({id:other(f),username:who[other(f)]?.username||'(senza nome)',avatar:who[other(f)]?.avatar||''});
   Object.assign(SO,{uid,all:mine(all.data),rank,friends:mine(fr.data),at:Date.now(),
@@ -56,15 +56,15 @@ const MED=['🥇','🥈','🥉'];
 // Una riga della classifica: toccando il nome di un altro giocatore si apre sotto la riga la richiesta di amicizia.
 function row(r,i){
  const me=A.user&&r.id===A.user.id,open=!me&&SO.pick===r.id;
- return `<div class="lb${me?' me':''}${open?' open':''}"${me?'':` data-so="pick" data-id="${r.id}" role="button"`}><span class="pos">${i<3?MED[i]:i+1}</span>${av(r.avatar,r.username)}<span class="nm">${esc(r.username)}${me?' <small>(tu)</small>':''}</span>`+
+ return `<div class="lb${me?' me':''}${open?' open':''}"${me?'':` data-so="pick" data-id="${esc(r.id)}" role="button"`}><span class="pos">${i<3?MED[i]:i+1}</span>${av(r.avatar,r.username)}<span class="nm">${esc(r.username)}${me?' <small>(tu)</small>':''}</span>`+
   `<span class="sk">${r.streak?'🔥 '+r.streak:''}</span><b>⭐ ${r.xp}</b></div>`+(open?`<div class="lbx">${relBtn(r.id)}</div>`:'');
 }
 // stato dell'amicizia con un giocatore e il pulsante per l'azione possibile
 function relBtn(id){
  const R=SO.rel,has=l=>l.some(p=>p.id===id);
  return has(R.fr)?'<span class="mut">✅ Siete già amici</span>':has(R.out)?'<span class="mut">Richiesta inviata, in attesa</span>'
-  :has(R.inc)?`<span class="mut">Ti ha chiesto l'amicizia</span><button class="chip on" data-so="acc" data-id="${id}">Accetta</button>`
-  :`<button class="chip on" data-so="ask" data-id="${id}">👋 Chiedi l'amicizia</button>`;
+  :has(R.inc)?`<span class="mut">Ti ha chiesto l'amicizia</span><button class="chip on" data-so="acc" data-id="${esc(id)}">Accetta</button>`
+  :`<button class="chip on" data-so="ask" data-id="${esc(id)}">👋 Chiedi l'amicizia</button>`;
 }
 function person(p,btns){return `<div class="lb">${av(p.avatar,p.username)}<span class="nm">${esc(p.username)}</span><span class="pb">${btns}</span></div>`;}
 const hm=t=>new Date(t).toLocaleString('it',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -87,11 +87,11 @@ export function renderSocial(){
   if(SO.rank&&name)body+=`<div class="gap">…</div>`+row({id:A.user.id,username:name,xp:S.xp,streak:S.streak,avatar:S.prof.avatar},SO.rank-1);
  }else{
   const R=SO.rel;
-  body=(R.inc.length?`<div class="sub">Richieste ricevute</div>`+R.inc.map(p=>person(p,`<button class="chip on" data-so="acc" data-id="${p.id}">Accetta</button><button class="chip" data-so="del" data-id="${p.id}">Rifiuta</button>`)).join(''):'')+
+  body=(R.inc.length?`<div class="sub">Richieste ricevute</div>`+R.inc.map(p=>person(p,`<button class="chip on" data-so="acc" data-id="${esc(p.id)}">Accetta</button><button class="chip" data-so="del" data-id="${esc(p.id)}">Rifiuta</button>`)).join(''):'')+
    `<div class="sub">Classifica tra amici · XP</div>`+(SO.friends.length>1?SO.friends.map(row).join(''):'<p class="mut">Ancora nessun amico: cercalo qui sotto per nome utente e mandagli una richiesta.</p>')+
    `<div class="sub">Aggiungi un amico</div><input id="soq" class="soq" placeholder="Nome utente…" autocomplete="off" autocapitalize="none" value="${esc(SO.q)}"${navigator.onLine?'':' disabled'}><div id="sres">${resHtml()}</div>`+
-   (R.out.length?`<div class="sub">Richieste inviate</div>`+R.out.map(p=>person(p,`<span class="mut">in attesa</span><button class="chip" data-so="del" data-id="${p.id}">Annulla</button>`)).join(''):'')+
-   (R.fr.length?`<div class="sub">I tuoi amici (${R.fr.length})</div>`+R.fr.map(p=>person(p,`<button class="chip" data-so="rm" data-id="${p.id}" data-n="${esc(p.username)}">Togli</button>`)).join(''):'');
+   (R.out.length?`<div class="sub">Richieste inviate</div>`+R.out.map(p=>person(p,`<span class="mut">in attesa</span><button class="chip" data-so="del" data-id="${esc(p.id)}">Annulla</button>`)).join(''):'')+
+   (R.fr.length?`<div class="sub">I tuoi amici (${R.fr.length})</div>`+R.fr.map(p=>person(p,`<button class="chip" data-so="rm" data-id="${esc(p.id)}" data-n="${esc(p.username)}">Togli</button>`)).join(''):'');
  }
  P.innerHTML=`<div class="h">🏆 Amici e classifiche</div>`+tabs+state+noName+body+
   `<p class="note">Punteggi calcolati sui dispositivi di chi gioca: valgono come sfida tra amici. La serie 🔥 conta solo se si è giocato ieri o oggi.</p>`;
@@ -108,7 +108,7 @@ async function search(q){
  SO.q=q;q=q.trim();
  if(q.length<2){SO.found=null;$('sres')&&($('sres').innerHTML='');return;}
  const like='%'+q.replace(/[\\%_]/g,'\\$&')+'%';
- const {data,error}=await A.sb.from('profiles').select('id,username,avatar').ilike('username',like).neq('id',A.user.id).order('username').limit(10);
+ const {data,error}=await A.sb.from('public_profiles').select('id,username,avatar').ilike('username',like).neq('id',A.user.id).order('username').limit(10);
  if(SO.q.trim()!==q)return; // nel frattempo si è scritto altro
  SO.found=error?[]:data.filter(p=>p.username);
  if($('sres'))$('sres').innerHTML=resHtml();
@@ -119,10 +119,13 @@ async function act(f,okMsg){
  catch(e){toast(e.code==='23505'?'Siete già amici o c\'è già una richiesta tra voi.':'Non riuscito: riprova tra poco.');}
  await loadSocial();if(SO.found&&$('sres'))$('sres').innerHTML=resHtml();
 }
+// gli id finiscono in un filtro di PostgREST: si accettano solo UUID, così un valore manomesso non cambia il filtro
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const pair=(a,b)=>`and(user_id.eq.${a},friend_id.eq.${b}),and(user_id.eq.${b},friend_id.eq.${a})`;
 export function wireSocial(panel){
  panel.addEventListener('click',e=>{
   const b=e.target.closest('[data-so]');if(!b||!A.user)return;const k=b.dataset.so,id=b.dataset.id,uid=A.user.id,sb=A.sb;
+  if(id!==undefined&&!UUID.test(id))return;
   if(k==='tab'){SO.tab=b.dataset.v;SO.pick=null;keep();renderSocial();if(SO.tab==='friends')loadSocial();}
   else if(k==='pick'){SO.pick=SO.pick===id?null:id;renderSocial();}
   else if(k==='ask')act(()=>sb.from('friendships').insert({user_id:uid,friend_id:id}),'Richiesta inviata.');
