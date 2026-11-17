@@ -5,6 +5,20 @@ import {loadContent} from './content.js';
 import {useMod} from './ui.js';
 import {isStandalone,offlineReady,refreshOfflineBadge} from './install.js';
 
+/* ---------- sfondo chiaro o scuro ---------- */
+// Senza scelta segue il sistema; il pulsante salva la scelta (anche l'atlante 3D la legge, vedi atlante.js).
+const THEME_KEY='bodymania-theme',root=document.documentElement,sysDark=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>root.dataset.theme?root.dataset.theme==='dark':sysDark.matches;
+function themeBtn(){const d=isDark();$('theme').textContent=d?'☀️':'🌙';$('theme').title=d?'Sfondo chiaro':'Sfondo scuro';}
+$('theme').addEventListener('click',()=>{
+ root.dataset.theme=isDark()?'light':'dark';
+ try{localStorage.setItem(THEME_KEY,root.dataset.theme);}catch(e){}
+ // l'atlante nell'iframe riceve l'evento storage; il messaggio serve se localStorage non è disponibile
+ document.querySelector('#atlas iframe')?.contentWindow?.postMessage({bm:1,type:'theme',theme:root.dataset.theme},location.origin);
+ themeBtn();
+});
+sysDark.addEventListener('change',themeBtn);themeBtn();
+
 /* ---------- uso offline (PWA) ---------- */
 function toast(msg){
  const t=document.createElement('div');t.id='toast';t.textContent=msg;

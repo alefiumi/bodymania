@@ -58,6 +58,9 @@ Contenuto del gioco:
   Trova la struttura, Origine e inserzione, Funzione → struttura, Nervi cranici, Misto.
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.
 - Salvataggio solo locale: `localStorage`, chiave `bodymania-v1`.
+- Sfondo chiaro o scuro: senza scelta segue il sistema; il pulsante 🌙/☀️ nell'intestazione (e nella barra dell'atlante
+  aperto da solo) mette `data-theme` su `<html>` e lo salva in `localStorage` (`bodymania-theme`). Uno script in testa a
+  `index.html` e `atlante/index.html` lo applica prima di disegnare; l'atlante nell'iframe segue l'app con l'evento `storage`.
 
 Mai provato su un dispositivo reale dall'AI: il tocco e il trascinamento li ha provati solo l'autore.
 

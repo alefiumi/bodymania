@@ -745,7 +745,22 @@ function gamePanel(){
 window.addEventListener('message',e=>{
  if(e.origin!==location.origin||!e.data||!e.data.bm)return;
  if(e.data.type==='game')startGame(e.data.set);
+ else if(e.data.type==='theme')setTheme(e.data.theme,false);
 });
+
+/* ---------- sfondo chiaro o scuro (stessa scelta dell'app: localStorage 'bodymania-theme') ---------- */
+const THEME_KEY='bodymania-theme',sysDark=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':sysDark.matches;
+function themeBtn(){const d=isDark();$('theme').textContent=d?'☀️ Chiaro':'🌙 Scuro';}
+function setTheme(t,store=true){
+ if(t)document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;
+ if(store)try{localStorage.setItem(THEME_KEY,t);}catch(e){}
+ themeBtn();
+}
+$('theme').addEventListener('click',()=>setTheme(isDark()?'light':'dark'));
+// scelta cambiata nell'app (o in un'altra finestra): l'evento storage arriva qui
+window.addEventListener('storage',e=>{if(e.key===THEME_KEY)setTheme(e.newValue,false);});
+sysDark.addEventListener('change',themeBtn);themeBtn();
 
 /* ---------- copia offline degli strati ---------- */
 // Il service worker dell'app salva ogni strato la prima volta che si apre con la rete; qui si vede quanti
