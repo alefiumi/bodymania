@@ -1,7 +1,7 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
 import {app,S,save,saveGrp,head,touchStreak,bump,queue,itemOf} from './state.js';
-import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView,viewMenu,closeViewMenu} from './figure.js';
+import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView,viewMenu,closeViewMenu,doubleTapZoom} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
 import {placeAttempt} from './puzzle.js';
@@ -69,15 +69,24 @@ $('fig').addEventListener('click',e=>{
  if(e.target.closest('[data-fg]')){app.grp=!app.grp;saveGrp();const t=app.tab;buildFig();setTab(t);return;}
  if(e.target.closest('.tbar'))return;
  if(takePan())return;
+ // Doppio tocco: ingrandisce il punto (o torna alla vista intera). Il tocco singolo vale dopo DBL ms senza un secondo tocco
+ // vicino, così chi vuole ingrandire durante un gioco non risponde per sbaglio.
+ const x=e.clientX,y=e.clientY,now=Date.now();
+ if(tap&&now-tap.t<DBL&&Math.hypot(x-tap.x,y-tap.y)<40){clearTimeout(tap.timer);tap=null;doubleTapZoom(x,y);return;}
+ if(tap)clearTimeout(tap.timer);
+ tap={t:now,x,y,timer:setTimeout(()=>{tap=null;tapAt(x,y);},DBL)};
+});
+const DBL=260;let tap=null;
+function tapAt(x,y){
  // sid: struttura singola toccata; con i gruppi la voce è il suo gruppo
- const G=app.G,g=app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?slotAt(e.clientX,e.clientY,G.sel):boneAt(e.clientX,e.clientY);if(!g)return;const sid=g.dataset.id;
+ const G=app.G,g=app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?slotAt(x,y,G.sel):boneAt(x,y);if(!g)return;const sid=g.dataset.id;
  if(app.tab==='explore')selectBone(itemOf(sid));
  else if(app.tab==='play'&&G){
   if(G.mode==='puzzle')placeAttempt(itemOf(sid));
   else if(G.cur&&G.cur.t==='find')answerFind(sid);
   else if(G.cur&&G.cur.t==='bridge')answerBridge(sid);
  }
-});
+}
 $('panel').addEventListener('click',e=>{
  const t=e.target.closest('button,.row');if(!t)return;
  const G=app.G;

@@ -26,6 +26,8 @@ Prototipo diviso in:
   tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
   Zoom: pulsanti, rotella, pizzico a due dita con eventi touch (su iPhone gli eventi pointer a due dita
   vengono annullati dal sistema); un dito sposta la figura quando è ingrandita.
+  Doppio tocco (`doubleTapZoom()` in `figure.js`): ingrandisce 2,5 volte sul punto, molto ingrandita torna alla vista intera;
+  per distinguerlo il tocco singolo sulla figura vale dopo 260 ms (`DBL` in `ui.js`, `tapAt()`).
 - Puzzle: `slotAt(x,y,id)` in `figure.js` sceglie il posto vuoto più vicino entro `SLOT_PX` (28 px), anche se
   coperto da altre ossa, con precedenza al pezzo in mano; altrimenti l'osso sotto il dito (errore).
   Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito. I pezzi sono la sagoma intera

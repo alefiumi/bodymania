@@ -70,6 +70,14 @@ export function resetZoom(anim){
  const g=activeView(),b=g&&g.getBBox();
  if(b&&b.width>0)focusPts([[b.x,b.y],[b.x+b.width,b.y+b.height]],6,anim,0);else setVB({x:0,y:0,w:app.MOD.W,h:app.MOD.H},anim);
 }
+// doppio tocco: ingrandisce 2,5 volte centrando il punto toccato; se il passo dopo andrebbe oltre l'ingrandimento utile
+// (meno di 1/12 della larghezza della figura), torna alla vista intera
+export function doubleTapZoom(x,y){
+ const {MOD,VB}=app,p=svgPt(x,y);
+ if(VB.w/2.5<MOD.W/12){resetZoom(true);return;}
+ const w=VB.w/2.5,h=w*scrAsp();
+ setVB({x:p.x-w/2,y:p.y-h/2,w,h},true);
+}
 export function zoomAt(k,cx,cy){
  const {MOD,VB}=app;
  const w=Math.max(MOD.W/24,Math.min(maxW(),VB.w/k)),h=w*scrAsp(),fx=(cx-VB.x)/VB.w,fy=(cy-VB.y)/VB.h;
