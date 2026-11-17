@@ -284,6 +284,9 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
   Richieste di amicizia solo verso profili di `public_profiles` (attivi e con nome).
   Nelle regole `(select auth.uid())` invece di `auth.uid()` (calcolato una volta per richiesta: avvisi del Performance Advisor,
   `20261120100000_prestazioni_rls.sql`, con indici su `friendships.friend_id` e `badge_assertions.badge_id`).
+  Il trigger che crea il profilo alla registrazione usa `private.nuovo_profilo()` (schema non esposto,
+  `20261120110000_trigger_privato.sql`). Restano due avvisi voluti del Security Advisor: `delete_my_account()` e `my_profile()`
+  sono security definer chiamabili dagli iscritti (servono all'app e agiscono solo su chi le chiama).
   Le regole sono state provate su PostgreSQL 16 con un finto schema `auth` (utenti A, B, C che provano a leggere e scrivere i dati
   altrui): da rifare se si cambiano le policy.
 - App: l'app non scrive SQL (PostgREST passa i valori come parametri); gli id che finiscono in un filtro `.or()` passano da
