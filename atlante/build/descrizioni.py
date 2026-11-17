@@ -878,6 +878,23 @@ def correggi_aree(mus):
     if m:
         st = [n for n in m['e'] if n.startswith('Sternocostal head')]
         if st: m['e'] = [n for n in m['e'] if n not in st]; m['o'] += st; m['fix'] = 1
+    sposta_aree(mus)
+
+# singole aree segnate dalla parte sbagliata nella fonte (trovate confrontando l'osso dell'area con le schede):
+# area -> 'o' (origine) o 'e' (inserzione). Idempotente: si può applicare più volte.
+SPOSTA = {'biceps femoris': {'Short head of biceps femoris.el': 'o'},  # capo breve: origine sulla linea aspra
+          'longus capitis': {'Longus capitis muscle.or': 'e', 'Longus capitis muscle.ol': 'e'},  # sull'occipitale è l'inserzione
+          'rectus lateralis capitis': {'Rectus lateralis capitis muscle.or': 'e', 'Rectus lateralis capitis muscle.ol': 'e'},
+          'obliquus superior capitis': {'Obliquus superior capitis muscle.or': 'e', 'Obliquus superior capitis muscle.ol': 'e'},
+          'subclavius': {'Subclavius muscle.or': 'e', 'Subclavius muscle.ol': 'e'},  # sulla clavicola è l'inserzione
+          'external abdominal oblique': {f'External abdominal oblique muscle.o{k}{s}': 'e' for k in (4, 5) for s in 'rl'}}  # sulla cresta iliaca
+def sposta_aree(mus):
+    for r, aree in SPOSTA.items():
+        m = mus.get(r)
+        if not m: continue
+        for a, dove in aree.items():
+            da = 'e' if dove == 'o' else 'o'
+            if a in m[da]: m[da].remove(a); m[dove].append(a); m['fix'] = 1
 
 def schede_muscoli(mus):
     # schede dei muscoli che non ne hanno una da schede.json (testi in schede2.py)
@@ -914,6 +931,7 @@ if __name__ == '__main__':
     D = json.load(open(sys.argv[1]))
     D['desc'] = build(D)
     correggi_nomi(D)
+    sposta_aree(D['mus'])
     json.dump(D, open(sys.argv[1], 'w'), ensure_ascii=False, separators=(',', ':'))
     lay = {}
     B = lambda n: re.sub(r'\.(?:[oe]\d*[rl]|[rl]|[a-z])$', '', n)

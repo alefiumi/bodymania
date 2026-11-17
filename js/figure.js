@@ -1,14 +1,28 @@
 /* Figura SVG: disegno, zoom e pan, marcature, origine e inserzione dei muscoli. */
 import {$} from './util.js';
-import {app,S,bone} from './state.js';
+import {app,S,bone,members,itemOf,bonesName} from './state.js';
 
+// Ogni vista (anteriore, posteriore) è un gruppo SVG con tutte le strutture singole; si vede una vista alla volta.
+// Le marcature (selezione, risposte, pezzi del puzzle) valgono in tutte e due le viste, così cambiando vista restano.
 export function buildFig(){
  const {B,MODS,MOD,VB}=app;
- let h='';
- B.forEach(b=>{h+=`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s}</g>${b.pair?`<g transform="translate(300 0) scale(-1 1)">${b.s}</g>`:''}</g>`;});
+ if(!MOD.views.includes(app.view))app.view=MOD.views[0];
+ const vs=MOD.views.map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
+  B.filter(b=>b.s[v]).map(b=>`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s[v]}</g></g>`).join('')+'</g>').join('');
  const mods=Object.keys(MODS).map(k=>`<button data-mod="${k}" class="${k===MOD.id?'on':''}">${MODS[k].label}</button>`).join('');
- $('fig').innerHTML=`<div class="tbar"><div class="mods">${mods}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs><g>${h}</g><g id="ov" pointer-events="none"></g></svg>`;
+ const body=MOD.id==='corpo';
+ const opts=(MOD.views.length>1?`<button data-fv="${app.view==='a'?'p':'a'}" title="Cambia vista">${app.view==='a'?'Anteriore':'Posteriore'} ⇄</button>`:'')+
+  `<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
+ $('fig').innerHTML=`<div class="tbar"><div class="mods">${mods}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><div class="tbar t2"><div class="mods">${opts}</div></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs>${vs}<g id="ov" pointer-events="none"></g></svg>`;
 }
+// cambia vista senza ridisegnare (le marcature restano)
+export function setView(v){
+ app.view=v;$('fig').querySelectorAll('.view').forEach(g=>g.setAttribute('display',g.dataset.v===v?'inline':'none'));
+ const b=$('fig').querySelector('[data-fv]');if(b){b.dataset.fv=v==='a'?'p':'a';b.textContent=(v==='a'?'Anteriore':'Posteriore')+' ⇄';}
+}
+const activeView=()=>$('fig').querySelector(`.view[data-v="${app.view}"]`);
+// la struttura è disegnata nella vista attuale?
+export const visible=id=>members(id).some(m=>bone(m)&&bone(m).s[app.view]);
 let tw=0;
 export const svgEl=()=>$('fig').querySelector('svg');
 export function svgPt(x,y){const s=svgEl(),p=s.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(s.getScreenCTM().inverse());}
@@ -24,7 +38,7 @@ export function setVB(t,anim){
 export const resetZoom=anim=>setVB({x:0,y:0,w:app.MOD.W,h:app.MOD.H},anim);
 export function zoomAt(k,cx,cy){
  const {MOD,VB}=app;
- const w=Math.max(MOD.W/8,Math.min(MOD.W,VB.w/k)),h=w*MOD.H/MOD.W,fx=(cx-VB.x)/VB.w,fy=(cy-VB.y)/VB.h;
+ const w=Math.max(MOD.W/24,Math.min(MOD.W,VB.w/k)),h=w*MOD.H/MOD.W,fx=(cx-VB.x)/VB.w,fy=(cy-VB.y)/VB.h;
  setVB({x:cx-fx*w,y:cy-fy*h,w,h},false);
 }
 function focusPts(pts,pad){
@@ -34,6 +48,13 @@ function focusPts(pts,pad){
  setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},true);
  return w;
 }
+// riquadro di una voce (membri) nella vista attuale, per portarla in primo piano
+// first: solo il primo tracciato di ogni struttura (il lato destro per le ossa pari)
+export function itemBox(id,first){
+ const pts=[];for(const g of els(id,true)){const e=first?g.querySelector('.f')||g:g,b=e.getBBox();if(b.width||b.height)pts.push([b.x,b.y],[b.x+b.width,b.y+b.height]);}
+ return pts;
+}
+export const focusItem=(id,pad=12,first)=>{const p=itemBox(id,first);if(p.length)focusPts(p,pad);};
 export function boneAt(x,y){
  const test=(px,py)=>{const el=document.elementFromPoint(px,py),g=el&&el.closest&&el.closest('.bone');return g&&$('fig').contains(g)?g:null;};
  let g=test(x,y);if(g)return g;
@@ -45,7 +66,7 @@ export function boneAt(x,y){
 // Punti campione (in unità della figura) sul disegno di ogni struttura, calcolati una volta per modulo.
 const samples=new Map();
 function samplesOf(g){
- const key=app.MOD.id+'/'+g.dataset.id;
+ const key=app.MOD.id+'/'+app.view+'/'+g.dataset.id;
  if(samples.has(key))return samples.get(key);
  const pts=[],step=2,inner=g.firstElementChild;
  for(const el of inner.querySelectorAll('.l,.f')){
@@ -58,7 +79,6 @@ function samplesOf(g){
    pts.push([b.x+b.width/2,b.y+b.height/2]);
   }
  }
- if(g.childElementCount>1)for(const [x,y] of pts.slice())pts.push([app.MOD.W-x,y]); // copia specchiata (lato sinistro)
  samples.set(key,pts);
  return pts;
 }
@@ -71,32 +91,46 @@ export function slotAt(x,y,want){
  if(x<r.left||x>r.right||y<r.top||y>r.bottom)return null;
  const ctm=svg.getScreenCTM(),p=svgPt(x,y),max=SLOT_PX/ctm.a;
  let best=null,bestD=Infinity,wantG=null,wantD=Infinity;
- for(const g of document.querySelectorAll('.bone.ghost')){
+ for(const g of activeView().querySelectorAll('.bone.ghost')){
   let d=Infinity;for(const [sx,sy] of samplesOf(g)){const e=Math.hypot(sx-p.x,sy-p.y);if(e<d)d=e;}
   if(d<bestD){bestD=d;best=g;}
-  if(g.dataset.id===want){wantG=g;wantD=d;}
+  if(itemOf(g.dataset.id)===want&&d<wantD){wantG=g;wantD=d;}
  }
  if(wantG&&wantD<=max&&wantD<=bestD+1.5)return wantG;
  if(best&&bestD<=max)return best;
  return boneAt(x,y);
 }
-export const gEl=id=>document.querySelector(`.bone[data-id="${id}"]`);
+// elementi disegnati di una voce (singola o gruppo): in tutte le viste, o solo in quella attuale
+export function els(id,onlyActive){
+ const root=onlyActive?activeView():$('fig');if(!root)return [];
+ return members(id).flatMap(m=>[...root.querySelectorAll(`.bone[data-id="${CSS.escape(m)}"]`)]);
+}
 const MARKS=['sel','org','ins','ok','bad','hov'];
 export function clearMarks(){document.querySelectorAll('.bone').forEach(g=>g.classList.remove(...MARKS));const o=$('ov');if(o)o.innerHTML='';}
-export const mark=(id,c)=>{const g=gEl(id);if(g)g.classList.add(c);};
-export function refreshMastery(){app.B.forEach(b=>{const g=gEl(b.id);g.classList.remove('m0','m1','m2','m3');g.classList.add('m'+(S.mastery[b.id]||0));});}
+export const mark=(id,c)=>els(id).forEach(g=>g.classList.add(c));
+// colore della maestria: della singola struttura, o del suo gruppo quando si gioca per gruppi
+export function refreshMastery(){document.querySelectorAll('#fig .bone').forEach(g=>{const k=itemOf(g.dataset.id);g.classList.remove('m0','m1','m2','m3');g.classList.add('m'+(S.mastery[k]||0));});}
+// centro di una struttura nella vista attuale (lato destro del corpo se è pari)
+const ctr=id=>{for(const m of members(id)){const c=bone(m)?.c?.[app.view];if(c)return c;}return null;};
+// Origine (O) e inserzione (I) sulla figura: i punti sono i centri delle aree della fonte visibili in questa vista
+// (dello stesso lato del corpo); se un'area non si vede da qui si usa il centro dell'osso.
 export function showMuscle(m){
- clearMarks();mark(m.o,'org');mark(m.i,'ins');
- const a=bone(m.o).c,b=bone(m.i).c,dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1;
+ clearMarks();[m.o,...(m.oa||[])].forEach(x=>mark(itemOf(x),'org'));[m.i,...(m.ia||[])].forEach(x=>mark(itemOf(x),'ins'));
+ const P=(m.pts||{})[app.view]||{o:[],i:[]},side=['r','l'].find(sd=>P.o.some(p=>p[2]===sd)&&P.i.some(p=>p[2]===sd))||'r';
+ const pick=(L,id)=>{const q=L.filter(p=>p[2]===side);const l=q.length?q:L;if(l.length)return [l.reduce((s,p)=>s+p[0],0)/l.length,l.reduce((s,p)=>s+p[1],0)/l.length];return ctr(id);};
+ const a=pick(P.o,m.o),b=pick(P.i,m.i);
+ if(!a||!b){$('ov').innerHTML='';return false;}
+ const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1;
  const w=focusPts([a,b],30),u=w/100,r=6.5*u,fs=6.5*u,down=dy>=0;
  const sx=a[0]+dx/d*(r+u),sy=a[1]+dy/d*(r+u),ex=b[0]-dx/d*(r+2.5*u),ey=b[1]-dy/d*(r+2.5*u);
  const lab=(p,txt,col,above)=>{const wd=txt.length*fs*.56+fs*1.4,hh=fs*1.7,y=above?p[1]-r-hh-u:p[1]+r+u;
   return `<rect x="${p[0]-wd/2}" y="${y}" width="${wd}" height="${hh}" rx="${hh/2}" fill="${col}"/><text x="${p[0]}" y="${y+hh*0.72}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff">${txt}</text>`;};
  const dot=(p,l,col)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="${col}"/><text x="${p[0]}" y="${p[1]+fs*.36}" text-anchor="middle" font-size="${fs*1.1}" font-weight="700" fill="#fff">${l}</text>`;
  $('ov').innerHTML=`<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="#7c3aed" stroke-width="${2.2*u}" stroke-dasharray="${5*u} ${4*u}" marker-end="url(#ar)"/>`+
-  dot(a,'O','#2563eb')+dot(b,'I','#ea580c')+lab(a,'O: '+bone(m.o).n,'#2563eb',down)+lab(b,'I: '+bone(m.i).n,'#ea580c',!down);
+  dot(a,'O','#2563eb')+dot(b,'I','#ea580c')+lab(a,'O: '+bone(itemOf(m.o)).n,'#2563eb',down)+lab(b,'I: '+bone(itemOf(m.i)).n,'#ea580c',!down);
+ return true;
 }
-export const muscleHtml=m=>`<div class="md"><b>${m.n}</b><br><span class="tg o">ORIGINE</span> ${m.ot}<br><span class="tg i">INSERZIONE</span> ${m.it}<br><b>Azione</b>: ${m.a}</div>`;
+export const muscleHtml=m=>`<div class="md"><b>${m.n}</b> <i class="mut">${m.l||''}</i><br><span class="tg o">ORIGINE</span> ${m.ot}${m.o?` <small class="mut">(${bonesName([m.o,...(m.oa||[])])})</small>`:''}<br><span class="tg i">INSERZIONE</span> ${m.it}${m.i?` <small class="mut">(${bonesName([m.i,...(m.ia||[])])})</small>`:''}<br><b>Azione</b>: ${m.a}${m.nv?`<br><b>Innervazione</b>: ${m.nv}`:''}${m.src?'<br><small class="mut">Ossa ricavate dal testo della scheda: nella fonte mancano le aree.</small>':''}</div>`;
 
 /* ---------- pan, pizzico e rotella ---------- */
 const ptrs=new Map();let pan=null,pinch=null,wasPan=false;

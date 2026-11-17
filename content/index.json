@@ -1,6 +1,12 @@
 {
- "version": 1,
- "modules": ["corpo","lat","sag"],
+ "version": 5,
+ "modules": [
+  "corpo",
+  "lat",
+  "sag"
+ ],
  "nc": "nervi-cranici.json",
- "files": ["neuro-strutture.json"]
+ "files": [
+  "neuro-strutture.json"
+ ]
 }

@@ -20,6 +20,7 @@ header{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area
 #fig{flex:1 1 0;min-height:0;display:flex;flex-direction:column;padding:0 2px 2px}
 /* barra sopra la figura: moduli a sinistra, zoom a destra; non copre mai il disegno */
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 2px}
+.tbar.t2{padding-top:0}
 #fig svg{flex:1 1 0;min-height:0;width:100%;height:100%;display:block;touch-action:none}
 #panel{flex:0 0 auto;max-height:46vh;overflow:auto;background:var(--card);border-top:1px solid var(--line);padding:12px 14px}
 /* barra a schede: icona sopra, nome sotto; il margine in basso lascia libera la lineetta di sistema dell'iPhone
@@ -34,12 +35,12 @@ nav button i{font-style:normal;font-size:20px;line-height:1}
 nav button.on{color:var(--acc);box-shadow:inset 0 2px 0 var(--acc)}
 .bone{cursor:pointer;--c:var(--b,#d9d2c3)}
 .bone.m1{--c:#a5dccf}.bone.m2{--c:#4fbfae}.bone.m3{--c:#f0c75e}
-.bone .f{fill:var(--c);stroke:var(--edge);stroke-width:1;transition:fill .2s}
+.bone .f{fill:var(--c);fill-rule:evenodd;stroke:var(--edge);stroke-width:.6;vector-effect:non-scaling-stroke;stroke-linejoin:round;transition:fill .2s}
 .bone .l{stroke:var(--c);fill:none;stroke-linecap:round;transition:stroke .2s}
 .bone .hit{stroke:transparent;fill:none;stroke-linecap:round}
 .bone .hitf{fill:transparent;stroke:none}
 .bone.sel{--c:#7dd3fc}.bone.org{--c:#60a5fa}.bone.ins{--c:#fb923c}.bone.ok{--c:#4ade80}.bone.bad{--c:#f87171}
-.bone.sel .f,.bone.org .f,.bone.ins .f,.bone.ok .f,.bone.bad .f{stroke:#111;stroke-width:1.6}
+.bone.sel .f,.bone.org .f,.bone.ins .f,.bone.ok .f,.bone.bad .f{stroke:#111;stroke-width:1.4}
 .bone.ghost{opacity:.3;--c:#9aa5aa}
 .bone.ghost.bad{opacity:1;--c:#f87171}
 .hole{fill:var(--bg);pointer-events:none}

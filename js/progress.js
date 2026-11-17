@@ -1,6 +1,6 @@
 /* Scheda Profilo: foto, nome, ruolo e presentazione (modificabili), statistiche, badge, account, maestria. */
 import {$,toast} from './util.js';
-import {app,S,level} from './state.js';
+import {app,S,level,items} from './state.js';
 import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc} from './account.js';
 import {BADGES} from './badges.js';
 
@@ -19,10 +19,12 @@ export function renderProg(){
  const stats=`<div class="stats">${stat(S.xp,'XP')}${stat(S.streak,'giorni di fila')}${stat(tot?Math.round(S.ok/tot*100)+'%':'–','precisione')}${stat(st.games||0,'partite')}</div>`;
  const badges=`<div class="sub">Badge e traguardi · ${got.length}/${BADGES.length}</div><div class="bdg">`+
   BADGES.map(b=>{const d=S.badges[b.id];return `<div class="b${d?'':' lock'}" title="${esc(b.desc)}"><i>${b.icon}</i><b>${esc(b.name)}</b><small>${d?day(d):esc(b.desc)}</small></div>`;}).join('')+'</div>';
- const mastered=B.filter(b=>(S.mastery[b.id]||0)>=3).length;
- const rows=B.slice().sort((a,b)=>a.c[1]-b.c[1]).map(b=>{const m=S.mastery[b.id]||0;return `<div class="row" data-id="${b.id}"><span>${b.n}</span><span class="dots">${'●'.repeat(m)}<span style="color:var(--line)">${'●'.repeat(3-m)}</span></span></div>`;}).join('');
+ const IL=items().filter(b=>!b.area),mastered=IL.filter(b=>(S.mastery[b.id]||0)>=3).length;
+ // in ordine di gruppo (dalla testa ai piedi per le ossa, per lobo nel cervello)
+ const ord=Object.fromEntries(app.GR.map((g,i)=>[g.id,i]));
+ const rows=IL.slice().sort((a,b)=>(ord[a.group?a.id:a.g]??99)-(ord[b.group?b.id:b.g]??99)).map(b=>{const m=S.mastery[b.id]||0;return `<div class="row" data-id="${b.id}"><span>${b.n}</span><span class="dots">${'●'.repeat(m)}<span style="color:var(--line)">${'●'.repeat(3-m)}</span></span></div>`;}).join('');
  $('panel').innerHTML=card+stats+badges+accountHtml()+
-  `<div class="sub">Maestria · ${esc(app.MOD.label||app.MOD.id)}</div><p class="mut">${mastered}/${B.length} strutture padroneggiate. ${tot?'':'Gioca un round per iniziare a riempire i progressi.'}</p>${rows}`;
+  `<div class="sub">Maestria · ${esc(app.MOD.label||app.MOD.id)}</div><p class="mut">${mastered}/${IL.length} ${app.grp?'gruppi':'strutture'} padroneggiat${app.grp?'i':'e'}. ${tot?'':'Gioca un round per iniziare a riempire i progressi.'}</p>${rows}`;
 }
 
 function editHtml(){

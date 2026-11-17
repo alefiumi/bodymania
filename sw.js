@@ -7,7 +7,7 @@
      stanno in una cache a parte (MODEL_CACHE), che non si riscarica a ogni nuova versione dell'app: all'installazione
      si salva la base (motore e scheletro), ogni altro strato la prima volta che viene richiesto con la rete.
      Quando cambi un file in atlante/vendor/ o un .glb, aumenta MODEL_VERSION. */
-const APP_VERSION = '26';
+const APP_VERSION = '31';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
 const MODEL_VERSION = '1';
@@ -80,7 +80,10 @@ self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const cache = await caches.open(APP_CACHE);
     await cache.addAll(APP_FILES.map(f => new Request(abs(f), {cache: 'reload'})));
-    if (!(await contentCacheName())) await downloadContent(await fetchIndex());
+    // contenuti: una versione nuova dell'app può aver bisogno dei contenuti nuovi (formato cambiato), quindi si
+    // scaricano qui, prima di attivarla. Senza rete si tengono quelli in cache (se non ce ne sono, l'installazione fallisce).
+    try { const idx = await fetchIndex(); if (String(idx.version) !== await cachedVersion()) await downloadContent(idx); }
+    catch (err) { if (!(await contentCacheName())) throw err; }
     // base dell'atlante 3D: solo i file che mancano (gli strati già salvati restano)
     const models = await caches.open(MODEL_CACHE);
     const missing = [];

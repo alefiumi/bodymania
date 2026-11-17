@@ -2,8 +2,26 @@
 import {$} from './util.js';
 
 // Modulo e partita correnti. MODS e NC arrivano da content/ all'avvio.
-export const app={MODS:{},NC:[],MOD:null,B:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null};
-export const bone=id=>app.B.find(b=>b.id===id);
+// B: strutture singole; GR: gruppi; view: vista della figura ('a' anteriore, 'p' posteriore); grp: si gioca per gruppi
+export const app={MODS:{},NC:[],MOD:null,B:[],GR:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null,view:'a',grp:false};
+try{app.grp=!!JSON.parse(localStorage.getItem('bodymania-2d')||'{}').grp;}catch(e){}
+export const saveGrp=()=>{try{localStorage.setItem('bodymania-2d',JSON.stringify({grp:app.grp}));}catch(e){}};
+export const bone=id=>app.MOD&&app.MOD.byId[id];
+// voci dei giochi e dell'elenco: le singole o i gruppi, secondo la modalità scelta
+export const items=()=>app.grp?app.GR:app.B;
+// membri singoli di una voce (una singola è membro di sé stessa)
+export const members=id=>{const b=bone(id);return b?(b.group?b.m:[id]):[];};
+// voce corrispondente a una struttura singola toccata: lei stessa, o il suo gruppo principale (lobo, gruppo di ossa)
+export const itemOf=sid=>app.grp?(bone(sid)?.g||sid):sid;
+// insieme delle voci che vanno bene per un elenco di ossa (origini o inserzioni di un muscolo)
+export const itemSet=ids=>new Set(ids.filter(Boolean).map(itemOf));
+// nome di un elenco di ossa: se c'è un gruppo intero (es. tutte le coste) si usa il nome del gruppo
+export function bonesName(ids){
+ ids=ids.filter(Boolean);const out=[],used=new Set();
+ for(const g of app.GR)if(!g.area&&g.m.length>1&&g.m.every(x=>ids.includes(x))){out.push(g.n);g.m.forEach(x=>used.add(x));}
+ for(const id of ids)if(!used.has(id)&&bone(id))out.push(bone(id).n);
+ return out.join(', ');
+}
 
 const KEY='bodymania-v1';
 // stats: partite finite (per i badge); badges: {id: data}; prof: profilo locale (nome, ruolo, bio, foto, t = ultima modifica)

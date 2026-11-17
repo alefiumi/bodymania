@@ -37,7 +37,8 @@ Prototipo diviso in:
   (tipi in `js/shapes.js`). Quando cambi un contenuto, aumenta la `version` del file e quella di `index.json`.
 - Serve un server locale (`npx serve .`): con il doppio clic su `index.html` (`file://`) moduli e JSON non si caricano.
 - PWA: `manifest.webmanifest`, icone in `icons/` (PNG generate da uno script, non nel repo), `sw.js`.
-  Il service worker copia in cache l'elenco `APP_FILES` all'installazione e serve l'app dalla cache.
+  Il service worker copia in cache l'elenco `APP_FILES` all'installazione e serve l'app dalla cache; all'installazione
+  scarica anche i contenuti se la versione è cambiata (una versione nuova dell'app può richiedere il formato nuovo).
   **Quando modifichi o aggiungi un file dell'app, aumenta `APP_VERSION` in `sw.js`** (e aggiorna `APP_FILES`
   se aggiungi o togli file), altrimenti chi ha l'app installata continua a usare la versione vecchia.
   I contenuti stanno in una cache separata per versione: a ogni avvio con rete il service worker legge
@@ -52,8 +53,26 @@ Prototipo diviso in:
   Android con Chrome, Firefox, Samsung Internet, Edge. Provati dall'AI solo Chrome desktop ed emulazione mobile.
 
 Contenuto del gioco:
-- Moduli: `corpo` (22 gruppi di ossa, 26 muscoli con origine e inserzione), `lat` e `sag`
-  (cervello in vista laterale e sagittale), 12 nervi cranici.
+- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, vista anteriore e posteriore; 208 muscoli), `lat` (emisfero
+  sinistro visto di lato, 57 strutture) e `sag` (faccia mediale dell'emisfero destro, 81 strutture), 12 nervi cranici.
+- Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` proietta ossa,
+  encefalo e aree di origine e inserzione (z-buffer in software, contorni dei pixel visibili → tracciati SVG; senza pacchetti
+  npm), poi `python3 atlante/build/contenuti_2d.py <tmp.json>` scrive `content/corpo.json`, `lat.json`, `sag.json` con nomi
+  (TA2), descrizioni (`desc` di `dati.json`), gruppi, muscoli e casi (testi dei gruppi di ossa e casi in `atlante/build/testi_2d.json`,
+  gruppi del cervello in `content/neuro-strutture.json`). Ogni struttura ha `s.a`/`s.p` (forme per vista; per le ossa pari il
+  primo tracciato è il lato destro, usato per i pezzi del puzzle) e `g` (gruppo); i gruppi hanno `m` (membri). Nel cervello i
+  gruppi sono i lobi (partizione) più aree che si sovrappongono (`area: true`: Broca, Wernicke, giro precentrale, talamo…).
+  Esclusi dal 2D: ossicini, cellule etmoidali, seni, cartilagini di naso e laringe, sesamoidi; denti e cartilagini costali
+  sono una voce ciascuno; nel cervello i nuclei profondi (si vedrebbero attraverso gli spazi tra le superfici).
+- Muscoli 2D: ossa di origine e inserzione dall'osso più vicino alle aree della fonte; dove la fonte non ha l'area, dal testo
+  della scheda (`src: 'testo'`, segnalato nel pannello). 154 muscoli hanno origine e inserzione (usati nei giochi).
+  Aree segnate dalla parte sbagliata nella fonte: `SPOSTA` in `build/descrizioni.py` (es. capo breve del bicipite femorale).
+- Figura: barra con "Anteriore/Posteriore ⇄" (solo corpo) e "Ossa singole/Gruppi" ("Giri e solchi/Lobi e aree" nel cervello),
+  scelta salvata in `bodymania-2d`. Le due viste sono nell'svg insieme (una nascosta), le marcature valgono in tutte e due.
+  Con i gruppi tutti i giochi usano i gruppi (`items()`, `itemOf()` in `state.js`); la risposta è giusta se si tocca un membro.
+  Trova: con le singole si sceglie prima il gruppo, e per le ossa piccole la figura si ingrandisce sulla zona. Ricomponi: con le
+  singole i pezzi sono le ossa di un gruppo (zona ingrandita), con i gruppi sono gruppi interi. Maestria: chiavi diverse per
+  singole (`o.femur`, `b.precentral-gyrus`) e gruppi (gli id dei vecchi 22 gruppi: `femore`, `carpo`… e dei lobi).
 - Modalità: Ricomponi (puzzle con trascinamento), Tendine-ponte, Caso clinico (indizi progressivi),
   Trova la struttura, Origine e inserzione, Funzione → struttura, Nervi cranici, Misto.
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.

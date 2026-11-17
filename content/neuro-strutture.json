@@ -1,26 +1,258 @@
 {
- "version": 1,
+ "version": 2,
  "items": {
-  "frontale": {"n":"Lobo frontale","l":"Lobus frontalis","r":"Telencefalo","col":"#f4b6a6","q":"Pianificazione, decisioni e movimento volontario","f":"Movimento volontario, pianificazione, decisioni, comportamento e (a sinistra) produzione del linguaggio.","k":"Lesioni frontali possono causare apatia, disinibizione e disturbi delle funzioni esecutive."},
-  "parietale": {"n":"Lobo parietale","l":"Lobus parietalis","r":"Telencefalo","col":"#f2d58a","q":"Sensibilità somatica e orientamento spaziale","f":"Sensibilità somatica, integrazione spaziale e schema corporeo.","k":"Una lesione parietale destra può causare eminegligenza spaziale sinistra."},
-  "occipitale": {"n":"Lobo occipitale","l":"Lobus occipitalis","r":"Telencefalo","col":"#a9d3f0","q":"Elaborazione della visione","f":"Elaborazione della visione (corteccia visiva primaria).","k":"Le lesioni possono causare deficit del campo visivo, ad esempio emianopsia omonima controlaterale."},
-  "temporale": {"n":"Lobo temporale","l":"Lobus temporalis","r":"Telencefalo","col":"#b9e0b0","q":"Udito e memoria (ippocampo)","f":"Udito, memoria, comprensione del linguaggio (area di Wernicke a sinistra) e riconoscimento di volti e oggetti.","k":"L'ippocampo, nel lobo temporale mediale, è cruciale per la memoria ed è colpito presto nella malattia di Alzheimer."},
-  "cerebello": {"n":"Cerebello","l":"Cerebellum","r":"Fossa cranica posteriore","col":"#d7b9ec","q":"Coordinazione del movimento e dell'equilibrio","f":"Coordinazione dei movimenti, equilibrio e apprendimento motorio.","k":"Le lesioni causano atassia, dismetria e tremore intenzionale, di norma omolaterali."},
-  "tronco": {"n":"Tronco encefalico","l":"Truncus encephali","r":"Tronco encefalico","col":"#e6c9a8","q":"Collega encefalo e midollo; nuclei dei nervi cranici da III a XII","f":"Mesencefalo, ponte e bulbo: collega encefalo e midollo e contiene i nuclei dei nervi cranici (da III a XII) e centri vitali.","k":"Il bulbo contiene i centri di controllo del respiro e del sistema cardiovascolare."},
-  "precentrale": {"n":"Giro precentrale","l":"Gyrus precentralis","r":"Lobo frontale","col":"#ef8f78","q":"Corteccia motoria primaria","f":"Corteccia motoria primaria: movimenti volontari controlaterali, organizzati secondo l'homunculus motorio.","k":"Una lesione causa paresi controlaterale; mano e volto hanno un'ampia rappresentazione."},
-  "postcentrale": {"n":"Giro postcentrale","l":"Gyrus postcentralis","r":"Lobo parietale","col":"#e8b94f","q":"Corteccia somatosensitiva primaria","f":"Corteccia somatosensitiva primaria: tatto, propriocezione, dolore e temperatura dal lato opposto del corpo.","k":"Una lesione causa deficit sensitivi controlaterali."},
-  "broca": {"n":"Area di Broca","l":"Area di Broca","r":"Lobo frontale","col":"#e0568c","q":"Produzione del linguaggio (afasia non fluente se danneggiata)","f":"Produzione del linguaggio, nell'emisfero dominante (di solito il sinistro), nel giro frontale inferiore.","k":"Un danno causa afasia non fluente: comprensione conservata ma eloquio faticoso."},
-  "wernicke": {"n":"Area di Wernicke","l":"Area di Wernicke","r":"Lobo temporale","col":"#9b5de5","q":"Comprensione del linguaggio (afasia fluente se danneggiata)","f":"Comprensione del linguaggio, nella parte posteriore del giro temporale superiore dell'emisfero dominante.","k":"Un danno causa afasia fluente: eloquio fluente ma privo di senso e comprensione ridotta."},
-  "solcocentrale": {"n":"Solco centrale (di Rolando)","l":"Sulcus centralis","r":"Telencefalo","col":"#5b6b73","q":"Separa lobo frontale e parietale","f":"Separa il lobo frontale dal parietale e il giro precentrale (motorio) dal postcentrale (sensitivo).","k":"È un repere fondamentale per localizzare le aree motoria e sensitiva."},
-  "solcolaterale": {"n":"Solco laterale (di Silvio)","l":"Sulcus lateralis","r":"Telencefalo","col":"#3f7d8c","q":"Separa il lobo temporale da frontale e parietale","f":"Separa il lobo temporale dai lobi frontale e parietale.","k":"Intorno al solco laterale si trovano le aree del linguaggio; l'arteria cerebrale media irrora gran parte di questa zona."},
-  "calloso": {"n":"Corpo calloso","l":"Corpus callosum","r":"Telencefalo","col":"#c9a66b","q":"Collega i due emisferi cerebrali","f":"Grande fascio di fibre che collega i due emisferi cerebrali.","k":"La callosotomia si usa in rari casi di epilessia grave per limitare la diffusione delle crisi."},
-  "talamo": {"n":"Talamo","l":"Thalamus","r":"Diencefalo","col":"#f0a8c0","q":"Stazione di smistamento delle vie sensitive verso la corteccia","f":"Stazione di smistamento: quasi tutte le vie sensitive passano dal talamo prima di raggiungere la corteccia (tranne l'olfatto).","k":"Una lesione talamica può causare perdita sensitiva e dolore centrale."},
-  "ipotalamo": {"n":"Ipotalamo","l":"Hypothalamus","r":"Diencefalo","col":"#f28b82","q":"Omeostasi: temperatura, fame, sete e controllo dell'ipofisi","f":"Regola omeostasi, temperatura, fame, sete, ritmi circadiani e sistema endocrino tramite l'ipofisi.","k":"Controlla l'ipofisi con ormoni di rilascio e di inibizione."},
-  "epifisi": {"n":"Epifisi (ghiandola pineale)","l":"Glandula pinealis","r":"Diencefalo","col":"#7a5cc2","q":"Produce melatonina","f":"Ghiandola endocrina che produce melatonina, legata al ritmo sonno-veglia.","k":"La secrezione dipende dalla luce: aumenta di notte."},
-  "adeno": {"n":"Adenoipofisi (ipofisi anteriore)","l":"Adenohypophysis","r":"Ghiandole","col":"#f5a623","q":"Produce GH, prolattina, ACTH, TSH, FSH e LH","f":"Produce GH, prolattina, ACTH, TSH, FSH e LH, sotto il controllo di ormoni ipotalamici.","k":"Un adenoma ipofisario può dare iperproduzione ormonale o compressione del chiasma ottico (emianopsia bitemporale)."},
-  "neuro": {"n":"Neuroipofisi (ipofisi posteriore)","l":"Neurohypophysis","r":"Ghiandole","col":"#e07b39","q":"Rilascia ossitocina e ADH","f":"Rilascia ossitocina e ormone antidiuretico (ADH), prodotti dall'ipotalamo.","k":"Un deficit di ADH causa diabete insipido, con poliuria e sete intensa."},
-  "mesencefalo": {"n":"Mesencefalo","l":"Mesencephalon","r":"Tronco encefalico","col":"#c8a27a","q":"Riflessi visivi e uditivi; contiene la substantia nigra","f":"Parte superiore del tronco: riflessi visivi e uditivi, controllo dei movimenti oculari e vie motorie. Contiene i nuclei dei nervi III e IV.","k":"La substantia nigra, nel mesencefalo, degenera nel morbo di Parkinson."},
-  "ponte": {"n":"Ponte","l":"Pons","r":"Tronco encefalico","col":"#b58b62","q":"Collega cervello e cervelletto; nuclei dei nervi da V a VIII","f":"Collega cervello, cervelletto e midollo; contiene i nuclei dei nervi da V a VIII (in parte) e centri del respiro.","k":"Lesioni pontine estese possono causare la sindrome locked-in."},
-  "bulbo": {"n":"Bulbo","l":"Medulla oblongata","r":"Tronco encefalico","col":"#9c7248","q":"Centri del respiro e del battito; decussazione piramidale","f":"Contiene centri di controllo di respiro, frequenza cardiaca e pressione e i nuclei dei nervi IX, X e XII. Qui le vie piramidali si incrociano.","k":"La decussazione piramidale spiega perché una lesione cerebrale causa paralisi sul lato opposto del corpo."}
+  "frontale": {
+   "n": "Lobo frontale",
+   "l": "Lobus frontalis",
+   "r": "Telencefalo",
+   "col": "#f4b6a6",
+   "q": "Pianificazione, decisioni e movimento volontario",
+   "f": "Movimento volontario, pianificazione, decisioni, comportamento e (a sinistra) produzione del linguaggio.",
+   "k": "Lesioni frontali possono causare apatia, disinibizione e disturbi delle funzioni esecutive."
+  },
+  "parietale": {
+   "n": "Lobo parietale",
+   "l": "Lobus parietalis",
+   "r": "Telencefalo",
+   "col": "#f2d58a",
+   "q": "Sensibilità somatica e orientamento spaziale",
+   "f": "Sensibilità somatica, integrazione spaziale e schema corporeo.",
+   "k": "Una lesione parietale destra può causare eminegligenza spaziale sinistra."
+  },
+  "occipitale": {
+   "n": "Lobo occipitale",
+   "l": "Lobus occipitalis",
+   "r": "Telencefalo",
+   "col": "#a9d3f0",
+   "q": "Elaborazione della visione",
+   "f": "Elaborazione della visione (corteccia visiva primaria).",
+   "k": "Le lesioni possono causare deficit del campo visivo, ad esempio emianopsia omonima controlaterale."
+  },
+  "temporale": {
+   "n": "Lobo temporale",
+   "l": "Lobus temporalis",
+   "r": "Telencefalo",
+   "col": "#b9e0b0",
+   "q": "Udito e memoria (ippocampo)",
+   "f": "Udito, memoria, comprensione del linguaggio (area di Wernicke a sinistra) e riconoscimento di volti e oggetti.",
+   "k": "L'ippocampo, nel lobo temporale mediale, è cruciale per la memoria ed è colpito presto nella malattia di Alzheimer."
+  },
+  "cerebello": {
+   "n": "Cerebello",
+   "l": "Cerebellum",
+   "r": "Fossa cranica posteriore",
+   "col": "#d7b9ec",
+   "q": "Coordinazione del movimento e dell'equilibrio",
+   "f": "Coordinazione dei movimenti, equilibrio e apprendimento motorio.",
+   "k": "Le lesioni causano atassia, dismetria e tremore intenzionale, di norma omolaterali."
+  },
+  "tronco": {
+   "n": "Tronco encefalico",
+   "l": "Truncus encephali",
+   "r": "Tronco encefalico",
+   "col": "#e6c9a8",
+   "q": "Collega encefalo e midollo; nuclei dei nervi cranici da III a XII",
+   "f": "Mesencefalo, ponte e bulbo: collega encefalo e midollo e contiene i nuclei dei nervi cranici (da III a XII) e centri vitali.",
+   "k": "Il bulbo contiene i centri di controllo del respiro e del sistema cardiovascolare."
+  },
+  "precentrale": {
+   "n": "Giro precentrale",
+   "l": "Gyrus precentralis",
+   "r": "Lobo frontale",
+   "col": "#ef8f78",
+   "q": "Corteccia motoria primaria",
+   "f": "Corteccia motoria primaria: movimenti volontari controlaterali, organizzati secondo l'homunculus motorio.",
+   "k": "Una lesione causa paresi controlaterale; mano e volto hanno un'ampia rappresentazione."
+  },
+  "postcentrale": {
+   "n": "Giro postcentrale",
+   "l": "Gyrus postcentralis",
+   "r": "Lobo parietale",
+   "col": "#e8b94f",
+   "q": "Corteccia somatosensitiva primaria",
+   "f": "Corteccia somatosensitiva primaria: tatto, propriocezione, dolore e temperatura dal lato opposto del corpo.",
+   "k": "Una lesione causa deficit sensitivi controlaterali."
+  },
+  "broca": {
+   "n": "Area di Broca",
+   "l": "Area di Broca",
+   "r": "Lobo frontale",
+   "col": "#e0568c",
+   "q": "Produzione del linguaggio (afasia non fluente se danneggiata)",
+   "f": "Produzione del linguaggio, nell'emisfero dominante (di solito il sinistro), nel giro frontale inferiore.",
+   "k": "Un danno causa afasia non fluente: comprensione conservata ma eloquio faticoso."
+  },
+  "wernicke": {
+   "n": "Area di Wernicke",
+   "l": "Area di Wernicke",
+   "r": "Lobo temporale",
+   "col": "#9b5de5",
+   "q": "Comprensione del linguaggio (afasia fluente se danneggiata)",
+   "f": "Comprensione del linguaggio, nella parte posteriore del giro temporale superiore dell'emisfero dominante.",
+   "k": "Un danno causa afasia fluente: eloquio fluente ma privo di senso e comprensione ridotta."
+  },
+  "solcocentrale": {
+   "n": "Solco centrale (di Rolando)",
+   "l": "Sulcus centralis",
+   "r": "Telencefalo",
+   "col": "#5b6b73",
+   "q": "Separa lobo frontale e parietale",
+   "f": "Separa il lobo frontale dal parietale e il giro precentrale (motorio) dal postcentrale (sensitivo).",
+   "k": "È un repere fondamentale per localizzare le aree motoria e sensitiva."
+  },
+  "solcolaterale": {
+   "n": "Solco laterale (di Silvio)",
+   "l": "Sulcus lateralis",
+   "r": "Telencefalo",
+   "col": "#3f7d8c",
+   "q": "Separa il lobo temporale da frontale e parietale",
+   "f": "Separa il lobo temporale dai lobi frontale e parietale.",
+   "k": "Intorno al solco laterale si trovano le aree del linguaggio; l'arteria cerebrale media irrora gran parte di questa zona."
+  },
+  "calloso": {
+   "n": "Corpo calloso",
+   "l": "Corpus callosum",
+   "r": "Telencefalo",
+   "col": "#c9a66b",
+   "q": "Collega i due emisferi cerebrali",
+   "f": "Grande fascio di fibre che collega i due emisferi cerebrali.",
+   "k": "La callosotomia si usa in rari casi di epilessia grave per limitare la diffusione delle crisi."
+  },
+  "talamo": {
+   "n": "Talamo",
+   "l": "Thalamus",
+   "r": "Diencefalo",
+   "col": "#f0a8c0",
+   "q": "Stazione di smistamento delle vie sensitive verso la corteccia",
+   "f": "Stazione di smistamento: quasi tutte le vie sensitive passano dal talamo prima di raggiungere la corteccia (tranne l'olfatto).",
+   "k": "Una lesione talamica può causare perdita sensitiva e dolore centrale."
+  },
+  "ipotalamo": {
+   "n": "Ipotalamo",
+   "l": "Hypothalamus",
+   "r": "Diencefalo",
+   "col": "#f28b82",
+   "q": "Omeostasi: temperatura, fame, sete e controllo dell'ipofisi",
+   "f": "Regola omeostasi, temperatura, fame, sete, ritmi circadiani e sistema endocrino tramite l'ipofisi.",
+   "k": "Controlla l'ipofisi con ormoni di rilascio e di inibizione."
+  },
+  "epifisi": {
+   "n": "Epifisi (ghiandola pineale)",
+   "l": "Glandula pinealis",
+   "r": "Diencefalo",
+   "col": "#7a5cc2",
+   "q": "Produce melatonina",
+   "f": "Ghiandola endocrina che produce melatonina, legata al ritmo sonno-veglia.",
+   "k": "La secrezione dipende dalla luce: aumenta di notte."
+  },
+  "adeno": {
+   "n": "Adenoipofisi (ipofisi anteriore)",
+   "l": "Adenohypophysis",
+   "r": "Ghiandole",
+   "col": "#f5a623",
+   "q": "Produce GH, prolattina, ACTH, TSH, FSH e LH",
+   "f": "Produce GH, prolattina, ACTH, TSH, FSH e LH, sotto il controllo di ormoni ipotalamici.",
+   "k": "Un adenoma ipofisario può dare iperproduzione ormonale o compressione del chiasma ottico (emianopsia bitemporale)."
+  },
+  "neuro": {
+   "n": "Neuroipofisi (ipofisi posteriore)",
+   "l": "Neurohypophysis",
+   "r": "Ghiandole",
+   "col": "#e07b39",
+   "q": "Rilascia ossitocina e ADH",
+   "f": "Rilascia ossitocina e ormone antidiuretico (ADH), prodotti dall'ipotalamo.",
+   "k": "Un deficit di ADH causa diabete insipido, con poliuria e sete intensa."
+  },
+  "mesencefalo": {
+   "n": "Mesencefalo",
+   "l": "Mesencephalon",
+   "r": "Tronco encefalico",
+   "col": "#c8a27a",
+   "q": "Riflessi visivi e uditivi; contiene la substantia nigra",
+   "f": "Parte superiore del tronco: riflessi visivi e uditivi, controllo dei movimenti oculari e vie motorie. Contiene i nuclei dei nervi III e IV.",
+   "k": "La substantia nigra, nel mesencefalo, degenera nel morbo di Parkinson."
+  },
+  "ponte": {
+   "n": "Ponte",
+   "l": "Pons",
+   "r": "Tronco encefalico",
+   "col": "#b58b62",
+   "q": "Collega cervello e cervelletto; nuclei dei nervi da V a VIII",
+   "f": "Collega cervello, cervelletto e midollo; contiene i nuclei dei nervi da V a VIII (in parte) e centri del respiro.",
+   "k": "Lesioni pontine estese possono causare la sindrome locked-in."
+  },
+  "bulbo": {
+   "n": "Bulbo",
+   "l": "Medulla oblongata",
+   "r": "Tronco encefalico",
+   "col": "#9c7248",
+   "q": "Centri del respiro e del battito; decussazione piramidale",
+   "f": "Contiene centri di controllo di respiro, frequenza cardiaca e pressione e i nuclei dei nervi IX, X e XII. Qui le vie piramidali si incrociano.",
+   "k": "La decussazione piramidale spiega perché una lesione cerebrale causa paralisi sul lato opposto del corpo."
+  },
+  "solchi": {
+   "n": "Solchi e scissure principali",
+   "l": "Sulci cerebri",
+   "r": "Telencefalo",
+   "col": "#8a8f98",
+   "f": "Solco centrale (tra lobo frontale e parietale), scissura laterale di Silvio (separa il lobo temporale) e solco parieto-occipitale: i confini principali tra i lobi.",
+   "k": "Sono i punti di riferimento per localizzare le aree corticali e le lesioni nelle immagini."
+  },
+  "sostanza": {
+   "n": "Sostanza bianca",
+   "l": "Substantia alba telencephali",
+   "r": "Telencefalo",
+   "col": "#e9e4d8",
+   "f": "Fasci di fibre mielinizzate sotto la corteccia: collegano aree dello stesso emisfero, i due emisferi e la corteccia con le strutture profonde.",
+   "k": "Le lesioni della sostanza bianca (per esempio nella sclerosi multipla o nelle piccole ischemie) interrompono le connessioni anche con corteccia integra."
+  },
+  "ventricoli": {
+   "n": "Ventricoli e acquedotto",
+   "l": "Ventriculi encephali",
+   "r": "Sistema ventricolare",
+   "col": "#7cc3e8",
+   "f": "Cavità piene di liquor: ventricoli laterali, terzo ventricolo, acquedotto del mesencefalo e quarto ventricolo.",
+   "k": "Un ostacolo al deflusso del liquor dilata i ventricoli (idrocefalo)."
+  },
+  "ipofisi": {
+   "n": "Ipofisi",
+   "l": "Hypophysis",
+   "r": "Diencefalo",
+   "col": "#f2a65a",
+   "f": "Ghiandola endocrina nella sella turcica, collegata all'ipotalamo: adenoipofisi (ormoni trofici) e neuroipofisi (ossitocina e vasopressina).",
+   "k": "Gli adenomi ipofisari possono comprimere il chiasma ottico (emianopsia bitemporale)."
+  },
+  "diencefalo": {
+   "n": "Diencefalo",
+   "l": "Diencephalon",
+   "r": "Diencefalo",
+   "col": "#b48ad6",
+   "f": "Tra emisferi e tronco: talamo (stazione delle vie sensitive), ipotalamo (controllo endocrino e vegetativo), epitalamo con l'epifisi, chiasma e tratti ottici.",
+   "k": "Le lesioni talamiche possono dare deficit sensitivi e dolore centrale nell'emicorpo opposto."
+  },
+  "commissure": {
+   "n": "Corpo calloso e commessure",
+   "l": "Commissurae telencephali",
+   "r": "Telencefalo",
+   "col": "#f0d36b",
+   "f": "Fasci che uniscono i due emisferi (corpo calloso, commessura anteriore e dell'ippocampo), con fornice e setto pellucido.",
+   "k": "La sezione del corpo calloso separa le informazioni dei due emisferi (sindrome da disconnessione)."
+  },
+  "limbico": {
+   "n": "Lobo limbico",
+   "l": "Lobus limbicus",
+   "r": "Telencefalo",
+   "col": "#e58fa6",
+   "f": "Anello di corteccia sulla faccia mediale (giro del cingolo, giro paraippocampale) con ippocampo e nuclei del setto: memoria ed emozioni.",
+   "k": "L'ippocampo è tra le prime strutture colpite nella malattia di Alzheimer (memoria recente)."
+  },
+  "insula": {
+   "n": "Insula",
+   "l": "Insula",
+   "r": "Telencefalo",
+   "col": "#9bd18b",
+   "f": "Lobo nascosto in fondo alla scissura laterale, coperto dagli opercoli: gusto, sensibilità viscerale, consapevolezza corporea.",
+   "k": "È irrorata dall'arteria cerebrale media e spesso coinvolta negli ictus di quel territorio."
+  }
  }
 }
