@@ -112,9 +112,13 @@ Contenuto del gioco:
   offline): se la sessione non vale più, all'avvio con rete si chiede di accedere di nuovo con un avviso; chi continua
   senza accedere trova nel profilo "Accedi e sincronizza". Uscendo con "Esci" l'account si dimentica.
   I progressi del dispositivo ricordano l'account a cui appartengono (`S.owner` {uid, email}, dopo la prima sincronizzazione):
-  entrando con un account diverso non si uniscono da soli, la schermata "Di chi sono questi progressi?" (`showOwner()` in
-  `gate.js`, `A.conflict`) fa scegliere tra usare i progressi dell'account (`resetLocal()` in `state.js`) e unirli; i progressi
-  da ospite (senza `owner`) si uniscono come prima. Nel riquadro Account "Collega Google" (`linkIdentity`, serve "manual
+  entrando con un account diverso non si uniscono da soli: la schermata "Su questo telefono ci sono altri progressi"
+  (`showOwner()` in `gate.js`, `A.conflict`) propone "Importa i dati del telefono in questo account" (`importDevice()`: se
+  l'account non ha una password ne chiede una, così si entra con Google e con email e password; facoltativo, elimina il vecchio
+  account con la sua password, usando un client Supabase a parte che non tocca la sessione) oppure "Inizia da zero"
+  (`resetLocal()` in `state.js`). I progressi da ospite (senza `owner`) si uniscono come prima. Nel riquadro Account
+  "Aggiungi password" per chi è entrato solo con Google. La cancellazione libera subito il nome utente
+  (`20261119130000_nome_libero.sql`: resta in `deleted_username`, il ripristino lo restituisce se è ancora libero). Nel riquadro Account "Collega Google" (`linkIdentity`, serve "manual
   linking" attivo su Supabase) per entrare con Google nello stesso account invece di crearne un secondo.
   All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
   per la serie vale il giorno più recente; profilo: vince la modifica più recente, `profile_at`), poi dopo ogni `save()`

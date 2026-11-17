@@ -85,10 +85,31 @@ export const signOut=()=>run(async()=>{
  if(lastAccount()?.dirty&&navigator.onLine)await sync(false);
  await (await client()).auth.signOut({scope:'local'});setLast(null);A.user=null;A.profile=null;A.view='';A.msg='Sei uscito: i progressi restano su questo dispositivo.';
 });
-export const setNewPassword=pw=>run(async()=>{const {error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;A.msg='Password cambiata.';A.view='';});
+export const setNewPassword=pw=>run(async()=>{const had=hasPassword();const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;if(data&&data.user)A.user=data.user;
+ A.msg=had?'Password cambiata.':'Password aggiunta: ora puoi entrare anche con '+(A.user.email||'la tua email')+' e questa password.';A.view='';});
 export const setView=v=>{A.view=v;A.err='';A.msg='';onChange();};
 // scelta per i progressi di un altro account sul dispositivo (vedi sync)
 export function resolveOwner(choice){A.choice=choice;A.conflict=null;sync(true);}
+// l'account in uso ha già l'accesso con email e password?
+export const hasPassword=()=>!!(A.user&&(A.user.identities||[]).some(i=>i.provider==='email'));
+// Importa nell'account in uso i progressi del telefono (di un altro account). pw: password da aggiungere, così si entra sia con
+// Google sia con email e password. oldPw: se c'è, elimina anche il vecchio account (in cancellazione per 30 giorni): si entra
+// in quell'account con un client a parte, senza toccare la sessione in uso, e lo si cancella come farebbe lui dal profilo.
+export async function importDevice({pw,oldEmail,oldPw}){
+ const c=A.conflict;A.busy=true;A.err='';onChange();
+ try{
+  if(pw&&!hasPassword()){const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;if(data&&data.user)A.user=data.user;}
+  if(oldPw){
+   const tmp=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bm-vecchio'}});
+   const {error:e1}=await tmp.auth.signInWithPassword({email:oldEmail,password:oldPw});
+   if(e1)throw new Error(/invalid/i.test(e1.message||'')?'La password del vecchio account non è giusta.':e1.message);
+   const {error:e2}=await tmp.rpc('delete_my_account');if(e2)throw e2;
+   try{await tmp.auth.signOut({scope:'local'});}catch(e){}
+  }
+  try{const {data}=await A.sb.auth.getUser();if(data&&data.user)A.user=data.user;}catch(e){}
+  A.busy=false;resolveOwner('merge');
+ }catch(e){A.busy=false;A.err=it(e);A.conflict=c;onChange();}
+}
 // collega Google all'account in uso: poi si entra con Google nello stesso account (serve "manual linking" su Supabase)
 export const hasGoogle=()=>!!(A.user&&(A.user.identities||[]).some(i=>i.provider==='google'));
 export const linkGoogle=()=>run(async()=>{
@@ -224,8 +245,8 @@ export function accountHtml(){
   const state=A.syncing?'⏳ Sincronizzo…':!navigator.onLine?'📴 Senza connessione: i progressi si salvano qui e partono appena torna la rete.'
    :dirty||pend?'⚠️ Ci sono progressi non ancora salvati online.':A.lastSync?'✅ Tutto salvato online alle '+hm(A.lastSync)+'.':'';
   return `<div class="acc"><div class="sub">Account</div><p class="mut">${esc(A.user.email||'')}</p><p class="mut">${state}${pend?' Partite in attesa: '+pend+'.':''}</p>${note}
-   ${A.view==='pw'?`<form data-acc="newpw"><input name="p" type="password" placeholder="Nuova password" autocomplete="new-password" minlength="6" required><button class="btn"${A.busy?' disabled':''}>Cambia</button></form>`:''}
-   <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">Cambia password</button>${hasGoogle()?'<span class="chip">✅ Google collegato</span>':'<button class="chip" data-acc="google">Collega Google</button>'}<button class="chip" data-acc="out">Esci</button></div></div>`;
+   ${A.view==='pw'?`<form data-acc="newpw"><input name="p" type="password" placeholder="${hasPassword()?'Nuova password':'Password per entrare anche con '+esc(A.user.email||'email')}" autocomplete="new-password" minlength="8" required><button class="btn"${A.busy?' disabled':''}>${hasPassword()?'Cambia':'Aggiungi'}</button></form>`:''}
+   <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">${hasPassword()?'Cambia password':'Aggiungi password'}</button>${hasGoogle()?'<span class="chip">✅ Google collegato</span>':'<button class="chip" data-acc="google">Collega Google</button>'}<button class="chip" data-acc="out">Esci</button></div></div>`;
  }
  if(last)return `<div class="acc"><div class="sub">Account</div><p><b>${esc(last.email)}</b></p>
   <p class="mut">${last.dirty?'⚠️ Hai progressi salvati solo su questo dispositivo. ':''}${navigator.onLine?'Accedi di nuovo per sincronizzarli.':'Senza connessione: si salva tutto qui, sincronizzi quando torna la rete.'}</p>${note}

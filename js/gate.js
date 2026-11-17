@@ -4,10 +4,10 @@
    chi preferisce può continuare senza account e sincronizzare dopo dal profilo. */
 import {$,toast} from './util.js';
 import {S} from './state.js';
-import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut} from './account.js';
+import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice} from './account.js';
 
 const GUEST='bodymania-guest'; // "Continua senza account" scelto: agli avvii successivi non si chiede più
-let mode='boot',reason='',fromApp=false;
+let mode='boot',reason='',fromApp=false,ownImp=false,delOld=false;
 const box=()=>$('gbody');
 const status=t=>{if(mode==='boot')box().innerHTML=`<div class="spin"></div><p class="gst">${t}</p>`;};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -82,14 +82,27 @@ function renderLogin(){
 }
 
 /* ---------- progressi di un altro account su questo dispositivo ---------- */
-function showOwner(){
- mode='owner';show();const c=A.conflict;
- box().innerHTML=`<div class="gform"><div class="h">Di chi sono questi progressi?</div>
-  <p>Su questo dispositivo ci sono i progressi di <b>${esc(c.email)}</b>. Stai entrando come <b>${esc(c.me)}</b>.</p>
-  <button class="btn wide" data-g="own-fresh">Usa i progressi di ${esc(c.me)}</button>
-  <p class="note">Consigliato se sono due persone o due account diversi. I progressi di ${esc(c.email)} restano salvati nel suo account${c.dirty?'; <b>attenzione</b>: alcuni non sono ancora stati inviati e da questo dispositivo andranno persi':''}.</p>
-  <button class="btn alt wide" data-g="own-merge">Unisci i progressi del dispositivo a ${esc(c.me)}</button>
-  <p class="note">Solo se sono tuoi: XP, maestria e badge di questo dispositivo passano anche a ${esc(c.me)}.</p>
+function showOwner(imp){
+ mode='owner';ownImp=!!imp;show();const c=A.conflict,dis=A.busy?' disabled':'';
+ const err=A.err?`<p class="err">${esc(A.err)}</p>`:'';
+ if(imp){ // importazione: password da aggiungere (se manca) e, facoltativo, cancellazione del vecchio account
+  box().innerHTML=`<div class="gform"><div class="h">Importa i dati del telefono</div>${err}
+   <p class="mut">XP, maestria, badge e profilo di <b>${esc(c.email)}</b> passano a <b>${esc(c.me)}</b>.</p>
+   <form data-g="own-import">
+   ${hasPassword()?'':`<p class="mut">Scegli una password: potrai entrare sia con Google sia con <b>${esc(c.me)}</b> e questa password.</p>
+    <input name="np" type="password" placeholder="Nuova password (almeno 8 caratteri)" autocomplete="new-password" minlength="8" required>`}
+   <label class="cons"><input type="checkbox" name="del"${delOld?' checked':''}><span>Elimina il vecchio account <b>${esc(c.email)}</b>: i suoi dati sono già qui. Serve la sua password.</span></label>
+   <input name="op" type="password" placeholder="Password di ${esc(c.email)}" autocomplete="current-password"${delOld?' required':' hidden'}>
+   <button class="btn"${dis}>${A.busy?'Attendi…':'Importa'}</button></form>
+   <button class="lnk" data-g="own-back">Indietro</button></div>`;
+  return;
+ }
+ box().innerHTML=`<div class="gform"><div class="h">Su questo telefono ci sono altri progressi</div>${err}
+  <p>Ci sono i progressi di <b>${esc(c.email)}</b>. Stai entrando come <b>${esc(c.me)}</b>.</p>
+  <button class="btn wide" data-g="own-imp">Importa i dati del telefono in questo account</button>
+  <p class="note">Se sono tuoi. ${hasPassword()?'':'Potrai entrare con Google e anche con email e password. '}Puoi anche eliminare il vecchio account.</p>
+  <button class="btn alt wide" data-g="own-fresh">Inizia da zero con ${esc(c.me)}</button>
+  <p class="note">Se sono di un'altra persona o vuoi tenere separati i due account. I progressi di ${esc(c.email)} restano salvati nel suo account${c.dirty?'; <b>attenzione</b>: alcuni non sono ancora stati inviati e da questo telefono andranno persi':''}.</p>
   <button class="lnk" data-g="own-out">Esci da questo account</button></div>`;
 }
 
@@ -103,7 +116,7 @@ function showName(){
 
 addAccountListener(()=>{
  if(A.conflict&&mode!=='owner'&&mode!=='boot'){showOwner();return;}
- if(mode==='owner'){if(A.conflict)return;if(!A.user){openLogin('');return;}if(A.profile&&!A.syncing){if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto.');}}return;}
+ if(mode==='owner'){if(A.conflict){keep(()=>showOwner(ownImp));return;}if(!A.user){openLogin('');return;}if(A.profile&&!A.syncing){if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto.');}}return;}
  if(mode==='login'){
   if(A.user&&A.profile&&!A.syncing){try{localStorage.removeItem(GUEST);}catch(e){}if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto: progressi sincronizzati.');}}
   else keep(renderLogin);
@@ -112,10 +125,14 @@ addAccountListener(()=>{
  }
 });
 export function wireGate(){
+ // spunta "elimina il vecchio account": mostra il campo della sua password
+ $('gate').addEventListener('change',e=>{if(e.target.name!=='del')return;delOld=e.target.checked;const op=e.target.form.elements.op;op.hidden=!delOld;op.required=delOld;if(delOld)op.focus();});
  $('gate').addEventListener('click',e=>{
   const b=e.target.closest('button[data-g]');if(!b||b.closest('form'))return;const k=b.dataset.g;
   if(k==='google')google();
-  else if(k==='own-fresh'||k==='own-merge'){box().innerHTML='<div class="spin"></div><p class="gst">Sincronizzo…</p>';resolveOwner(k==='own-fresh'?'fresh':'merge');}
+  else if(k==='own-fresh'){box().innerHTML='<div class="spin"></div><p class="gst">Sincronizzo…</p>';resolveOwner('fresh');}
+  else if(k==='own-imp'){A.err='';showOwner(true);}
+  else if(k==='own-back'){A.err='';showOwner();}
   else if(k==='own-out'){A.conflict=null;signOut().then(()=>openLogin(''));}
   else if(k==='guest'){if(!reason){try{localStorage.setItem(GUEST,'1');}catch(x){}}closeGate();}
   else if(k==='later')closeGate();
@@ -127,5 +144,8 @@ export function wireGate(){
   else if(k==='signup')signUp(v('e'),f.elements.p.value);
   else if(k==='reset')resetPw(v('e'));
   else if(k==='name')saveProfile({...S.prof,name:v('u')});
+  else if(k==='own-import'){const del=f.elements.del&&f.elements.del.checked,op=f.elements.op.value;
+   if(del&&!op){A.err='Scrivi la password del vecchio account, o togli la spunta.';showOwner(true);return;}
+   const c=A.conflict;importDevice({pw:f.elements.np?f.elements.np.value:'',oldEmail:c.email,oldPw:del?op:''});}
  });
 }
