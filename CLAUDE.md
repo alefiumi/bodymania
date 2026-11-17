@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 51, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 51 (52 sul branch di sviluppo), contenuti
   `version` 8 (`corpo` 10, `cervello` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -42,6 +42,8 @@ Prototipo diviso in:
 - Computer e tablet in orizzontale (almeno 900 px e più larghi che alti, `@media` in fondo a `css/style.css` e in
   `atlante/index.html`): figura a sinistra e scheda a destra (griglia), senza la freccia `#fold`; in colonna la figura restava
   alta 180 px e le risposte uscivano dallo schermo. Se la finestra cambia forma e la figura era intera, si riadatta (`atHome()`).
+  Segni di origine e inserzione (`ovDraw`/`drawOv()` in `figure.js`) in pixel dello schermo, ridisegnati a ogni zoom: prima
+  erano in unità del disegno e su un computer (o ingrandendo) i cerchi O e I coprivano mezza figura.
 - Figura: barra `.tbar` sopra il disegno (moduli a sinistra, zoom a destra), mai sovrapposta; l'svg occupa
   tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
   Zoom: pulsanti, rotella, pizzico a due dita con eventi touch (su iPhone gli eventi pointer a due dita

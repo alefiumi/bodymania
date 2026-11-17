@@ -52,7 +52,11 @@ export const visible=id=>visibleIn(id,app.view);
 let tw=0;
 export const svgEl=()=>$('fig').querySelector('svg');
 export function svgPt(x,y){const s=svgEl(),p=s.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(s.getScreenCTM().inverse());}
-function applyVB(){const s=svgEl(),VB=app.VB;if(s)s.setAttribute('viewBox',`${VB.x} ${VB.y} ${VB.w} ${VB.h}`);}
+function applyVB(){const s=svgEl(),VB=app.VB;if(s){s.setAttribute('viewBox',`${VB.x} ${VB.y} ${VB.w} ${VB.h}`);if(ovDraw)drawOv();}}
+// segni sopra la figura (origine e inserzione): misure in pixel dello schermo, uguali con ogni zoom e su ogni schermo
+let ovDraw=null;
+function drawOv(){const s=svgEl(),o=$('ov');if(!s||!o||!ovDraw)return;const r=s.getBoundingClientRect(),VB=app.VB;
+ const ppu=Math.min(r.width/VB.w,r.height/VB.h)||1;o.innerHTML=ovDraw(2.2/ppu);}
 // proporzioni del riquadro sullo schermo e riquadro più largo ammesso (tutta la figura dentro lo schermo)
 const scrAsp=()=>{const r=svgEl()?.getBoundingClientRect();return r&&r.width>0&&r.height>0?r.height/r.width:app.MOD.H/app.MOD.W;};
 const maxW=()=>Math.max(app.MOD.W,app.MOD.H/scrAsp());
@@ -155,7 +159,7 @@ export function els(id,onlyActive){
  return members(id).flatMap(m=>[...root.querySelectorAll(`.bone[data-id="${CSS.escape(m)}"]`)]);
 }
 const MARKS=['sel','org','ins','ok','bad','hov'];
-export function clearMarks(){document.querySelectorAll('.bone').forEach(g=>g.classList.remove(...MARKS));const o=$('ov');if(o)o.innerHTML='';}
+export function clearMarks(){ovDraw=null;document.querySelectorAll('.bone').forEach(g=>g.classList.remove(...MARKS));const o=$('ov');if(o)o.innerHTML='';}
 export const mark=(id,c)=>els(id).forEach(g=>g.classList.add(c));
 // colore della maestria: della singola struttura, o del suo gruppo quando si gioca per gruppi
 export function refreshMastery(){document.querySelectorAll('#fig .bone').forEach(g=>{const k=itemOf(g.dataset.id);g.classList.remove('m0','m1','m2','m3');g.classList.add('m'+(S.mastery[k]||0));});}
@@ -168,15 +172,16 @@ export function showMuscle(m){
  const P=(m.pts||{})[app.view]||{o:[],i:[]},side=['r','l'].find(sd=>P.o.some(p=>p[2]===sd)&&P.i.some(p=>p[2]===sd))||'r';
  const pick=(L,id)=>{const q=L.filter(p=>p[2]===side);const l=q.length?q:L;if(l.length)return [l.reduce((s,p)=>s+p[0],0)/l.length,l.reduce((s,p)=>s+p[1],0)/l.length];return ctr(id);};
  const a=pick(P.o,m.o),b=pick(P.i,m.i);
- if(!a||!b){$('ov').innerHTML='';return false;}
+ if(!a||!b){ovDraw=null;$('ov').innerHTML='';return false;}
  const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1;
- const w=focusPts([a,b],30),u=w/100,r=6.5*u,fs=6.5*u,down=dy>=0;
+ ovDraw=u=>{const r=6.5*u,fs=6.5*u,down=dy>=0;
  const sx=a[0]+dx/d*(r+u),sy=a[1]+dy/d*(r+u),ex=b[0]-dx/d*(r+2.5*u),ey=b[1]-dy/d*(r+2.5*u);
  const lab=(p,txt,col,above)=>{const wd=txt.length*fs*.56+fs*1.4,hh=fs*1.7,y=above?p[1]-r-hh-u:p[1]+r+u;
   return `<rect x="${p[0]-wd/2}" y="${y}" width="${wd}" height="${hh}" rx="${hh/2}" fill="${col}"/><text x="${p[0]}" y="${y+hh*0.72}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#fff">${txt}</text>`;};
  const dot=(p,l,col)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="${col}"/><text x="${p[0]}" y="${p[1]+fs*.36}" text-anchor="middle" font-size="${fs*1.1}" font-weight="700" fill="#fff">${l}</text>`;
- $('ov').innerHTML=`<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="#7c3aed" stroke-width="${2.2*u}" stroke-dasharray="${5*u} ${4*u}" marker-end="url(#ar)"/>`+
-  dot(a,'O','#2563eb')+dot(b,'I','#ea580c')+lab(a,'O: '+bone(itemOf(m.o)).n,'#2563eb',down)+lab(b,'I: '+bone(itemOf(m.i)).n,'#ea580c',!down);
+ return `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="#7c3aed" stroke-width="${2.2*u}" stroke-dasharray="${5*u} ${4*u}" marker-end="url(#ar)"/>`+
+  dot(a,'O','#2563eb')+dot(b,'I','#ea580c')+lab(a,'O: '+bone(itemOf(m.o)).n,'#2563eb',down)+lab(b,'I: '+bone(itemOf(m.i)).n,'#ea580c',!down);};
+ focusPts([a,b],30);drawOv();
  return true;
 }
 export const muscleHtml=m=>`<div class="md"><b>${m.n}</b> <i class="mut">${m.l||''}</i><br><span class="tg o">ORIGINE</span> ${m.ot}${m.o?` <small class="mut">(${bonesName([m.o,...(m.oa||[])])})</small>`:''}<br><span class="tg i">INSERZIONE</span> ${m.it}${m.i?` <small class="mut">(${bonesName([m.i,...(m.ia||[])])})</small>`:''}<br><b>Azione</b>: ${m.a}${m.nv?`<br><b>Innervazione</b>: ${m.nv}`:''}${m.src?'<br><small class="mut">Ossa ricavate dal testo della scheda: nella fonte mancano le aree.</small>':''}</div>`;
