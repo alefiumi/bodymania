@@ -34,7 +34,8 @@ window.addEventListener('message',e=>{
  else if(d.type==='menu')setTab('play');
 });
 function setTab(t){
- app.tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ app.tab=t;document.body.classList.toggle('pg',t==='prog'); // il profilo usa tutto lo schermo, senza figura
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
  showAtlas(t==='atlas');if(t==='atlas')return;
  clearGhosts();clearMarks();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg})[t]();
 }

@@ -21,7 +21,7 @@ Prototipo diviso in:
 - `js/`: moduli ES. `main.js` avvia, `content.js` carica i JSON, `shapes.js` trasforma le forme in SVG,
   `state.js` (stato condiviso `app`, salvataggio), `figure.js` (figura, zoom, pan), `explore.js`,
   `game.js`, `puzzle.js`, `progress.js`, `ui.js` (cambio di modulo e tab, clic),
-  `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
+  `gate.js` (schermata di avvio), `account.js`, `badges.js`, `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
 - Figura: barra `.tbar` sopra il disegno (moduli a sinistra, zoom a destra), mai sovrapposta; l'svg occupa
   tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
   Zoom: pulsanti, rotella, pizzico a due dita con eventi touch (su iPhone gli eventi pointer a due dita
@@ -59,13 +59,28 @@ Contenuto del gioco:
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.
 - Salvataggio locale: `localStorage`, chiave `bodymania-v1`. **L'account è facoltativo**: senza account si gioca e si
   esplora tutto come prima e i progressi restano solo sul dispositivo.
-- Account (`js/account.js`, sezione in cima a Progressi): email e password o Google (Supabase Auth, flusso PKCE). La
-  libreria `vendor/supabase.js` (supabase-js 2.118.0, UMD) si carica solo se c'è una sessione o si apre l'accesso.
-  Configurazione in `js/config.js` (indirizzo del progetto e chiave pubblica anon; vuoti = solo locale).
+- Schermata di avvio (`js/gate.js`, `#gate` in `index.html`): l'app si prepara sotto. Con rete controlla se c'è una
+  versione nuova del service worker (`reg.update()`; se si installa, attende `controllerchange` e ricarica una volta,
+  guardia in `sessionStorage` `bm-upd`), ricarica anche se arrivano contenuti nuovi mentre è aperta, poi sincronizza.
+  Senza rete entra subito (tutto in locale). Se non c'è un account chiede di accedere (vista Accedi, sotto "Registrati"
+  e "Continua senza account"; la scelta ospite si ricorda in `bodymania-guest`). Dopo la prima registrazione chiede il nome.
+- Account (`js/account.js`): email e password o Google (Supabase Auth, flusso PKCE). La libreria `vendor/supabase.js`
+  (supabase-js 2.118.0, UMD) si carica solo se c'è una sessione o si apre l'accesso. Configurazione in `js/config.js`
+  (indirizzo del progetto e chiave pubblica; vuoti = solo locale). `startAccount()` restituisce ok / offline / expired / none.
+  `bodymania-acct` ricorda l'ultimo account usato e `dirty` (progressi salvati qui e non ancora inviati, es. giocando
+  offline): se la sessione non vale più, all'avvio con rete si chiede di accedere di nuovo con un avviso; chi continua
+  senza accedere trova nel profilo "Accedi e sincronizza". Uscendo con "Esci" l'account si dimentica.
   All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
-  per la serie vale il giorno più recente), poi dopo ogni `save()` parte un invio (3 s). Le partite finite vanno in
-  `bodymania-queue` (localStorage, id generato sul dispositivo) e si inviano con upsert che ignora i doppioni.
-  Uscendo i progressi restano sul dispositivo. Il nome utente si sceglie dopo la prima registrazione.
+  per la serie vale il giorno più recente; profilo: vince la modifica più recente, `profile_at`), poi dopo ogni `save()`
+  parte un invio (3 s). Le partite finite vanno in `bodymania-queue` e si inviano con upsert che ignora i doppioni.
+- Profilo (scheda "👤 Profilo", `js/progress.js`, a tutto schermo senza figura): foto (ritagliata a 128×128 JPEG e salvata
+  come testo `data:` in `profiles.avatar`, così si vede offline), nome (con account: unico, regola `NAME_RE`), ruolo,
+  presentazione; statistiche, badge, riquadro Account (sincronizza, cambia password, esci) e maestria del modulo.
+  Profilo locale in `S.prof`; funziona anche senza account.
+- Badge (`js/badges.js`): 20, calcolati sul dispositivo dopo ogni `save()` (avviso "Nuovo badge"); `S.badges` {id: data},
+  statistiche delle partite in `S.stats` (aggiornate da `queue.add`). Con l'account vanno in `badge_assertions`.
+  Gli id e i testi devono coincidere con `badge_classes` nel secondo file SQL (`20261117120000_profilo_badge.sql`,
+  che aggiunge anche le colonne avatar, role, bio, profile_at e la foto nella classifica).
 - Sfondo chiaro o scuro: senza scelta segue il sistema; il pulsante 🌙/☀️ nell'intestazione (e nella barra dell'atlante
   aperto da solo) mette `data-theme` su `<html>` e lo salva in `localStorage` (`bodymania-theme`). Uno script in testa a
   `index.html` e `atlante/index.html` lo applica prima di disegnare; l'atlante nell'iframe segue l'app con l'evento `storage`.
@@ -162,10 +177,10 @@ Requisiti dell'autore per il 3D (16/11/2026):
 2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
    installazione su telefono vero ancora da provare).
 3. ~~Supabase: schema e regole in file SQL versionati (`supabase/migrations/`)~~ (scritti; da applicare al progetto).
-4. ~~Registrazione e login~~ (email e password, Google; da provare con il progetto vero), pagina profilo.
+4. ~~Registrazione e login~~ (email e password, Google ancora da attivare su Supabase), ~~pagina profilo~~.
 5. ~~Sincronizzazione~~: coda locale (in localStorage invece di IndexedDB), invio idempotente, unione dei progressi.
 6. Amici (richiesta, accettazione) e due classifiche: tutti gli iscritti e solo amici.
-7. Badge, trofei e achievement mostrati nel profilo.
+7. ~~Badge e traguardi mostrati nel profilo~~ (20 badge; altri trofei si aggiungono in `badges.js` e nel file SQL).
 8. Pubblicazione su GitHub Pages.
 
 Idee rimandate: livello tendini

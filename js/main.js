@@ -1,11 +1,13 @@
 /* Avvio: prepara l'uso offline, carica i contenuti, poi mostra il primo modulo. */
-import {$} from './util.js';
-import {app,head} from './state.js';
+import {$,toast} from './util.js';
+import {app,S,head,save,onSave} from './state.js';
 import {loadContent} from './content.js';
 import {useMod} from './ui.js';
 import {isStandalone,offlineReady,refreshOfflineBadge} from './install.js';
-import {initAccount,setAccountListener,wireAccount} from './account.js';
-import {renderProg} from './progress.js';
+import {addAccountListener,wireAccount} from './account.js';
+import {refreshProg,wireProfile} from './progress.js';
+import {boot,wireGate,openLogin} from './gate.js';
+import {checkBadges} from './badges.js';
 
 /* ---------- sfondo chiaro o scuro ---------- */
 // Senza scelta segue il sistema; il pulsante salva la scelta (anche l'atlante 3D la legge, vedi atlante.js).
@@ -22,15 +24,11 @@ $('theme').addEventListener('click',()=>{
 sysDark.addEventListener('change',themeBtn);themeBtn();
 
 /* ---------- uso offline (PWA) ---------- */
-function toast(msg){
- const t=document.createElement('div');t.id='toast';t.textContent=msg;
- $('toast')?.remove();document.body.appendChild(t);setTimeout(()=>t.remove(),6000);
-}
 // Il service worker si registra subito, così la copia locale si prepara il prima possibile.
 if('serviceWorker' in navigator&&location.protocol!=='file:'){
  const hadController=!!navigator.serviceWorker.controller;
  navigator.serviceWorker.addEventListener('message',e=>{
-  if(e.data&&e.data.type==='content-updated')toast('Contenuti aggiornati: li vedrai alla prossima apertura dell\'app.');
+  if(e.data&&e.data.type==='content-updated'&&$('gate').hidden)toast('Contenuti aggiornati: li vedrai alla prossima apertura dell\'app.');
  });
  // Prima presa di controllo = app e contenuti sono stati copiati sul dispositivo.
  navigator.serviceWorker.addEventListener('controllerchange',()=>{
@@ -47,13 +45,19 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
  if(isStandalone())navigator.storage?.persist?.().catch(()=>{});
 }
 
+/* ---------- badge ---------- */
+// dopo ogni salvataggio si controllano i traguardi; quelli guadagnati prima di questa versione si assegnano in silenzio
+checkBadges();try{localStorage.setItem('bodymania-v1',JSON.stringify(S));}catch(e){}
+onSave(()=>{const f=checkBadges();if(f.length){save();toast('🏅 Nuovo badge: '+f.map(b=>b.icon+' '+b.name).join(', '));if(app.tab==='prog')refreshProg();}});
+
+/* ---------- schermata di avvio, account e profilo ---------- */
+// l'app si prepara sotto la schermata di avvio, che intanto controlla aggiornamenti, sincronizzazione e accesso
+wireGate();wireAccount($('panel'),()=>openLogin('',true));wireProfile($('panel'));addAccountListener(refreshProg);
+boot();
 try{
  const c=await loadContent();
  app.MODS=c.MODS;app.NC=c.NC;
  useMod('corpo');head();
- // account facoltativo: si ridisegna la scheda Progressi quando cambia lo stato (accesso, invio…)
- // i campi già scritti (email, nome…) sopravvivono al ridisegno
- wireAccount($('panel'));setAccountListener(()=>{if(app.tab!=='prog')return;const v={};$('panel').querySelectorAll('input[name]').forEach(i=>v[i.name]=i.value);renderProg();$('panel').querySelectorAll('input[name]').forEach(i=>{if(v[i.name])i.value=v[i.name];});});initAccount();
 }catch(e){
  console.error(e);
  $('panel').innerHTML='<div class="h">Contenuti non disponibili</div><p class="mut">Non riesco a caricare i file in content/. Se hai aperto index.html con doppio clic, avvia un server locale (per esempio <code>npx serve .</code>) e apri l\'indirizzo che ti indica. Al primo avvio serve la connessione.</p>';
