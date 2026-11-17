@@ -5,7 +5,7 @@
 import {$,toast} from './util.js';
 import {installHint} from './install.js';
 import {S} from './state.js';
-import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice,recoverPassword} from './account.js';
+import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice,recoverPassword,online,checkNet} from './account.js';
 
 const GUEST='bodymania-guest'; // "Continua senza account" scelto: agli avvii successivi non si chiede più
 let mode='boot',reason='',fromApp=false,ownImp=false,delOld=false;
@@ -40,7 +40,8 @@ export async function boot(){
  // contenuti nuovi scaricati dal service worker mentre si è ancora qui: si ricarica subito per usarli
  navigator.serviceWorker?.addEventListener('message',e=>{if(e.data&&e.data.type==='content-updated'&&mode==='boot'){try{sessionStorage.setItem('bm-upd',Date.now());}catch(x){}location.reload();}});
  const t0=Date.now(),settle=()=>wait(Math.max(0,500-(Date.now()-t0)));
- if(!navigator.onLine){
+ await checkNet();
+ if(!online()){
   status('Senza connessione: i progressi si salvano su questo dispositivo.');
   await timeout(startAccount(),3000,'offline');await wait(700);closeGate();return;
  }

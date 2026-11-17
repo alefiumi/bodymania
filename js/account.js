@@ -47,15 +47,28 @@ let started=false;
 /* Avvio (chiamato dalla schermata di avvio). Restituisce:
    'ok' sessione valida e progressi sincronizzati · 'offline' sessione salvata ma niente rete (si gioca in locale)
    'expired' c'era un account ma la sessione non vale più · 'none' nessun account su questo dispositivo */
+/* Rete. online() a volte dice "senza rete" anche quando c'è (Mac con VPN o schede di rete virtuali, alcuni Chrome):
+   quando lo dice si prova davvero a raggiungere Supabase, e se risponde si considera la rete presente. */
+let netOk=false;
+export const online=()=>navigator.onLine||netOk;
+export async function checkNet(){
+ if(navigator.onLine){netOk=false;return true;}
+ if(!configured)return false;
+ try{const c=new AbortController(),t=setTimeout(()=>c.abort(),4000);await fetch(SUPABASE_URL+'/auth/v1/health',{mode:'no-cors',cache:'no-store',signal:c.signal});clearTimeout(t);netOk=true;}
+ catch(e){netOk=false;}
+ return netOk;
+}
+addEventListener('offline',()=>checkNet().then(()=>onChange()));
+addEventListener('online',()=>{netOk=false;onChange();});
 export async function startAccount(){
  if(!configured)return 'none';
  if(!started){started=true;onSave(()=>{if(lastAccount())markDirty(true);syncSoon();});addEventListener('online',()=>syncSoon(0));}
  if(!hasSession()&&!backFromOAuth())return lastAccount()?'expired':'none';
  try{const sb=await client();const {data}=await sb.auth.getSession();A.user=data.session?data.session.user:null;}
- catch(e){return navigator.onLine?'expired':'offline';}
+ catch(e){return online()?'expired':'offline';}
  if(backFromOAuth())history.replaceState(null,'',location.pathname); // toglie dall'indirizzo il codice del ritorno da Google
  if(!A.user)return lastAccount()?'expired':'none';
- if(!navigator.onLine){onChange();return 'offline';}
+ if(!online()){onChange();return 'offline';}
  // la sessione salvata può essere stata revocata (password cambiata, utente tolto): lo dice solo il server
  const {error}=await A.sb.auth.getUser();
  if(error&&(error.status===401||error.status===403||/session|jwt|not found/i.test(error.message||''))){
@@ -69,7 +82,7 @@ export async function startAccount(){
 export const CONTATTO='alessandro.fiumicelli@gmail.com';
 const ERR={'Invalid login credentials':'Email o password sbagliate.','User is banned':'Questo account è in cancellazione. Entro 30 giorni dalla richiesta puoi chiederne il ripristino scrivendo a '+CONTATTO+'.','Email not confirmed':'Conferma prima l\'email: ti abbiamo mandato un link.',
  'User already registered':'Questa email è già registrata: accedi.','Password should be at least 6 characters.':'La password deve avere almeno 6 caratteri.'};
-const it=e=>ERR[e&&e.message]||(!navigator.onLine?'Serve la connessione.':/fetch|network|load failed/i.test(e&&e.message||'')?'Server non raggiungibile: riprova tra poco.':(e&&e.message)||'Errore');
+const it=e=>ERR[e&&e.message]||(!online()?'Serve la connessione.':/fetch|network|load failed/i.test(e&&e.message||'')?'Server non raggiungibile: riprova tra poco.':(e&&e.message)||'Errore');
 async function run(f){A.busy=true;A.err='';A.msg='';onChange();try{await f();}catch(e){A.err=it(e);}A.busy=false;onChange();}
 export const signIn=(email,pw)=>run(async()=>{const {error}=await (await client()).auth.signInWithPassword({email,password:pw});if(error)throw error;A.view='';});
 // versione dell'informativa sulla privacy accettata alla registrazione (resta nei metadati dell'utente su Supabase)
@@ -86,7 +99,7 @@ export const resetPw=email=>run(async()=>{const {error}=await (await client()).a
 export const signOut=()=>run(async()=>{
  // prima di uscire si inviano i progressi, ma solo se sono di questo account (con la domanda "altri progressi" aperta no)
  const mine=!A.conflict&&!(S.owner&&A.user&&S.owner.uid!==A.user.id);
- if(mine&&lastAccount()?.dirty&&navigator.onLine)await sync(false);
+ if(mine&&lastAccount()?.dirty&&online())await sync(false);
  await (await client()).auth.signOut({scope:'local'});setLast(null);A.user=null;A.profile=null;A.view='';A.conflict=null;A.choice=null;A.msg='Sei uscito: i progressi restano su questo dispositivo.';
 });
 // Password: nuova dal link di recupero (recover), cambio dal profilo (serve quella attuale, verificata con un client a parte che
@@ -144,7 +157,7 @@ export const linkGoogle=()=>run(async()=>{
 // (le regole del database fanno leggere solo i propri).
 export async function myData(){
  const out={app:'BodyMania',creato_il:new Date().toISOString(),dispositivo:{progressi:S,partite_da_inviare:queue.all()}};
- if(A.user&&A.sb&&navigator.onLine){
+ if(A.user&&A.sb&&online()){
   const sb=A.sb,uid=A.user.id;
   const [p,g,m,b,f]=await Promise.all([ownProfile(sb,uid),sb.from('game_results').select('*').eq('user_id',uid).order('played_at'),
    sb.from('mastery').select('item_id,level,updated_at'),sb.from('badge_assertions').select('badge_id,issued_at').eq('user_id',uid),
@@ -157,7 +170,7 @@ export async function myData(){
 // cancella l'account sul server: subito bloccato e tolto da classifiche e amicizie, cancellato per sempre dopo 30 giorni
 // (entro allora l'amministratore può ripristinarlo su richiesta), poi esce
 export const deleteAccount=()=>run(async()=>{
- if(!navigator.onLine)throw new Error('Per cancellare l\'account serve la connessione.');
+ if(!online())throw new Error('Per cancellare l\'account serve la connessione.');
  const {error}=await A.sb.rpc('delete_my_account');
  if(error)throw new Error(/function|schema cache|does not exist/i.test(error.message||'')?'Sul server manca la funzione di cancellazione: va applicato il file supabase/migrations/20261119100000_privacy_sicurezza.sql.':error.message);
  try{await A.sb.auth.signOut({scope:'local'});}catch(e){}
@@ -171,7 +184,7 @@ export const NAME_RULE='Da 3 a 20 caratteri: lettere, numeri, punto e trattino b
 export const saveProfile=f=>run(async()=>{
  if(A.user&&!NAME_RE.test(f.name||''))throw new Error(NAME_RULE);
  if(A.user&&f.name!==(A.profile&&A.profile.username)){
-  if(!navigator.onLine)throw new Error('Per cambiare il nome serve la connessione (deve essere libero).');
+  if(!online())throw new Error('Per cambiare il nome serve la connessione (deve essere libero).');
   const {error}=await A.sb.from('profiles').update({username:f.name}).eq('id',A.user.id);
   if(error)throw new Error(error.code==='23505'?'Questo nome è già preso.':error.message);
   A.profile.username=f.name;
@@ -181,7 +194,7 @@ export const saveProfile=f=>run(async()=>{
  A.msg='Profilo salvato.';
 });
 async function pushProfile(){
- if(!A.user||!navigator.onLine)return;
+ if(!A.user||!online())return;
  const p=S.prof,row={role:p.role||null,bio:p.bio||null,avatar:p.avatar||null,profile_at:new Date(p.t||Date.now()).toISOString()};
  const {error}=await A.sb.from('profiles').update(row).eq('id',A.user.id);
  if(error){A.warn='Foto, ruolo e presentazione restano solo su questo dispositivo: sul server manca l\'aggiornamento del database (file supabase/migrations/20261117120000_profilo_badge.sql).';return;}
@@ -203,7 +216,8 @@ const ymdApp=s=>{if(!s)return '';const [y,m,d]=s.split('-').map(Number);return `
 const sentBadges=new Set();
 // full: all'accesso legge anche il server e unisce; poi basta inviare
 export async function sync(full){
- if(!A.user||A.syncing||!navigator.onLine)return;
+ if(!A.user||A.syncing)return;
+ if(!navigator.onLine&&!await checkNet()){onChange();return;}
  A.syncing=true;onChange();
  try{
   const sb=A.sb,uid=A.user.id;
@@ -270,7 +284,7 @@ export function accountHtml(){
  const last=lastAccount();
  if(A.user){
   const pend=queue.all().length,dirty=last&&last.dirty;
-  const state=A.syncing?'⏳ Sincronizzo…':!navigator.onLine?'📴 Senza connessione: i progressi si salvano qui e partono appena torna la rete.'
+  const state=A.syncing?'⏳ Sincronizzo…':!online()?'📴 Senza connessione: i progressi si salvano qui e partono appena torna la rete.'
    :dirty||pend?'⚠️ Ci sono progressi non ancora salvati online.':A.lastSync?'✅ Tutto salvato online alle '+hm(A.lastSync)+'.':'';
   return `<div class="acc"><div class="sub">Account</div><p class="mut">${esc(A.user.email||'')}</p><p class="mut">${state}${pend?' Partite in attesa: '+pend+'.':''}</p>${note}
    ${A.view==='pw'?`<form data-acc="newpw">${hasPassword()?'<input name="cur" type="password" placeholder="Password attuale" autocomplete="current-password" required>':`<p class="mut">Con una password entri anche con ${esc(A.user.email||'la tua email')}, oltre che con Google.</p>`}
@@ -280,8 +294,8 @@ export function accountHtml(){
    <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">${hasPassword()?'Cambia password':'Aggiungi password'}</button>${hasGoogle()?'<span class="chip">✅ Google collegato</span>':'<button class="chip" data-acc="google">Collega Google</button>'}<button class="chip" data-acc="out">Esci</button></div></div>`;
  }
  if(last)return `<div class="acc"><div class="sub">Account</div><p><b>${esc(last.email)}</b></p>
-  <p class="mut">${last.dirty?'⚠️ Hai progressi salvati solo su questo dispositivo. ':''}${navigator.onLine?'Accedi di nuovo per sincronizzarli.':'Senza connessione: si salva tutto qui, sincronizzi quando torna la rete.'}</p>${note}
-  <div class="chips"><button class="chip on" data-acc="login"${navigator.onLine?'':' disabled'}>🔄 Accedi e sincronizza</button></div></div>`;
+  <p class="mut">${last.dirty?'⚠️ Hai progressi salvati solo su questo dispositivo. ':''}${online()?'Accedi di nuovo per sincronizzarli.':'Senza connessione: si salva tutto qui, sincronizzi quando torna la rete.'}</p>${note}
+  <div class="chips"><button class="chip on" data-acc="login"${online()?'':' disabled'}>🔄 Accedi e sincronizza</button></div></div>`;
  return `<div class="acc"><div class="sub">Account</div>
   <p class="mut">Stai giocando senza account: i progressi restano su questo dispositivo. Con un account li ritrovi su altri dispositivi e potrai entrare nelle classifiche con gli amici.</p>${note}
   <div class="chips"><button class="chip on" data-acc="login">Accedi o registrati</button></div></div>`;

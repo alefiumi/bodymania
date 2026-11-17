@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 53, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 53 (54 sul branch di sviluppo), contenuti
   `version` 9 (`corpo` 11, `cervello` 2). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -159,6 +159,9 @@ Contenuto del gioco:
   password" (`showRecovery()` in `gate.js`, due campi; si esce solo salvando o con "Annulla ed esci"); "Cambia password" nel
   profilo chiede quella attuale (verificata con un client a parte, `setNewPassword()`); dopo ogni cambio si chiudono le sessioni
   sugli altri dispositivi (`signOut({scope:'others'})`).
+  Rete: `online()` in `account.js` (usato da account, avvio, profilo e amici) non si fida di `navigator.onLine` falso (su Mac con
+  VPN o schede di rete virtuali Chrome dice "senza rete" anche quando c'è e l'app non sincronizzava più): `checkNet()` prova a
+  raggiungere Supabase (`/auth/v1/health`, `no-cors`) e se risponde la rete c'è.
   All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
   per la serie vale il giorno più recente; profilo: vince la modifica più recente, `profile_at`), poi dopo ogni `save()`
   parte un invio (3 s). Le partite finite vanno in `bodymania-queue` e si inviano con upsert che ignora i doppioni.

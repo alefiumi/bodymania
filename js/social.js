@@ -3,7 +3,7 @@
    copia resta sul dispositivo (bodymania-social), così senza rete si vede la classifica dell'ultima volta. */
 import {$,toast} from './util.js';
 import {S} from './state.js';
-import {account as A,configured,esc} from './account.js';
+import {account as A,configured,esc,online} from './account.js';
 
 const KEY='bodymania-social';
 const SO={tab:'all',all:[],rank:null,friends:[],rel:{fr:[],inc:[],out:[]},at:0,loading:false,err:'',found:null,q:''};
@@ -22,7 +22,7 @@ function mine(rows){
  return rows.sort((a,b)=>b.xp-a.xp);
 }
 export async function loadSocial(){
- if(!A.user||!A.sb||!navigator.onLine||SO.loading)return;
+ if(!A.user||!A.sb||!online()||SO.loading)return;
  SO.loading=true;SO.err='';redraw();
  try{
   const sb=A.sb,uid=A.user.id,cols='id,username,xp,streak,avatar';
@@ -78,7 +78,7 @@ export function renderSocial(){
  }
  const fresh=SO.uid===A.user.id,name=A.profile&&A.profile.username;
  const tabs=`<div class="chips seg"><button class="chip${SO.tab==='all'?' on':''}" data-so="tab" data-v="all">🌍 Tutti</button><button class="chip${SO.tab==='friends'?' on':''}" data-so="tab" data-v="friends">👥 Amici${fresh&&SO.rel.inc.length?' <span class="cnt">'+SO.rel.inc.length+'</span>':''}</button></div>`;
- const state=SO.loading?'<p class="mut">⏳ Aggiorno…</p>':SO.err?`<p class="err">${esc(SO.err)}</p>`:!navigator.onLine?`<p class="mut">📴 Senza connessione${fresh&&SO.at?': classifica del '+hm(SO.at):''}.</p>`:'';
+ const state=SO.loading?'<p class="mut">⏳ Aggiorno…</p>':SO.err?`<p class="err">${esc(SO.err)}</p>`:!online()?`<p class="mut">📴 Senza connessione${fresh&&SO.at?': classifica del '+hm(SO.at):''}.</p>`:'';
  const noName=name?'':'<p class="note">⚠️ Non hai ancora un nome utente: sceglilo nel Profilo per comparire in classifica e farti trovare dagli amici.</p>';
  let body='';
  if(!fresh){body=SO.loading?'':'<p class="mut">Classifica non ancora scaricata: serve la connessione.</p>';}
@@ -89,7 +89,7 @@ export function renderSocial(){
   const R=SO.rel;
   body=(R.inc.length?`<div class="sub">Richieste ricevute</div>`+R.inc.map(p=>person(p,`<button class="chip on" data-so="acc" data-id="${esc(p.id)}">Accetta</button><button class="chip" data-so="del" data-id="${esc(p.id)}">Rifiuta</button>`)).join(''):'')+
    `<div class="sub">Classifica tra amici · XP</div>`+(SO.friends.length>1?SO.friends.map(row).join(''):'<p class="mut">Ancora nessun amico: cercalo qui sotto per nome utente e mandagli una richiesta.</p>')+
-   `<div class="sub">Aggiungi un amico</div><input id="soq" class="soq" placeholder="Nome utente…" autocomplete="off" autocapitalize="none" value="${esc(SO.q)}"${navigator.onLine?'':' disabled'}><div id="sres">${resHtml()}</div>`+
+   `<div class="sub">Aggiungi un amico</div><input id="soq" class="soq" placeholder="Nome utente…" autocomplete="off" autocapitalize="none" value="${esc(SO.q)}"${online()?'':' disabled'}><div id="sres">${resHtml()}</div>`+
    (R.out.length?`<div class="sub">Richieste inviate</div>`+R.out.map(p=>person(p,`<span class="mut">in attesa</span><button class="chip" data-so="del" data-id="${esc(p.id)}">Annulla</button>`)).join(''):'')+
    (R.fr.length?`<div class="sub">I tuoi amici (${R.fr.length})</div>`+R.fr.map(p=>person(p,`<button class="chip" data-so="rm" data-id="${esc(p.id)}" data-n="${esc(p.username)}">Togli</button>`)).join(''):'');
  }
@@ -114,7 +114,7 @@ async function search(q){
  if($('sres'))$('sres').innerHTML=resHtml();
 }
 async function act(f,okMsg){
- if(!navigator.onLine){toast('Serve la connessione.');return;}
+ if(!online()){toast('Serve la connessione.');return;}
  try{const {error}=await f();if(error)throw error;if(okMsg)toast(okMsg);}
  catch(e){toast(e.code==='23505'?'Siete già amici o c\'è già una richiesta tra voi.':'Non riuscito: riprova tra poco.');}
  await loadSocial();if(SO.found&&$('sres'))$('sres').innerHTML=resHtml();
