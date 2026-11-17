@@ -78,7 +78,8 @@ export const signUp=(email,pw)=>run(async()=>{
   data:{privacy_v:PRIVACY_V,privacy_at:new Date().toISOString()}}});if(error)throw error;
  if(!data.session)A.msg='Ti abbiamo mandato un\'email: tocca il link per confermare, poi accedi qui.';A.view=data.session?'':'login';
 });
-export const google=()=>run(async()=>{const {error}=await (await client()).auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});if(error)throw error;});
+// prompt=select_account: Google mostra sempre l'elenco degli account invece di rientrare da solo nell'ultimo usato
+export const google=()=>run(async()=>{const {error}=await (await client()).auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});if(error)throw error;});
 export const resetPw=email=>run(async()=>{const {error}=await (await client()).auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;A.msg='Se l\'email è registrata, ti arriva un link per scegliere una nuova password.';A.view='login';});
 // uscendo i progressi restano sul dispositivo; si dimentica l'account, così all'avvio non si chiede più di accedere
 export const signOut=()=>run(async()=>{
