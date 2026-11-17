@@ -61,14 +61,21 @@ Contenuto del gioco:
 
 Mai provato su un dispositivo reale dall'AI: il tocco e il trascinamento li ha provati solo l'autore.
 
-## Prototipo 3D (in valutazione)
-`proto3d/` è una pagina di prova separata dall'app: un atlante 3D ruotabile in stile cartoon, a strati
-sovrapponibili (three.js in `proto3d/vendor/`, logica in `proto3d/atlante.js`).
+## Atlante 3D (scheda "🧍 Atlante 3D" dell'app)
+`atlante/` è un atlante 3D ruotabile in stile cartoon, a strati sovrapponibili (three.js in `atlante/vendor/`,
+logica in `atlante/atlante.js`). È una pagina a sé (`atlante/index.html`, si apre anche da sola) che l'app mostra in un
+iframe nella quarta scheda: `showAtlas()` in `js/ui.js` la carica la prima volta che si apre la scheda e la tiene in
+memoria (nascosta non disegna). Dentro l'iframe la pagina toglie la propria intestazione (classe `emb`).
+
+Offline (in `sw.js`): pagina, `atlante.js` e `dati.json` stanno in `APP_FILES`; motore three.js e modelli `.glb` in una
+cache a parte (`MODEL_CACHE`, versione `MODEL_VERSION`, da aumentare quando cambi `vendor/` o un `.glb`). All'installazione
+si salva la base (motore e `ossa.glb`, circa 3 MB in più), ogni altro strato la prima volta che si apre con la rete.
+Nel pannello Strati si vede quanti strati sono salvati e c'è "Scarica tutto per offline".
 
 Fonte: **Z-Anatomy** (CC BY-SA 4.0, derivato da BodyParts3D), scelto al posto di BodyParts3D perché ha nello
 stesso modello coerente ossa, muscoli completi, legamenti, sistema nervoso centrale e periferico, vasi, visceri,
 le aree di origine e inserzione dei muscoli e le etichette dei reperi già posizionate. Nomi italiani e latini
-dalla Terminologia Anatomica 2 (`build/TA2.csv`). Crediti e licenze in `proto3d/CREDITI.md`: i file derivati
+dalla Terminologia Anatomica 2 (`build/TA2.csv`). Crediti e licenze in `atlante/CREDITI.md`: i file derivati
 vanno distribuiti con la stessa licenza CC BY-SA 4.0. Rene e orecchio interno (licenza non commerciale nella
 fonte) sono esclusi.
 
@@ -85,13 +92,13 @@ File (ogni strato si scarica solo quando viene acceso; `ossa.glb` all'avvio):
 - Assi: Y in alto, +Z davanti, −X lato destro del corpo. Il modello è simmetrico: i reperi di destra
   valgono a sinistra cambiando segno alla X.
 
-Come si rigenera (serve Blender; i passaggi stanno in `proto3d/build/`):
+Come si rigenera (serve Blender; i passaggi stanno in `atlante/build/`):
 1. `Blender -b Startup.blend --python build/za_export.py -- <cartella>` esporta gli strati grezzi e `za_meta.json`
    (`Startup.blend` è dentro `Z-Anatomy.zip` del repository Z-Anatomy/Models-of-human-anatomy).
 2. `node build/za_optimize.mjs <cartella> <uscita>` semplifica e comprime (pacchetti npm `@gltf-transform/*`, `meshoptimizer`).
-3. `python3 build/za_dati.py <cartella>/za_meta.json proto3d/dati.json` unisce metadati, TA2, `build/schede.json`
+3. `python3 build/za_dati.py <cartella>/za_meta.json atlante/dati.json` unisce metadati, TA2, `build/schede.json`
    e le descrizioni di `build/descrizioni.py` (chiave `desc`). Per aggiornare solo le descrizioni senza Blender:
-   `python3 build/descrizioni.py proto3d/dati.json`.
+   `python3 build/descrizioni.py atlante/dati.json`.
 
 Funzioni dell'atlante (in `atlante.js`):
 - Muscolo: tre viste, "Forma e aree", "Punti e linee" (pallino blu al centro di ogni area di origine, arancione
@@ -115,7 +122,7 @@ Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e
 dalla fonte. Scritti dall'AI a memoria, da verificare su un atlante: i testi dei muscoli in `build/schede.json`
 (57 muscoli) e `build/schede2.py` (gli altri 151: ora tutti i 208 hanno la scheda), le descrizioni di `build/descrizioni.py` (tutte le ossa, tutti i 606 reperi,
 quasi tutte le strutture dell'encefalo) e i testi di gruppi e strati in `atlante.js`.
-Non c'è ancora: giochi sul modello 3D.
+Non c'è ancora: giochi sul modello 3D (vanno rifatti uno alla volta; quelli 2D restano come sono).
 
 Requisiti dell'autore per il 3D (16/11/2026):
 - Fluidità: 60 fps fissi su iPhone 15 con il solo scheletro della prima versione. Con più strati accesi
@@ -136,7 +143,7 @@ Requisiti dell'autore per il 3D (16/11/2026):
 7. Badge, trofei e achievement mostrati nel profilo.
 8. Pubblicazione su GitHub Pages.
 
-Idee rimandate: modello 3D (serve un modello con licenza adatta, es. Z-Anatomy), livello tendini
+Idee rimandate: livello tendini
 e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno, altre ghiandole.
 
 ## Modello dati (bozza)

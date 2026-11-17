@@ -392,6 +392,7 @@ function panel(){
    <div class="sub">Apparato locomotore</div><div class="chips">${lay('muscoli')}${lay('fasce')}${lay('legamenti')}${lay('inserzioni')}</div>
    <div class="sub">Sistema nervoso</div><div class="chips">${lay('encefalo')}${lay('midollo')}${lay('nervi')}${lay('meningi')}${lay('sensi')}<button class="chip" data-go="brain">🧠 Sezioni e strati</button></div>
    <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}</div>
+   ${offlineHtml()}
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='muscles'){
   const q=S.q.toLowerCase(),all=Object.entries(DATA.mus).filter(([r,m])=>!q||m.n.toLowerCase().includes(q)||r.includes(q)).sort((a,b)=>a[1].n.localeCompare(b[1].n));
@@ -546,17 +547,45 @@ renderer.domElement.addEventListener('pointerup',e=>{
  lastTap=now;
 });
 
+/* ---------- copia offline degli strati ---------- */
+// Il service worker dell'app salva ogni strato la prima volta che si apre con la rete; qui si vede quanti
+// sono già salvati e si possono scaricare tutti insieme.
+const OFF={files:[...new Set(Object.values(LAYERS).map(l=>l.file))],saved:null,busy:false,err:false};
+const offUrl=f=>new URL(f+'.glb',location.href).href;
+const hasSW=()=>'caches' in window&&navigator.serviceWorker&&navigator.serviceWorker.controller;
+async function offlineCheck(){
+ if(!hasSW())return;
+ const s=new Set();for(const f of OFF.files)if(await caches.match(offUrl(f)))s.add(f);
+ OFF.saved=s;if(S.list==='layers'&&!S.mus&&!S.part)panel();
+}
+function offlineHtml(){
+ if(!hasSW()||!OFF.saved)return '';
+ const n=OFF.saved.size,t=OFF.files.length,mb=n===t?'':' (circa 8 MB in tutto)';
+ return `<div class="sub">Uso senza connessione</div><p class="mut">Strati salvati sul dispositivo: ${n} di ${t}.${OFF.err?' Download interrotto: serve la connessione.':''}</p>
+  ${n<t?`<div class="chips"><button class="chip" data-offall="1"${OFF.busy?' disabled':''}>${OFF.busy?'Scarico…':'⬇️ Scarica tutto per offline'+mb}</button></div>`:''}`;
+}
+async function offlineAll(){
+ OFF.busy=true;OFF.err=false;panel();
+ for(const f of OFF.files){
+  if(OFF.saved.has(f))continue;
+  try{const r=await fetch(offUrl(f));if(!r.ok)throw 0;await r.arrayBuffer();OFF.saved.add(f);}catch(e){OFF.err=true;break;}
+  if(S.list==='layers')panel();
+ }
+ OFF.busy=false;await offlineCheck();panel();
+}
+
 /* ---------- pulsanti ---------- */
 $('bar').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.v)setView(b.dataset.v);
  else if(b.id==='outline'){outline=!outline;b.classList.toggle('on',outline);}
- else if(b.id==='layers'){S.mus=S.combo=S.lm=S.part=null;S.list='layers';refresh();}
+ else if(b.id==='layers'){S.mus=S.combo=S.lm=S.part=null;S.list='layers';refresh();offlineCheck();}
  else if(b.id==='brain')openBrain();
 });
 $('panel').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.mu)showMuscle(d.mu);
+ else if(d.offall){if(!OFF.busy)offlineAll();}
  else if(d.combo)showCombo(d.combo);
  else if(d.mv){S.mv=d.mv;refresh();}
  else if(d.lm)showLandmark(LMS.find(l=>l.id===d.lm));
@@ -568,7 +597,7 @@ $('panel').addEventListener('click',e=>{
  else if(d.lev!==undefined)setLevel(+d.lev);
  else if(d.levd)setLevel(Math.max(0,Math.min(ST.length-1,S.lev+ +d.levd)));
  else if(d.go==='brain')openBrain();
- else if(d.go){S.mus=S.combo=S.lm=S.part=null;S.q='';S.list=d.go==='home'?null:d.go;refresh();}
+ else if(d.go){S.mus=S.combo=S.lm=S.part=null;S.q='';S.list=d.go==='home'?null:d.go;refresh();if(d.go==='layers')offlineCheck();}
  else if(d.hide){if(S.part)S.part.userData.hidden=true;S.part=null;refresh();}
  else if(d.bones){S.bones=d.bones;refresh();}
  else if(d.lmt){S.allLm=!S.allLm;refresh();}
@@ -592,6 +621,7 @@ controls.minDistance=height*0.04;controls.maxDistance=height*3.2;
 setView('front',false);$('msg').remove();refresh();
 let frames=0,last=performance.now();
 renderer.setAnimationLoop(now=>{
+ if(!view.clientHeight)return; // scheda dell'app nascosta: niente disegno, si risparmia batteria
  if(tween){const k=Math.min(1,(now-tween.s)/450),e=k*k*(3-2*k);
   camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.t0,tween.t1,e);if(k>=1)tween=null;}
  controls.update();

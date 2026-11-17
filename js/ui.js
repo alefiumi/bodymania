@@ -13,8 +13,15 @@ export function useMod(id){
  app.MOD=MOD;app.B=MOD.B;app.M=MOD.M;app.CASES=MOD.CASES;app.VB={x:0,y:0,w:MOD.W,h:MOD.H};app.G=null;app.sel=null;
  buildFig();setTab(app.tab);
 }
+// L'atlante 3D è una pagina a sé (atlante/index.html) in un iframe: si carica la prima volta che si apre la
+// scheda e resta in memoria, così passando da una scheda all'altra non si perde la vista.
+function showAtlas(on){
+ $('fig').hidden=$('panel').hidden=on;$('atlas').hidden=!on;
+ if(on&&!$('atlas').firstChild)$('atlas').innerHTML='<iframe src="atlante/index.html" title="Atlante 3D" allow="fullscreen"></iframe>';
+}
 function setTab(t){
  app.tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ showAtlas(t==='atlas');if(t==='atlas')return;
  clearGhosts();clearMarks();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg})[t]();
 }
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.t);});

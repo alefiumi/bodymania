@@ -1,4 +1,4 @@
-# Genera proto3d/dati.json dai metadati di Z-Anatomy (za_meta.json), dalla Terminologia Anatomica (TA2.csv)
+# Genera atlante/dati.json dai metadati di Z-Anatomy (za_meta.json), dalla Terminologia Anatomica (TA2.csv)
 # e dalle schede dei muscoli scritte a mano (schede.json).
 # Uso: python3 za_dati.py <za_meta.json> <dati.json>
 import json, re, sys, os, collections

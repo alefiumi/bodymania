@@ -2,16 +2,31 @@
    - App (HTML, CSS, JS, icone): copiate in cache all'installazione e servite dalla cache.
      Quando cambi uno di questi file, aumenta APP_VERSION: il browser scarica di nuovo tutto l'elenco.
    - Contenuti (content/): serviti dalla cache. A ogni avvio, se c'è rete, si controlla content/index.json:
-     se la versione è cambiata si scarica l'intero set in una cache nuova e lo si usa dall'avvio successivo. */
-const APP_VERSION = '5';
+     se la versione è cambiata si scarica l'intero set in una cache nuova e lo si usa dall'avvio successivo.
+   - Atlante 3D (atlante/): pagina, codice e dati vanno con l'app (APP_FILES). Motore three.js e modelli .glb
+     stanno in una cache a parte (MODEL_CACHE), che non si riscarica a ogni nuova versione dell'app: all'installazione
+     si salva la base (motore e scheletro), ogni altro strato la prima volta che viene richiesto con la rete.
+     Quando cambi un file in atlante/vendor/ o un .glb, aumenta MODEL_VERSION. */
+const APP_VERSION = '6';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
+const MODEL_VERSION = '1';
+const MODEL_CACHE = 'bodymania-3d-' + MODEL_VERSION;
 const APP_FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/main.js', 'js/util.js', 'js/state.js', 'js/content.js', 'js/shapes.js', 'js/figure.js',
   'js/explore.js', 'js/game.js', 'js/puzzle.js', 'js/progress.js', 'js/ui.js', 'js/install.js',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'atlante/index.html', 'atlante/atlante.js', 'atlante/dati.json'
 ];
+const MODEL_BASE = [
+  'atlante/vendor/three.module.js', 'atlante/vendor/three.core.js',
+  'atlante/vendor/addons/controls/OrbitControls.js', 'atlante/vendor/addons/effects/OutlineEffect.js',
+  'atlante/vendor/addons/libs/meshopt_decoder.module.js', 'atlante/vendor/addons/loaders/GLTFLoader.js',
+  'atlante/vendor/addons/utils/BufferGeometryUtils.js', 'atlante/vendor/addons/utils/SkeletonUtils.js',
+  'atlante/ossa.glb'
+];
+const isModel = rel => rel.startsWith('atlante/vendor/') || (rel.startsWith('atlante/') && rel.endsWith('.glb'));
 const abs = p => new URL(p, self.registration.scope).href;
 
 /* ---------- contenuti ---------- */
@@ -32,7 +47,9 @@ async function downloadContent(idx) {
   const res = await Promise.all([...files].map(async f => {
     const r = await fetch(abs('content/' + f), {cache: 'no-store'});
     if (!r.ok) throw new Error('content/' + f + ': HTTP ' + r.status);
-    return [f, r];
+    // il corpo si legge subito: una risposta lasciata in sospeso tiene occupata la connessione e, con HTTP/1.1
+    // (al massimo 6 connessioni per server), può bloccare gli altri download e l'installazione
+    return [f, new Response(await r.blob(), {headers: r.headers})];
   }));
   const name = CONTENT_PREFIX + idx.version, cache = await caches.open(name);
   await Promise.all(res.map(([f, r]) => cache.put(abs('content/' + f), r)));
@@ -63,12 +80,18 @@ self.addEventListener('install', e => {
     const cache = await caches.open(APP_CACHE);
     await cache.addAll(APP_FILES.map(f => new Request(abs(f), {cache: 'reload'})));
     if (!(await contentCacheName())) await downloadContent(await fetchIndex());
+    // base dell'atlante 3D: solo i file che mancano (gli strati già salvati restano)
+    const models = await caches.open(MODEL_CACHE);
+    const missing = [];
+    for (const f of MODEL_BASE) if (!(await models.match(abs(f)))) missing.push(f);
+    await models.addAll(missing.map(f => new Request(abs(f), {cache: 'reload'})));
     await self.skipWaiting();
   })());
 });
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k.startsWith('bodymania-app-') && k !== APP_CACHE) await caches.delete(k);
+    for (const k of await caches.keys())
+      if ((k.startsWith('bodymania-app-') && k !== APP_CACHE) || (k.startsWith('bodymania-3d-') && k !== MODEL_CACHE)) await caches.delete(k);
     await self.clients.claim();
   })());
 });
@@ -87,9 +110,21 @@ self.addEventListener('fetch', e => {
     })());
     return;
   }
+  if (isModel(rel)) {
+    // motore e modelli 3D: dalla cache; se mancano si scaricano e si salvano (strati a richiesta)
+    e.respondWith((async () => {
+      const cache = await caches.open(MODEL_CACHE);
+      const hit = await cache.match(req, {ignoreSearch: true});
+      if (hit) return hit;
+      const r = await fetch(req);
+      if (r.ok) await cache.put(req, r.clone());
+      return r;
+    })());
+    return;
+  }
   e.respondWith((async () => {
     const cache = await caches.open(APP_CACHE);
-    // solo l'apertura dell'app va su index.html: le altre pagine nella cartella (es. proto3d/) passano dalla rete
+    // solo l'apertura dell'app va su index.html; le altre pagine (es. atlante/index.html) si cercano per nome
     const home = req.mode === 'navigate' && (rel === '' || rel === 'index.html');
     const hit = await cache.match(home ? abs('index.html') : req, {ignoreSearch: true});
     return hit || fetch(req);
