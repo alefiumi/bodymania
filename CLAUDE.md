@@ -169,6 +169,7 @@ Come si rigenera (serve Blender; i passaggi stanno in `atlante/build/`):
    `python3 build/descrizioni.py atlante/dati.json`.
 
 Funzioni dell'atlante (in `atlante.js`):
+- Pulsante ⟲ all'inizio della barra (`homeView()`): torna alla vista iniziale, tutto il corpo da davanti.
 - Muscolo: tre viste, "Forma e aree", "Punti e linee" (pallino blu al centro di ogni area di origine, arancione
   per l'inserzione, linea viola che li unisce, sempre in primo piano) ed "Entrambe"; reperi della fonte entro 2,5 cm dai punti.
 - Gruppi (`COMBO`): zampa d'oca, ischiocrurali, cuffia dei rotatori, tricipite della sura, quadricipite.

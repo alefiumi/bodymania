@@ -265,6 +265,8 @@ function setView(name,anim=true){
  const c=far?center.clone():t,dist=far?fitDist():d0;
  flyTo(c.clone().add(new THREE.Vector3(...DIR[name]).normalize().multiplyScalar(dist)),c,anim);
 }
+// vista iniziale: tutto il corpo da davanti, come all'apertura (pulsante ⟲)
+function homeView(){flyTo(center.clone().add(new THREE.Vector3(0,0,fitDist())),center.clone());}
 function flyTo(pos,target,anim=true){
  if(!anim){camera.position.copy(pos);controls.target.copy(target);controls.update();return;}
  tween={p0:camera.position.clone(),t0:controls.target.clone(),p1:pos,t1:target,s:performance.now()};
@@ -913,6 +915,7 @@ async function offlineAll(){
 $('bar').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
  if(b.dataset.v)setView(b.dataset.v);
+ else if(b.id==='home')homeView();
  else if(b.id==='outline'){outline=!outline;b.classList.toggle('on',outline);}
  else if(b.id==='layers'){S.mus=S.combo=S.lm=S.part=null;S.list='layers';refresh();offlineCheck();}
  else if(b.id==='brain')openBrain();
