@@ -103,11 +103,16 @@ Funzioni dell'atlante (in `atlante.js`):
   dura madre ai ventricoli. Dura madre e aracnoide craniche non sono nella fonte: `makeShells()` le genera
   avvolgendo la corteccia, forma schematica dichiarata nel pannello.
 
+Correzioni alla fonte: in 12 muscoli Z-Anatomy ha origine e inserzione scambiate (piccolo pettorale, dentato anteriore,
+trapezio, scaleni anteriore e medio, tiroioideo, retto dell'addome, retti e obliquo inferiore della testa; capo
+sternocostale del grande pettorale). `correggi_aree()` in `build/descrizioni.py` le scambia; il pannello lo segnala.
+I "muscoli qui vicino" di un repere contano solo le aree il cui osso più vicino è quello del repere.
+
 Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e inserzione e nomi vengono
 dalla fonte. Scritti dall'AI a memoria, da verificare su un atlante: i testi dei muscoli in `build/schede.json`
-(57 muscoli; per gli altri 151 mancano), le descrizioni di `build/descrizioni.py` (tutte le ossa, 341 reperi su 606,
+(57 muscoli; per gli altri 151 mancano), le descrizioni di `build/descrizioni.py` (tutte le ossa, tutti i 606 reperi,
 quasi tutte le strutture dell'encefalo) e i testi di gruppi e strati in `atlante.js`.
-Non c'è ancora: descrizione degli altri 265 reperi (soprattutto cranio, laringe, orecchio), giochi sul modello 3D.
+Non c'è ancora: giochi sul modello 3D.
 
 Requisiti dell'autore per il 3D (16/11/2026):
 - Fluidità: 60 fps fissi su iPhone 15 con il solo scheletro della prima versione. Con più strati accesi

@@ -41,7 +41,9 @@ controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
 const DATA=await fetch('dati.json').then(r=>r.json());
 const baseOf=n=>n.replace(/\.(?:[oe]\d*[rl]|[rl]|[a-z])$/,'');
 const sideOf=n=>(n.match(/\.(?:[oe]\d*)?([rl])$/)||[,''])[1];
-const kindOf=n=>(n.match(/\.([oe])\d*[rl]$/)||[,''])[1];
+// origine o inserzione: dai dati (corretti dove la fonte li scambia), altrimenti dal suffisso del nome
+const KIND={};for(const d of Object.values(DATA.mus)){d.o.forEach(n=>KIND[n]='o');d.e.forEach(n=>KIND[n]='e');}
+const kindOf=n=>KIND[n]||(n.match(/\.([oe])\d*[rl]$/)||[,''])[1];
 const rootOf=b=>{b=b.replace(/^\(|\)$/g,'').replace(/['*]/g,'');const m=b.match(/^(.*?\b(?:head|part|belly|tendon|slip|layer|fibres|portion) of )(.+)$/);if(m)b=m[2];return b.replace(/ muscles?$/,'').trim().toLowerCase();};
 const itOf=b=>(DATA.names[b]||[b])[0];
 const laOf=b=>(DATA.names[b]||[,''])[1];
@@ -347,7 +349,8 @@ function panel(){
    `<div class="row"><span class="tg o">ORIGINE</span> ${c?c.ot:has('o')?'area blu sul modello':'non indicata nella fonte'}</div>
     <div class="row"><span class="tg i">INSERZIONE</span> ${c?c.it:has('e')?'area arancione sul modello':'non indicata nella fonte'}</div>`+
    (c?`<div class="row"><b>Azione</b>: ${c.a}</div><div class="row"><b>Innervazione</b>: ${c.nv}</div>${c.nota?`<p class="mut">${c.nota}</p>`:''}<p class="note">I testi di origine, inserzione, azione e innervazione sono scritti dall'AI: da verificare su un atlante. Le aree colorate sul modello vengono dalla fonte.</p>`
-     :'<p class="mut">Per questo muscolo non c\'è ancora il testo con azione e innervazione.</p>')+musTools()+
+     :'<p class="mut">Per questo muscolo non c\'è ancora il testo con azione e innervazione.</p>')+
+   (m.fix?'<p class="note">Nella fonte origine e inserzione di questo muscolo erano scambiate: qui sono corrette.</p>':'')+musTools()+
    `<div class="chips"><button class="chip" data-side="${S.side==='r'?'l':'r'}">Lato ${S.side==='r'?'sinistro':'destro'}</button><button class="chip" data-go="muscles">Tutti i muscoli</button><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.lm){
   const l=S.lm;
@@ -355,7 +358,8 @@ function panel(){
   h=`<div class="h">${itOf(l.b)}</div><div class="mut"><i>${laOf(l.b)}</i> · ${l.b}</div><div class="row">Su: <b>${itOf(baseOf(l.parent))}</b> <i>${sideName(sideOf(l.parent))}</i></div>`+
    (t?`<p>${t}</p>`:'<p class="mut">La descrizione di questo repere non è ancora scritta.</p>')+
    (mus.length?`<div class="sub">Muscoli con origine o inserzione qui vicino</div><div class="chips">${mus.map(([r,k])=>chip(k==='o'?'o':'i',`data-mu="${r}"`,DATA.mus[r].n.replace(/^Muscol[oi] /,''),k==='o'?'origine':'inserzione')).join('')}</div>`:'')+
-   `<div class="chips"><button class="chip" data-part="${l.parent}">Vai all'osso</button><button class="chip" data-go="home">Chiudi</button></div>`+(t?AI:'')+FONTE;
+   (DATA.objs[l.parent]?'':'<p class="mut">La forma di questa parte non è nel modello (licenza non commerciale nella fonte): resta solo il punto.</p>')+
+   `<div class="chips">${DATA.objs[l.parent]?`<button class="chip" data-part="${l.parent}">Vai all'osso</button>`:''}<button class="chip" data-go="home">Chiudi</button></div>`+(t?AI:'')+FONTE;
  }else if(S.part){
   const u=S.part.userData,ls=u.layer==='ossa'?(lmByParent.get(u.name)||[]):[],t=descOf(u.base),brain=u.layer==='encefalo'||u.layer==='meningi';
   h=`<div class="h">${itOf(u.base)} <i>${sideName(u.side)}</i></div><div class="mut"><i>${laOf(u.base)}</i> · ${u.base}</div>
@@ -422,12 +426,28 @@ function panel(){
 /* ---------- azioni ---------- */
 function levText(){return `<b>Strato più esterno visibile: ${ST[S.lev].n}</b><br><span class="mut">${ST[S.lev].t}</span>`;}
 function selectPart(m,fly=false){S.mus=S.combo=null;S.lm=null;S.part=m;S.list=null;if(m&&m.userData.side)S.side=m.userData.side;refresh();if(m&&fly)frameBox(boxOf([m]),0.2);}
-// muscoli con un punto di origine o inserzione a meno di 2,5 cm dal repere (servono le aree caricate)
+// distanza di un punto dalla superficie di una parte (vertice più vicino)
+function distTo(m,p){
+ m.updateWorldMatrix(true,false);const a=m.geometry.attributes.position,v=new THREE.Vector3();let bd=Infinity;
+ for(let i=0;i<a.count;i++){const d=v.fromBufferAttribute(a,i).applyMatrix4(m.matrixWorld).distanceToSquared(p);if(d<bd)bd=d;}
+ return Math.sqrt(bd);
+}
+// osso (o cartilagine) più vicino al punto di un'area: serve per non confondere ossa vicine (laringe, cranio)
+const boneOfArea=new Map();
+function nearestBone(m){
+ if(boneOfArea.has(m))return boneOfArea.get(m);
+ const p=areaPoint(m);let best=null,bd=0.03;
+ for(const b of meshes){if(b.userData.layer!=='ossa')continue;if(!b.userData.box)b.userData.box=new THREE.Box3().setFromObject(b);
+  if(b.userData.box.distanceToPoint(p)>=bd)continue;const d=distTo(b,p);if(d<bd){bd=d;best=b;}}
+ boneOfArea.set(m,best);return best;
+}
+// muscoli con un'area a meno di 2,5 cm dal repere e appoggiata sullo stesso osso del repere
 function musclesAt(l){
  if(!FILES.inserzioni||!FILES.inserzioni.loaded)return [];
- const s=sideOf(l.parent)||'r',out=[];
+ const s=sideOf(l.parent)||'r',bone=byName.get(l.parent),out=[];
+ const ok=n=>{if(sideOf(n)&&sideOf(n)!==s||!byName.has(n))return false;const m=byName.get(n);return areaPoint(m).distanceTo(l.p)<0.025&&(!bone||nearestBone(m)===bone);};
  for(const [r,d] of Object.entries(DATA.mus))for(const k of ['o','e'])
-  if(d[k].some(n=>(!sideOf(n)||sideOf(n)===s)&&byName.has(n)&&areaPoint(byName.get(n)).distanceTo(l.p)<0.025)&&!out.some(x=>x[0]===r&&x[1]===k))out.push([r,k]);
+  if(!out.some(x=>x[0]===r&&x[1]===k)&&d[k].some(ok))out.push([r,k]);
  return out;
 }
 function showLandmark(l,fly=true){
