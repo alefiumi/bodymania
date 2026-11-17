@@ -26,8 +26,15 @@ export function bonesName(ids){
 
 const KEY='bodymania-v1';
 // stats: partite finite (per i badge); badges: {id: data}; prof: profilo locale (nome, ruolo, bio, foto, t = ultima modifica)
-export const S={xp:0,streak:0,last:'',mastery:{},ok:0,ko:0,stats:{games:0,perfect:0,modes:{},mods:{}},badges:{},prof:{}};
+// owner: {uid, email} dell'account a cui appartengono questi progressi (dopo la prima sincronizzazione); senza, sono da ospite
+const blank=()=>({xp:0,streak:0,last:'',mastery:{},ok:0,ko:0,stats:{games:0,perfect:0,modes:{},mods:{}},badges:{},prof:{}});
+export const S=blank();
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
+// riparte da zero sul dispositivo (si entra con un altro account e si sceglie di usare i suoi progressi); niente invio
+export function resetLocal(){
+ for(const k of Object.keys(S))delete S[k];Object.assign(S,blank());
+ try{localStorage.setItem(KEY,JSON.stringify(S));localStorage.removeItem(QKEY);}catch(e){}
+}
 // dopo ogni salvataggio l'account (se c'è) invia i progressi: account.js registra la funzione, qui niente import circolari
 const afterSave=[];export const onSave=f=>{afterSave.push(f);};
 export const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}afterSave.forEach(f=>f());};

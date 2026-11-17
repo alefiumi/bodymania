@@ -2,7 +2,7 @@
    Con l'account i progressi locali si uniscono a quelli del server (si tiene il valore più alto) e le partite finite
    partono dalla coda locale (state.queue) quando c'è rete. La libreria si carica solo se serve.
    L'accesso si fa nella schermata di avvio (gate.js); qui ci sono le funzioni e il riquadro Account del profilo. */
-import {S,save,head,onSave,queue} from './state.js';
+import {S,save,head,onSave,queue,resetLocal} from './state.js';
 import {SUPABASE_URL,SUPABASE_KEY} from './config.js';
 
 export const configured=!!(SUPABASE_URL&&SUPABASE_KEY);
@@ -34,9 +34,10 @@ async function client(){
  A.sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
  A.sb.auth.onAuthStateChange((ev,session)=>{
   if(ev==='PASSWORD_RECOVERY'){A.view='pw';A.msg='Scegli la nuova password.';}
-  const u=session?session.user:null,changed=(u&&u.id)!==(A.user&&A.user.id);A.user=u;
+  const u=session?session.user:null,changed=(u&&u.id)!==(A.user&&A.user.id);A.user=u;if(changed)A.profile=null;
   if(!u){A.profile=null;onChange();return;}
-  if(changed){const l=lastAccount();setLast({uid:u.id,email:u.email||'',dirty:!!(l&&l.dirty)});setTimeout(()=>sync(true),0);} // fuori dalla callback, come chiede supabase-js
+  // "dirty" vale per l'account a cui si riferisce: entrando con un altro account non si porta dietro
+  if(changed){const l=lastAccount(),same=l&&l.uid===u.id;A.prevDirty=!!(l&&!same&&l.dirty);setLast({uid:u.id,email:u.email||'',dirty:!!(same&&l.dirty)});setTimeout(()=>sync(true),0);} // fuori dalla callback, come chiede supabase-js
  });
  return A.sb;
 }
@@ -86,6 +87,15 @@ export const signOut=()=>run(async()=>{
 });
 export const setNewPassword=pw=>run(async()=>{const {error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;A.msg='Password cambiata.';A.view='';});
 export const setView=v=>{A.view=v;A.err='';A.msg='';onChange();};
+// scelta per i progressi di un altro account sul dispositivo (vedi sync)
+export function resolveOwner(choice){A.choice=choice;A.conflict=null;sync(true);}
+// collega Google all'account in uso: poi si entra con Google nello stesso account (serve "manual linking" su Supabase)
+export const hasGoogle=()=>!!(A.user&&(A.user.identities||[]).some(i=>i.provider==='google'));
+export const linkGoogle=()=>run(async()=>{
+ const {error}=await A.sb.auth.linkIdentity({provider:'google',options:{redirectTo:location.origin+location.pathname}});
+ if(error)throw new Error(/manual linking/i.test(error.message||'')?'Su Supabase va attivato il collegamento manuale degli accessi (Authentication → Sign In / Providers → "Allow manual linking").'
+  :/already/i.test(error.message||'')?'Questo account Google è già usato da un altro account BodyMania: va prima cancellato quello.':error.message);
+});
 
 /* ---------- privacy: copia dei propri dati e cancellazione (GDPR, articoli 15, 17 e 20) ---------- */
 // Tutti i dati che l'app ha su questa persona: quelli del dispositivo e, con l'account, quelli del server
@@ -149,6 +159,14 @@ export async function sync(full){
  try{
   const sb=A.sb,uid=A.user.id;
   if(full||!A.profile){
+   // Progressi di un altro account su questo dispositivo: non si uniscono da soli, si chiede (schermata in gate.js).
+   // fresh = questo account parte dai suoi dati sul server; merge = si uniscono i progressi del dispositivo.
+   const own=S.owner;
+   if(own&&own.uid&&own.uid!==uid){
+    if(A.choice!=='merge'&&A.choice!=='fresh'){const l=lastAccount();A.conflict={email:own.email||'un altro account',me:A.user.email||'',dirty:!!(A.prevDirty||(l&&l.uid===own.uid&&l.dirty)||queue.all().length)};A.syncing=false;onChange();return;}
+    if(A.choice==='fresh')resetLocal();
+   }
+   A.choice=null;A.conflict=null;A.prevDirty=false;
    const [{data:p,error:e1},{data:ms,error:e2},{data:bs}]=await Promise.all([sb.from('profiles').select('*').eq('id',uid).single(),
     sb.from('mastery').select('item_id,level'),sb.from('badge_assertions').select('badge_id,issued_at').eq('user_id',uid)]);
    if(e1)throw e1;if(e2)throw e2;
@@ -167,6 +185,7 @@ export async function sync(full){
     const {error}=await sb.from('profiles').update({username:S.prof.name}).eq('id',uid);
     if(!error)p.username=S.prof.name;
    }
+   S.owner={uid,email:A.user.email||''};
    try{localStorage.setItem('bodymania-v1',JSON.stringify(S));}catch(e){} // senza save(): non deve ripartire un invio
    head();
    if((S.prof.t||0)>pt)await pushProfile();
@@ -206,7 +225,7 @@ export function accountHtml(){
    :dirty||pend?'⚠️ Ci sono progressi non ancora salvati online.':A.lastSync?'✅ Tutto salvato online alle '+hm(A.lastSync)+'.':'';
   return `<div class="acc"><div class="sub">Account</div><p class="mut">${esc(A.user.email||'')}</p><p class="mut">${state}${pend?' Partite in attesa: '+pend+'.':''}</p>${note}
    ${A.view==='pw'?`<form data-acc="newpw"><input name="p" type="password" placeholder="Nuova password" autocomplete="new-password" minlength="6" required><button class="btn"${A.busy?' disabled':''}>Cambia</button></form>`:''}
-   <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">Cambia password</button><button class="chip" data-acc="out">Esci</button></div></div>`;
+   <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">Cambia password</button>${hasGoogle()?'<span class="chip">✅ Google collegato</span>':'<button class="chip" data-acc="google">Collega Google</button>'}<button class="chip" data-acc="out">Esci</button></div></div>`;
  }
  if(last)return `<div class="acc"><div class="sub">Account</div><p><b>${esc(last.email)}</b></p>
   <p class="mut">${last.dirty?'⚠️ Hai progressi salvati solo su questo dispositivo. ':''}${navigator.onLine?'Accedi di nuovo per sincronizzarli.':'Senza connessione: si salva tutto qui, sincronizzi quando torna la rete.'}</p>${note}
@@ -222,6 +241,7 @@ export function wireAccount(panel,openLogin){
   A.err='';A.msg='';
   if(k==='login')openLogin();
   else if(k==='out')signOut();
+  else if(k==='google')linkGoogle();
   else if(k==='sync')sync(true);
   else{A.view=A.view==='pw'&&k==='pw'?'':k;onChange();}
  });

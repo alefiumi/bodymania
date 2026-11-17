@@ -111,6 +111,11 @@ Contenuto del gioco:
   `bodymania-acct` ricorda l'ultimo account usato e `dirty` (progressi salvati qui e non ancora inviati, es. giocando
   offline): se la sessione non vale più, all'avvio con rete si chiede di accedere di nuovo con un avviso; chi continua
   senza accedere trova nel profilo "Accedi e sincronizza". Uscendo con "Esci" l'account si dimentica.
+  I progressi del dispositivo ricordano l'account a cui appartengono (`S.owner` {uid, email}, dopo la prima sincronizzazione):
+  entrando con un account diverso non si uniscono da soli, la schermata "Di chi sono questi progressi?" (`showOwner()` in
+  `gate.js`, `A.conflict`) fa scegliere tra usare i progressi dell'account (`resetLocal()` in `state.js`) e unirli; i progressi
+  da ospite (senza `owner`) si uniscono come prima. Nel riquadro Account "Collega Google" (`linkIdentity`, serve "manual
+  linking" attivo su Supabase) per entrare con Google nello stesso account invece di crearne un secondo.
   All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
   per la serie vale il giorno più recente; profilo: vince la modifica più recente, `profile_at`), poi dopo ogni `save()`
   parte un invio (3 s). Le partite finite vanno in `bodymania-queue` e si inviano con upsert che ignora i doppioni.

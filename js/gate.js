@@ -4,7 +4,7 @@
    chi preferisce può continuare senza account e sincronizzare dopo dal profilo. */
 import {$,toast} from './util.js';
 import {S} from './state.js';
-import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc} from './account.js';
+import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut} from './account.js';
 
 const GUEST='bodymania-guest'; // "Continua senza account" scelto: agli avvii successivi non si chiede più
 let mode='boot',reason='',fromApp=false;
@@ -47,7 +47,8 @@ export async function boot(){
  status(lastAccount()?'Sincronizzo i progressi…':'Quasi pronto…');
  const r=await timeout(startAccount(),15000,'offline');
  await settle();
- if(r==='ok'){if(needName()){A.err='';showName();}else closeGate();}
+ if(A.conflict)showOwner();
+ else if(r==='ok'){if(needName()){A.err='';showName();}else closeGate();}
  else if(r==='offline'){closeGate();if(lastAccount())toast('Server non raggiungibile: si gioca in locale, sincronizzo appena possibile.');}
  else if(r==='expired')openLogin(lastAccount()?.dirty?'dirty':'expired');
  else{let g=false;try{g=!!localStorage.getItem(GUEST);}catch(e){}if(g||!configured)closeGate();else openLogin('');}
@@ -80,6 +81,18 @@ function renderLogin(){
   <p class="note">${reason?'Continuando senza accedere i progressi restano su questo dispositivo: potrai sincronizzarli dal profilo.':'Senza account si gioca lo stesso e i progressi restano su questo dispositivo. Con l\'account li ritrovi ovunque e quelli già fatti qui si uniscono.'}</p></div>`;
 }
 
+/* ---------- progressi di un altro account su questo dispositivo ---------- */
+function showOwner(){
+ mode='owner';show();const c=A.conflict;
+ box().innerHTML=`<div class="gform"><div class="h">Di chi sono questi progressi?</div>
+  <p>Su questo dispositivo ci sono i progressi di <b>${esc(c.email)}</b>. Stai entrando come <b>${esc(c.me)}</b>.</p>
+  <button class="btn wide" data-g="own-fresh">Usa i progressi di ${esc(c.me)}</button>
+  <p class="note">Consigliato se sono due persone o due account diversi. I progressi di ${esc(c.email)} restano salvati nel suo account${c.dirty?'; <b>attenzione</b>: alcuni non sono ancora stati inviati e da questo dispositivo andranno persi':''}.</p>
+  <button class="btn alt wide" data-g="own-merge">Unisci i progressi del dispositivo a ${esc(c.me)}</button>
+  <p class="note">Solo se sono tuoi: XP, maestria e badge di questo dispositivo passano anche a ${esc(c.me)}.</p>
+  <button class="lnk" data-g="own-out">Esci da questo account</button></div>`;
+}
+
 /* ---------- nome utente dopo la prima registrazione ---------- */
 function showName(){
  mode='name';show();
@@ -89,6 +102,8 @@ function showName(){
 }
 
 addAccountListener(()=>{
+ if(A.conflict&&mode!=='owner'&&mode!=='boot'){showOwner();return;}
+ if(mode==='owner'){if(A.conflict)return;if(!A.user){openLogin('');return;}if(A.profile&&!A.syncing){if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto.');}}return;}
  if(mode==='login'){
   if(A.user&&A.profile&&!A.syncing){try{localStorage.removeItem(GUEST);}catch(e){}if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto: progressi sincronizzati.');}}
   else keep(renderLogin);
@@ -100,6 +115,8 @@ export function wireGate(){
  $('gate').addEventListener('click',e=>{
   const b=e.target.closest('button[data-g]');if(!b||b.closest('form'))return;const k=b.dataset.g;
   if(k==='google')google();
+  else if(k==='own-fresh'||k==='own-merge'){box().innerHTML='<div class="spin"></div><p class="gst">Sincronizzo…</p>';resolveOwner(k==='own-fresh'?'fresh':'merge');}
+  else if(k==='own-out'){A.conflict=null;signOut().then(()=>openLogin(''));}
   else if(k==='guest'){if(!reason){try{localStorage.setItem(GUEST,'1');}catch(x){}}closeGate();}
   else if(k==='later')closeGate();
   else setView(k);
