@@ -29,19 +29,28 @@ Prototipo diviso in:
 - Puzzle: `slotAt(x,y,id)` in `figure.js` sceglie il posto vuoto più vicino entro `SLOT_PX` (28 px), anche se
   coperto da altre ossa, con precedenza al pezzo in mano; altrimenti l'osso sotto il dito (errore).
   Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito. I pezzi sono la sagoma intera
-  del lato destro (`sf`, riquadro `sb`), anche delle parti coperte da altre ossa: una costa si vede intera.
+  del lato principale della vista (`sf`, riquadro `sb`), anche delle parti coperte da altre ossa: una costa si vede intera.
+  Il pezzo in mano vince se il suo posto è entro 8 px dal posto più vicino.
+- Menu della figura: un pulsante per modulo ("🦴 Corpo · Anteriore ▾", "🧠 Cervello ▾") apre l'elenco delle viste del modulo
+  (`viewMenu()` in `figure.js`, `#vmenu`); la vista scelta per ogni modulo è in `app.bases`, salvata in `bodymania-2d` con `grp`.
+  Viste (`views` e nomi `vnames` nei contenuti): corpo `a` `p` `ld` `ls` `s` `i` (anteriore, posteriore, laterale destra e
+  sinistra, dall'alto, dal basso); cervello `ls` `ld` (emisferi), `m` (sagittale: faccia mediale del destro), `f` frontale, `s`, `i`.
+  Tutte le viste di un modulo stanno nello stesso spazio 300×H (stessa scala, ognuna centrata); cambiando vista e con ⟲ la
+  figura si adatta al disegno della vista (`resetZoom`), il riquadro può essere più largo della figura (`maxW`, `clampT`).
 - Viste di zona (`zviews` in `corpo.json`): `mp`/`md` mano palmare e dorsale, `pd`/`pp` piede dall'alto e dalla pianta, solo il
-  lato destro, disegnate al centro dello stesso spazio 300×747. I gruppi di mano e piede hanno `zv` (vista preferita): Ricomponi
-  li gioca lì, e Trova chiede lì le loro ossa; il pulsante della vista passa all'altra della coppia. `baseView()` in `figure.js`
-  torna ad anteriore/posteriore (`app.base`) a ogni domanda, al menu e al cambio di scheda.
+  lato destro. I gruppi `cranio` (vista `ld`), mano e piede hanno `zv` (vista preferita): Ricomponi li gioca lì e Trova chiede lì
+  le loro ossa, con `setView(v,true)` (temporanea, non cambia `app.bases`); nel menu compare anche la coppia della zona.
+  `baseView()` torna alla vista del menu a ogni domanda, al menu dei giochi e al cambio di scheda.
 - `vis[v]`: quota della sagoma visibile in quella vista. Giochi e puzzle usano solo strutture con almeno il 25% visibile
   (`visibleIn`, `MIN_VIS`): niente pisiforme da dietro. Lo zoom sulla zona usa le proporzioni del riquadro sullo schermo.
+- Safari a volte non ridisegna l'svg quando cambia altezza (scheda abbassata) e mostra la figura due volte: un ResizeObserver
+  in `figure.js` lo costringe a ridisegnare. Non provato su Safari vero dall'AI.
 - Scheda sotto la figura dentro `#pw`: la freccia `#fold` sul bordo in alto a destra la abbassa (striscia di due righe
   scorrevole, in gioco resta la domanda) e la rialza; scelta in `bodymania-fold`. Stessa freccia nell'atlante 3D (`bodymania-fold3d`).
 - Spunta verde in alto a destra (`#off`) quando la copia offline è pronta; il pulsante "Installa l'app"
   in Esplora compare solo fuori dall'app installata.
-- `content/`: `index.json` (versione globale, ordine dei moduli), `corpo.json`, `lat.json`, `sag.json`,
-  `neuro-strutture.json` (testi in comune tra `lat` e `sag`), `nervi-cranici.json`. Ogni file ha `version`.
+- `content/`: `index.json` (versione globale, ordine dei moduli), `corpo.json`, `cervello.json`,
+  `neuro-strutture.json` (testi dei gruppi del cervello), `nervi-cranici.json`. Ogni file ha `version`.
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`
   (tipi in `js/shapes.js`). Quando cambi un contenuto, aumenta la `version` del file e quella di `index.json`.
 - Serve un server locale (`python3 -m http.server`): con il doppio clic su `index.html` (`file://`) moduli e JSON non si caricano.
@@ -64,23 +73,24 @@ Prototipo diviso in:
   Android con Chrome, Firefox, Samsung Internet, Edge. Provati dall'AI solo Chrome desktop ed emulazione mobile.
 
 Contenuto del gioco:
-- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, vista anteriore e posteriore; 208 muscoli), `lat` (emisfero
-  sinistro visto di lato, 57 strutture) e `sag` (faccia mediale dell'emisfero destro, 81 strutture), 12 nervi cranici.
+- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, sei viste; 208 muscoli) e `cervello` (106 strutture in sei viste; fino al
+  18/11/2026 erano due moduli, `lat` e `sag`: gli id `b.*` e la maestria sono gli stessi), 12 nervi cranici.
 - Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` (gira anche nel cloud:
   legge solo i `.glb` del repository, pochi secondi) proietta ossa, viste di zona di mano e piede (assi principali delle loro ossa),
   sagome intere delle singole ossa, encefalo e aree di origine e inserzione (z-buffer in software, contorni dei pixel visibili → tracciati SVG; senza pacchetti
-  npm), poi `python3 atlante/build/contenuti_2d.py <tmp.json>` scrive `content/corpo.json`, `lat.json`, `sag.json` con nomi
+  npm), poi `python3 atlante/build/contenuti_2d.py <tmp.json>` scrive `content/corpo.json` e `cervello.json` con nomi
   (TA2), descrizioni (`desc` di `dati.json`), gruppi, muscoli e casi (testi dei gruppi di ossa e casi in `atlante/build/testi_2d.json`,
-  gruppi del cervello in `content/neuro-strutture.json`). Ogni struttura ha `s.a`/`s.p` (forme per vista; per le ossa pari il
-  primo tracciato è il lato destro, usato per i pezzi del puzzle) e `g` (gruppo); i gruppi hanno `m` (membri). Nel cervello i
+  gruppi del cervello in `content/neuro-strutture.json`). Ogni struttura ha `s.<vista>` (forme per vista: ogni lato è
+  un tracciato a sé, il primo è il lato principale della vista: destro, sinistro guardando da sinistra; nel cervello il sinistro
+  nelle viste con i due emisferi), `c`, `sf`/`sb`/`vis` e `g` (gruppo); i gruppi hanno `m` (membri). Nel cervello i
   gruppi sono i lobi (partizione) più aree che si sovrappongono (`area: true`: Broca, Wernicke, giro precentrale, talamo…).
   Esclusi dal 2D: ossicini, cellule etmoidali, seni, cartilagini di naso e laringe, sesamoidi; denti e cartilagini costali
   sono una voce ciascuno; nel cervello i nuclei profondi (si vedrebbero attraverso gli spazi tra le superfici).
 - Muscoli 2D: ossa di origine e inserzione dall'osso più vicino alle aree della fonte; dove la fonte non ha l'area, dal testo
   della scheda (`src: 'testo'`, segnalato nel pannello). 154 muscoli hanno origine e inserzione (usati nei giochi).
   Aree segnate dalla parte sbagliata nella fonte: `SPOSTA` in `build/descrizioni.py` (es. capo breve del bicipite femorale).
-- Figura: barra con "Anteriore/Posteriore ⇄" (solo corpo) e "Ossa singole/Gruppi" ("Giri e solchi/Lobi e aree" nel cervello),
-  scelta salvata in `bodymania-2d`. Le due viste sono nell'svg insieme (una nascosta), le marcature valgono in tutte e due.
+- Figura: menu Corpo/Cervello con le viste (vedi sopra) e "Ossa singole/Gruppi" ("Giri e solchi/Lobi e aree" nel cervello),
+  scelte salvate in `bodymania-2d`. Le viste sono nell'svg insieme (una sola visibile), le marcature valgono in tutte.
   Con i gruppi tutti i giochi usano i gruppi (`items()`, `itemOf()` in `state.js`); la risposta è giusta se si tocca un membro.
   Trova: con le singole si sceglie prima il gruppo, e per le ossa piccole la figura si ingrandisce sulla zona. Ricomponi: con le
   singole i pezzi sono le ossa di un gruppo (zona ingrandita), con i gruppi sono gruppi interi. Maestria: chiavi diverse per
@@ -106,7 +116,8 @@ Contenuto del gioco:
   parte un invio (3 s). Le partite finite vanno in `bodymania-queue` e si inviano con upsert che ignora i doppioni.
 - Profilo (scheda "👤 Profilo", `js/progress.js`, a tutto schermo senza figura): foto (ritagliata a 128×128 JPEG e salvata
   come testo `data:` in `profiles.avatar`, così si vede offline), nome (con account: unico, regola `NAME_RE`), ruolo,
-  presentazione; statistiche, badge, riquadro Account (sincronizza, cambia password, esci) e maestria del modulo.
+  presentazione; statistiche, badge, riquadro Account (sincronizza, cambia password, esci) e maestria, con la scelta tra corpo
+  e cervello (toccando una voce si apre in Esplora nel suo modulo).
   Profilo locale in `S.prof`; funziona anche senza account.
 - Badge (`js/badges.js`): 20, calcolati sul dispositivo dopo ogni `save()` (avviso "Nuovo badge"); `S.badges` {id: data},
   statistiche delle partite in `S.stats` (aggiornate da `queue.add`). Con l'account vanno in `badge_assertions`.
@@ -220,7 +231,9 @@ Requisiti dell'autore per il 3D (16/11/2026):
 5. ~~Sincronizzazione~~: coda locale (in localStorage invece di IndexedDB), invio idempotente, unione dei progressi.
 6. ~~Amici (richiesta, accettazione) e due classifiche: tutti gli iscritti e solo amici~~ (scheda "🏆 Amici", `js/social.js`;
    terzo file SQL `20261118090000_amici_classifiche.sql`: una sola amicizia per coppia, serie a zero se non si gioca da più
-   di un giorno, foto nella classifica amici; l'ultima classifica resta in `bodymania-social` per vederla offline).
+   di un giorno, foto nella classifica amici; l'ultima classifica resta in `bodymania-social` per vederla offline). Toccando un
+   nome in classifica si apre sotto la riga "Chiedi l'amicizia" (o lo stato della richiesta).
+   Badge "Giramondo": corpo, cervello e 3D (testo in `20261119090000_badge_moduli.sql`, facoltativo).
 7. ~~Badge e traguardi mostrati nel profilo~~ (20 badge; altri trofei si aggiungono in `badges.js` e nel file SQL).
 8. Pubblicazione su GitHub Pages.
 

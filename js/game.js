@@ -1,14 +1,14 @@
 /* Tab Gioca: menu, quiz, Tendine-ponte, Caso clinico, fine partita. */
 import {$,shuffle,pick} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump,queue,items,members,itemOf,itemSet,bonesName} from './state.js';
-import {clearMarks,mark,refreshMastery,resetZoom,showMuscle,muscleHtml,visible,visibleIn,focusItem,itemBox,setView,baseView} from './figure.js';
+import {clearMarks,mark,refreshMastery,resetZoom,showMuscle,muscleHtml,visible,visibleIn,focusItem,itemBox,setView,baseView,hasView} from './figure.js';
 import {startPuzzle} from './puzzle.js';
 
 export function renderMenu(){
  app.G=null;clearGhosts();baseView();const body=app.MOD.id==='corpo';
  const mb=(m,t,x)=>`<button class="mode" data-mode="${m}"><b>${t}</b><small>${x}</small></button>`;
  const what=app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
- $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto${body?', dove scegli anche la vista anteriore o posteriore':''}.</p><div class="sub">Puzzle</div>`+
+ $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto, dove scegli anche la vista.</p><div class="sub">Puzzle</div>`+
   mb('puzzle','🧩 Ricomponi','Rimetti al posto i pezzi mancanti (trascina o tocca)')+
   (body?mb('bridge','🌉 Tendine-ponte',"Collega l'osso di origine a quello di inserzione"):'')+
   mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP')+
@@ -67,13 +67,13 @@ export function nextQ(){
 // se la struttura è piccola, la figura si ingrandisce sulla sua zona.
 function pickItem(G){
  let b,n=0;
- const zv=g=>!app.grp&&g.zv&&app.MOD.zviews[g.zv]?g.zv:app.view;
+ const zv=g=>!app.grp&&g.zv&&hasView(g.zv)?g.zv:app.view;
  do{
   if(app.grp)b=pick(app.GR.filter(x=>visible(x.id)));
   else{const g=pick(app.GR.filter(x=>!x.area&&x.m.some(m=>visibleIn(m,zv(x)))));b=bone(pick(g.m.filter(m=>visibleIn(m,zv(g)))));}
  }while((b.id===G.last||(G.used.includes(b.id)&&n<30))&&++n<60);
  G.last=b.id;G.used.push(b.id);G.zoomed=false;G.focus=null;
- const gz=!app.grp&&bone(b.g);if(gz&&zv(gz)!==app.view){setView(zv(gz));setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;G.focus=b.g;return b;}
+ const gz=!app.grp&&bone(b.g);if(gz&&zv(gz)!==app.view){setView(zv(gz),true);setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;G.focus=b.g;return b;}
  const p=itemBox(b.id);
  if(p.length){const xs=p.map(q=>q[0]),ys=p.map(q=>q[1]),size=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys));
   if(size<app.MOD.W*0.06&&!app.grp){setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;G.focus=b.g;}}

@@ -212,35 +212,67 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const neg = a => a.map(x => -x);
 const centroid = parts => { const m = [0, 0, 0]; let n = 0; for (const p of parts) for (let k = 0; k < p.verts.length; k += 3) { m[0] += p.verts[k]; m[1] += p.verts[k + 1]; m[2] += p.verts[k + 2]; n++; } return m.map(x => x / n); };
 
-/* ---------- corpo: ossa, vista anteriore e posteriore ---------- */
+/* ---------- più viste di un insieme di parti, nello stesso spazio ---------- */
+// parts: [{tris, verts, key (nome della struttura), side ('r', 'l' o '')}]; views: {v: {proj, prim (lato principale), keep?}}
+// Ogni lato è un'etichetta a sé, così i due lati di una struttura pari hanno tracciati separati: il primo è quello del
+// lato principale della vista (il destro, o il sinistro guardando da sinistra), usato per i pezzi del puzzle.
+// Tutte le viste hanno la stessa scala (la più larga occupa 300 unità) e stanno al centro di uno spazio 300×H.
+const SIDES = (prim) => [prim, prim === 'r' ? 'l' : 'r', ''];
+function project(parts, views, px, minArea = 6, tol = 0.75, label = 'viste') {
+  const lb = labeler();
+  for (const p of parts) p.lab2 = lb.id(p.key + '|' + p.side);
+  for (const p of parts) if (p.split) { const a = p.lab2, b = lb.id(p.split.key + '|' + p.side), f = p.split.f; p.labOf = (x, y, z) => f(x / 3, y / 3, z / 3) ? b : a; }
+  const info = {};
+  for (const [v, V] of Object.entries(views)) {
+    const ps = V.keep ? parts.filter(V.keep) : parts;
+    info[v] = {...V, ps, R: render(ps.map(p => ({tris: p.tris, lab: p.lab2, labOf: p.labOf})), V.proj, px)};
+  }
+  const k = 300 / Math.max(...Object.values(info).map(i => i.R.w)), H = Math.round(Math.max(...Object.values(info).map(i => i.R.h)) * k);
+  const out = {W: 300, H, views: {}};
+  for (const [v, I] of Object.entries(info)) {
+    const R = I.R; I.k = k; I.ox = (300 - R.w * k) / 2; I.oy = (H - R.h * k) / 2;
+    const loops = trace(R, minArea, tol), C = centers(R), res = {};
+    const byName = {};
+    for (const [lab, lp] of loops) { const [name, sd] = lb.names[lab - 1].split('|'); (byName[name] ||= {})[sd] = {lab, lp}; }
+    for (const [name, bySide] of Object.entries(byName)) {
+      const order = SIDES(I.prim).filter(sd => bySide[sd]);
+      const cnt = sd => (C.get(bySide[sd].lab + '|') || [0, 0, 0])[2];
+      // lato della sagoma intera e della quota visibile: il principale se la struttura ce l'ha, altrimenti l'altro
+      const have = SIDES(I.prim).filter(sd => I.ps.some(p => p.key === name && p.side === sd));
+      const sd0 = have[0], mine = I.ps.filter(p => p.key === name && p.side === sd0);
+      const cs = order.find(sd => cnt(sd) > 20) || order[0], a = C.get(bySide[cs].lab + '|');
+      const d = order.map(sd => toPath(bySide[sd].lp, k, I.ox, I.oy));
+      // una parte ricavata dividendone un'altra (Wernicke) non ha una sagoma propria: vale quella disegnata
+      const full = mine.length ? soloOut(mine, I.proj, R, k, I.ox, I.oy) : null;
+      res[name] = {d, c: [+(a[0] / a[2] * k + I.ox).toFixed(1), +(a[1] / a[2] * k + I.oy).toFixed(1)],
+        full: full ? {d: full.d, b: full.b} : null, vis: full ? +Math.min(1, (bySide[sd0] ? cnt(sd0) : 0) / Math.max(1, full.n)).toFixed(2) : 1};
+    }
+    out.views[v] = res;
+    console.log(label, v, R.w + '×' + R.h, Object.keys(res).length, 'strutture visibili');
+  }
+  return {out, info};
+}
+
+/* ---------- corpo: ossa in sei viste ---------- */
 const SKIP = /(cells of ethmoid|Sinus of|Incus|Malleus|Stapes|cartilage(?! of .* rib)|Arytenoid|Corniculate|Cricoid|Thyroid|alar|Sesamoid)/i;
 const ossa = loadGlb('ossa.glb').filter(p => !SKIP.test(p.name));
 const bodyLab = labeler();
 const keyOf = n => /(incisor|canine|premolar|molar)/i.test(n) ? 'Teeth' : /Costal cartilage/.test(n) ? 'Costal cartilages' : base(n);
-for (const p of ossa) p.lab = bodyLab.id(keyOf(p.name));
+for (const p of ossa) { p.lab = bodyLab.id(keyOf(p.name)); p.key = keyOf(p.name); p.side = side(p.name); }
 const PX_BODY = 2200; // pixel per metro (2,2 per mm)
-const views = {a: (x, y, z) => [x, -y, z], p: (x, y, z) => [-x, -y, -z]};
-const body = {names: bodyLab.names, views: {}, areas: {}};
-let bodyK = 0, bodyR = {};
-for (const [v, proj] of Object.entries(views)) {
-  const R = render(ossa, proj, PX_BODY); bodyR[v] = {R, proj};
-  if (!bodyK) { bodyK = 300 / R.w; body.W = 300; body.H = Math.round(R.h * bodyK); }
-  const loops = trace(R);
-  // lato del corpo dal punto sullo schermo: nella vista anteriore il destro del corpo sta a sinistra
-  const C = centers(R, (l, fx) => (v === 'a' ? fx < 0.5 : fx > 0.5) ? 'r' : 'l');
-  const out = {};
-  for (const [lab, lp] of loops) {
-    const k = bodyLab.names[lab - 1], c = {};
-    for (const s of ['r', 'l']) { const a = C.get(lab + '|' + s); if (a && a[2] > 20) c[s] = [+(a[0] / a[2] * bodyK).toFixed(1), +(a[1] / a[2] * bodyK).toFixed(1), a[2]]; }
-    // sagoma intera del lato destro (o dell'osso intero se è impari) e quota visibile di quel lato
-    const mine = ossa.filter(p => p.lab === lab), right = mine.filter(p => side(p.name) === 'r'), paired = right.length > 0;
-    const full = soloOut(paired ? right : mine, proj, R, bodyK, 0, 0);
-    const seen = paired ? (C.get(lab + '|r') || [0, 0, 0])[2] : ((C.get(lab + '|r') || [0, 0, 0])[2] + (C.get(lab + '|l') || [0, 0, 0])[2]);
-    out[k] = {d: toPath(lp, bodyK), c, full: {d: full.d, b: full.b}, vis: +Math.min(1, seen / Math.max(1, full.n)).toFixed(2)};
-  }
-  body.views[v] = out;
-  console.log('corpo', v, R.w + '×' + R.h, Object.keys(out).length, 'ossa visibili');
-}
+// u a destra, v in basso, profondità più grande = più vicino a chi guarda. Assi: Y in alto, +Z davanti, −X lato destro.
+const VIEWS6 = {
+  a: (x, y, z) => [x, -y, z],    // anteriore: il destro del corpo a sinistra
+  p: (x, y, z) => [-x, -y, -z],  // posteriore
+  ld: (x, y, z) => [z, -y, -x],  // dal lato destro: davanti a destra
+  ls: (x, y, z) => [-z, -y, x],  // dal lato sinistro: davanti a sinistra
+  s: (x, y, z) => [-x, -z, y],   // dall'alto: davanti in alto, destro a destra
+  i: (x, y, z) => [x, -z, -y]};  // dal basso: davanti in alto, destro a sinistra
+const prim6 = v => v === 'ls' ? 'l' : 'r';
+const body = {names: bodyLab.names, areas: {}};
+const BP = project(ossa, Object.fromEntries(Object.entries(VIEWS6).map(([v, proj]) => [v, {proj, prim: prim6(v)}])), PX_BODY, 6, 0.75, 'corpo');
+Object.assign(body, {W: BP.out.W, H: BP.out.H, views: BP.out.views});
+const bodyR = BP.info;
 
 /* ---------- viste di zona: mano (palmare, dorsale) e piede (dall'alto, dal basso), solo il lato destro ---------- */
 // Nella vista anteriore del corpo la mano e soprattutto il piede si vedono di scorcio (le dita del piede puntano verso
@@ -289,39 +321,37 @@ body.zviews = {};
     for (let k = 0; k < V.length; k += 3) { const l = nearest(V[k], V[k + 1], V[k + 2]); if (l) votes.set(l, (votes.get(l) || 0) + 1); }
     const best = [...votes].sort((a, b) => b[1] - a[1])[0]; if (!best) continue;
     const a = {bone: bodyLab.names[best[0] - 1], n: V.length / 3};
-    for (const [v, {R, proj}] of Object.entries(bodyR)) { // visibile = almeno un vertice non coperto (3 mm di tolleranza)
+    for (const [v, {R, proj, k: kk, ox, oy}] of Object.entries(bodyR)) { // visibile = almeno un vertice non coperto (3 mm di tolleranza)
       let sx = 0, sy = 0, n = 0;
       for (let k = 0; k < V.length; k += 3) { const [u, w, d] = proj(V[k], V[k + 1], V[k + 2]); const x = Math.floor((u - R.u0) * R.pxPerM), y = Math.floor((w - R.v0) * R.pxPerM); if (x < 0 || y < 0 || x >= R.w || y >= R.h) continue; if (d >= R.D[y * R.w + x] - 0.003) { sx += x; sy += y; n++; } }
-      if (n) a[v] = [+(sx / n * bodyK).toFixed(1), +(sy / n * bodyK).toFixed(1)];
+      if (n) a[v] = [+(sx / n * kk + ox).toFixed(1), +(sy / n * kk + oy).toFixed(1)];
     }
     body.areas[p.name] = a;
   }
   console.log('aree', Object.keys(body.areas).length);
 }
 
-/* ---------- encefalo: vista laterale (emisfero sinistro) e sagittale (faccia mediale del destro) ---------- */
+/* ---------- encefalo: sei viste ---------- */
 // esclusi: occhio e i nuclei profondi (nuclei della base, nuclei dei nervi cranici…), che in una vista di superficie
 // o in una sezione mediana non si vedono: dove la fonte lascia spazi tra le superfici comparirebbero per errore
 const DEEP = /(eyeball|nucleus|Vestibular nuclei|Putamen|Globus pallidus|Amygdaloid|Stria terminalis)/i;
 // ipofisi ed epifisi nella fonte stanno tra i visceri (ghiandole endocrine)
 const enc = [...loadGlb('encefalo.glb').filter(p => !DEEP.test(p.name)), ...loadGlb('visceri.glb').filter(p => /^(Adenohypophysis|Neurohypophysis|Pineal gland)$/.test(p.name))];
-const brain = {};
-const lateral = (x, y, z) => [-z, -y, x]; // osservatore a sinistra del corpo (+X): la fronte a sinistra
+for (const p of enc) { p.key = base(p.name); p.side = side(p.name); }
 {
-  // Area di Wernicke: terzo posteriore del giro temporale superiore (confine approssimato, la fonte non la separa)
+  // Area di Wernicke: terzo posteriore del giro temporale superiore sinistro (confine approssimato, la fonte non la separa)
   const stg = enc.find(p => p.name === 'Superior temporal gyrus (Lateral part).l');
   let z0 = Infinity, z1 = -Infinity; for (let k = 2; k < stg.tris.length; k += 3) { z0 = Math.min(z0, stg.tris[k]); z1 = Math.max(z1, stg.tris[k]); }
   const zW = z0 + (z1 - z0) / 3;
-  for (const [key, keep, extra] of [['lat', n => side(n) !== 'r', true], ['sag', n => side(n) !== 'l', false]]) {
-    const lb = labeler(), parts = enc.filter(p => keep(p.name)).map(p => ({tris: p.tris, lab: lb.id(base(p.name))}));
-    if (extra) { const P = parts.find(p => p.tris === stg.tris), a = P.lab, wl = lb.id('Wernicke area'); P.labOf = (x, y, z) => z / 3 < zW ? wl : a; }
-    const R = render(parts, lateral, 5000), k = 300 / R.w, loops = trace(R, 4, 0.7), C = centers(R);
-    const out = {};
-    for (const [lab, lp] of loops) { const a = C.get(lab + '|'); out[lb.names[lab - 1]] = {d: toPath(lp, k), c: a ? [+(a[0] / a[2] * k).toFixed(1), +(a[1] / a[2] * k).toFixed(1), a[2]] : null}; }
-    brain[key] = {W: 300, H: Math.round(R.h * k), shapes: out};
-    console.log('encefalo', key, R.w + '×' + R.h, Object.keys(out).length, 'strutture visibili');
-  }
+  stg.split = {key: 'Wernicke area', f: (x, y, z) => z < zW};
 }
+// ls/ld: emisfero sinistro o destro visto di lato; m: faccia mediale dell'emisfero destro (sezione sagittale, come prima);
+// f: da davanti; s: dall'alto; i: dal basso. Nelle viste con i due emisferi il lato principale è il sinistro (linguaggio).
+const brainP = project(enc, {
+  ls: {proj: VIEWS6.ls, prim: 'l'}, ld: {proj: VIEWS6.ld, prim: 'r'},
+  m: {proj: VIEWS6.ls, prim: 'r', keep: p => p.side !== 'l'},
+  f: {proj: VIEWS6.a, prim: 'l'}, s: {proj: VIEWS6.s, prim: 'l'}, i: {proj: VIEWS6.i, prim: 'l'}}, 5000, 4, 0.7, 'encefalo');
+const brain = brainP.out;
 
 fs.writeFileSync(OUT, JSON.stringify({body, brain}));
 console.log('scritto', OUT, (fs.statSync(OUT).size / 1e6).toFixed(2), 'MB');

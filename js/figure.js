@@ -1,33 +1,48 @@
 /* Figura SVG: disegno, zoom e pan, marcature, origine e inserzione dei muscoli. */
 import {$} from './util.js';
-import {app,S,bone,members,itemOf,bonesName} from './state.js';
+import {app,S,bone,members,itemOf,bonesName,saveGrp} from './state.js';
 
-// Ogni vista (anteriore, posteriore) è un gruppo SVG con tutte le strutture singole; si vede una vista alla volta.
-// Le marcature (selezione, risposte, pezzi del puzzle) valgono in tutte e due le viste, così cambiando vista restano.
+// Ogni vista (anteriore, laterale, dall'alto…) è un gruppo SVG con tutte le strutture singole; se ne vede una alla volta.
+// Le marcature (selezione, risposte, pezzi del puzzle) valgono in tutte le viste, così cambiando vista restano.
 // Le viste di zona (mano palmare e dorsale, piede dall'alto e dalla pianta) sono altri gruppi con solo le ossa di quella zona:
-// le usano Ricomponi e Trova la struttura per le ossa piccole, poi si torna alla vista di base.
-const fvLabel=v=>{const z=app.MOD.zviews[v];return (z?z.n:v==='a'?'Anteriore':'Posteriore')+' ⇄';};
-const fvNext=v=>{const z=app.MOD.zviews[v];return z?z.alt:v==='a'?'p':'a';};
+// le usano Ricomponi e Trova la struttura, poi si torna alla vista scelta nel menu.
+// In alto: un pulsante per modulo (Corpo, Cervello) che apre il menu delle sue viste.
+export const vName=(v,M=app.MOD)=>M.vnames[v]||M.zviews[v]?.n||v;
+export const baseOf=()=>{const M=app.MOD,b=app.bases[M.id];return M.views.includes(b)?b:M.views[0];};
+export const hasView=v=>app.MOD.views.includes(v)||!!app.MOD.zviews[v];
+const mmLabel=k=>app.MODS[k].label+(k===app.MOD.id?` · <span class="vn">${vName(app.view)}</span>`:'')+' ▾';
 export function buildFig(){
  const {B,MODS,MOD,VB}=app;
- if(!MOD.views.includes(app.view))app.view=MOD.views.includes(app.base)?app.base:MOD.views[0];
+ app.view=baseOf();
  const vs=[...MOD.views,...Object.keys(MOD.zviews)].map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
   B.filter(b=>b.s[v]).map(b=>`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s[v]}</g></g>`).join('')+'</g>').join('');
- const mods=Object.keys(MODS).map(k=>`<button data-mod="${k}" class="${k===MOD.id?'on':''}">${MODS[k].label}</button>`).join('');
+ const mm=Object.keys(MODS).map(k=>`<button data-mm="${k}" class="${k===MOD.id?'on':''}" aria-haspopup="menu">${mmLabel(k)}</button>`).join('');
  const body=MOD.id==='corpo';
- const opts=(MOD.views.length>1?`<button data-fv="${fvNext(app.view)}" title="Cambia vista">${fvLabel(app.view)}</button>`:'')+
-  `<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
- $('fig').innerHTML=`<div class="tbar"><div class="mods">${mods}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><div class="tbar t2"><div class="mods">${opts}</div></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs>${vs}<g id="ov" pointer-events="none"></g></svg>`;
+ const grp=`<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
+ $('fig').innerHTML=`<div class="tbar"><div class="mods mm">${mm}</div></div><div class="tbar t2"><div class="mods">${grp}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><div id="vmenu" class="vmenu" role="menu" hidden></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs>${vs}<g id="ov" pointer-events="none"></g></svg>`;
 }
-// cambia vista senza ridisegnare (le marcature restano)
-export function setView(v){
- if(!app.MOD.zviews[v])app.base=v;
+// Menu delle viste di un modulo, sotto il suo pulsante; con una vista di zona aperta mostra anche le due viste della zona.
+export function viewMenu(id,btn){
+ const m=$('vmenu');if(!m)return;
+ if(!m.hidden&&m.dataset.mod===id){m.hidden=true;return;}
+ const M=app.MODS[id],cur=id===app.MOD.id?app.view:null;
+ const it=v=>`<button role="menuitem" data-vm="${id}:${v}" class="${v===cur?'on':''}">${vName(v,M)}</button>`;
+ let h=M.views.map(it).join('');
+ if(cur&&M.zviews[cur])h+=`<div class="vsep">Zona</div>`+[cur,M.zviews[cur].alt].map(it).join('');
+ m.innerHTML=h;m.dataset.mod=id;m.hidden=false;
+ m.style.left=Math.min(btn.offsetLeft,$('fig').clientWidth-m.offsetWidth-4)+'px';m.style.top=(btn.offsetTop+btn.offsetHeight+4)+'px';
+}
+export const closeViewMenu=()=>{const m=$('vmenu');if(m)m.hidden=true;};
+// cambia vista senza ridisegnare (le marcature restano). temp: scelta di un gioco, non diventa la vista del menu
+export function setView(v,temp){
+ if(!hasView(v))return;
+ if(!temp&&app.MOD.views.includes(v)){app.bases[app.MOD.id]=v;saveGrp();}
  app.view=v;$('fig').querySelectorAll('.view').forEach(g=>g.setAttribute('display',g.dataset.v===v?'inline':'none'));
- const b=$('fig').querySelector('[data-fv]');if(b){b.dataset.fv=fvNext(v);b.textContent=fvLabel(v);}
+ const b=$('fig').querySelector(`[data-mm="${app.MOD.id}"]`);if(b)b.innerHTML=mmLabel(app.MOD.id);
 }
 export const inZone=()=>!!app.MOD.zviews[app.view];
-// torna alla vista anteriore o posteriore dopo una vista di zona
-export function baseView(){if(inZone())setView(app.base||'a');}
+// torna alla vista scelta nel menu dopo una vista usata da un gioco
+export function baseView(){if(app.view!==baseOf())setView(baseOf(),true);}
 const activeView=()=>$('fig').querySelector(`.view[data-v="${app.view}"]`);
 // la struttura si vede nella vista v (attuale se manca)? Almeno un quarto della sagoma del lato destro non deve essere
 // coperto da altre ossa: il pisiforme da dietro o le falangi del piede di scorcio non si chiedono.
@@ -38,7 +53,11 @@ let tw=0;
 export const svgEl=()=>$('fig').querySelector('svg');
 export function svgPt(x,y){const s=svgEl(),p=s.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(s.getScreenCTM().inverse());}
 function applyVB(){const s=svgEl(),VB=app.VB;if(s)s.setAttribute('viewBox',`${VB.x} ${VB.y} ${VB.w} ${VB.h}`);}
-const clampT=t=>({...t,x:Math.max(0,Math.min(app.MOD.W-t.w,t.x)),y:Math.max(0,Math.min(app.MOD.H-t.h,t.y))});
+// proporzioni del riquadro sullo schermo e riquadro più largo ammesso (tutta la figura dentro lo schermo)
+const scrAsp=()=>{const r=svgEl()?.getBoundingClientRect();return r&&r.width>0&&r.height>0?r.height/r.width:app.MOD.H/app.MOD.W;};
+const maxW=()=>Math.max(app.MOD.W,app.MOD.H/scrAsp());
+// il riquadro resta sulla figura; se è più grande della figura, la figura sta al centro
+const clampT=t=>{const {W,H}=app.MOD;return {...t,x:t.w>=W?(W-t.w)/2:Math.max(0,Math.min(W-t.w,t.x)),y:t.h>=H?(H-t.h)/2:Math.max(0,Math.min(H-t.h,t.y))};};
 export function setVB(t,anim){
  const id=++tw;t=clampT(t);
  if(!anim){app.VB=t;applyVB();return;}
@@ -46,20 +65,23 @@ export function setVB(t,anim){
  (function f(n){if(id!==tw)return;const k=Math.min(1,(n-t0)/260),e=k*(2-k);
   app.VB={x:s0.x+(t.x-s0.x)*e,y:s0.y+(t.y-s0.y)*e,w:s0.w+(t.w-s0.w)*e,h:s0.h+(t.h-s0.h)*e};applyVB();if(k<1)requestAnimationFrame(f);})(t0);
 }
-export const resetZoom=anim=>setVB({x:0,y:0,w:app.MOD.W,h:app.MOD.H},anim);
+// vista intera: il disegno della vista attuale riempie il riquadro (la vista dall'alto non resta un puntino in mezzo)
+export function resetZoom(anim){
+ const g=activeView(),b=g&&g.getBBox();
+ if(b&&b.width>0)focusPts([[b.x,b.y],[b.x+b.width,b.y+b.height]],6,anim,0);else setVB({x:0,y:0,w:app.MOD.W,h:app.MOD.H},anim);
+}
 export function zoomAt(k,cx,cy){
  const {MOD,VB}=app;
- const w=Math.max(MOD.W/24,Math.min(MOD.W,VB.w/k)),h=w*MOD.H/MOD.W,fx=(cx-VB.x)/VB.w,fy=(cy-VB.y)/VB.h;
+ const w=Math.max(MOD.W/24,Math.min(maxW(),VB.w/k)),h=w*scrAsp(),fx=(cx-VB.x)/VB.w,fy=(cy-VB.y)/VB.h;
  setVB({x:cx-fx*w,y:cy-fy*h,w,h},false);
 }
-function focusPts(pts,pad){
- const MOD=app.MOD;
- // proporzioni del riquadro sullo schermo (non della figura intera, molto più alta): una zona larga come le dita
- // del piede riempie la larghezza invece di restare piccola in mezzo
- const r=svgEl()?.getBoundingClientRect(),asp=r&&r.width>0&&r.height>0?r.height/r.width:MOD.H/MOD.W;
+// Riquadro sui punti con le proporzioni del riquadro sullo schermo (non della figura intera, molto più alta): una zona
+// larga come le dita del piede riempie la larghezza invece di restare piccola in mezzo. minW: ingrandimento massimo.
+function focusPts(pts,pad,anim=true,minW=app.MOD.W/5){
+ const asp=scrAsp();
  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
- let w=Math.max(x1-x0+2*pad,(y1-y0+2*pad)/asp,MOD.W/5);w=Math.min(w,MOD.W);const h=Math.min(w*asp,MOD.H);
- setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},true);
+ const w=Math.min(Math.max(x1-x0+2*pad,(y1-y0+2*pad)/asp,minW),maxW()),h=w*asp;
+ setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},anim);
  return w;
 }
 // riquadro di una voce (membri) nella vista attuale, per portarla in primo piano
@@ -98,7 +120,7 @@ function samplesOf(g){
 }
 const SLOT_PX=28; // distanza massima, in pixel sullo schermo, tra il punto di rilascio e un posto vuoto
 // Nel puzzle: il posto vuoto più vicino al punto (entro SLOT_PX), anche se coperto da altre ossa;
-// a pari distanza vince quello del pezzo in mano (want). Se non ce n'è, la struttura sotto il dito.
+// entro 8 px dal più vicino vince quello del pezzo in mano (want). Se non ce n'è, la struttura sotto il dito.
 export function slotAt(x,y,want){
  const svg=svgEl();if(!svg)return null;
  const r=svg.getBoundingClientRect();
@@ -110,7 +132,8 @@ export function slotAt(x,y,want){
   if(d<bestD){bestD=d;best=g;}
   if(itemOf(g.dataset.id)===want&&d<wantD){wantG=g;wantD=d;}
  }
- if(wantG&&wantD<=max&&wantD<=bestD+1.5)return wantG;
+ // vince il posto del pezzo in mano anche se un altro è più vicino di pochi pixel (coste sottili e vicine)
+ if(wantG&&wantD<=max&&wantD<=bestD+8/ctm.a)return wantG;
  if(best&&bestD<=max)return best;
  return boneAt(x,y);
 }
@@ -146,6 +169,12 @@ export function showMuscle(m){
 }
 export const muscleHtml=m=>`<div class="md"><b>${m.n}</b> <i class="mut">${m.l||''}</i><br><span class="tg o">ORIGINE</span> ${m.ot}${m.o?` <small class="mut">(${bonesName([m.o,...(m.oa||[])])})</small>`:''}<br><span class="tg i">INSERZIONE</span> ${m.it}${m.i?` <small class="mut">(${bonesName([m.i,...(m.ia||[])])})</small>`:''}<br><b>Azione</b>: ${m.a}${m.nv?`<br><b>Innervazione</b>: ${m.nv}`:''}${m.src?'<br><small class="mut">Ossa ricavate dal testo della scheda: nella fonte mancano le aree.</small>':''}</div>`;
 
+/* ---------- Safari: ridisegno dopo un cambio di misura ---------- */
+// Safari a volte non ridisegna l'svg quando cambia la sua altezza (scheda abbassata o rialzata) e lascia sullo schermo
+// pezzi del disegno vecchio accanto a quello nuovo: a ogni cambio di misura lo si costringe a ridisegnare tutto.
+if(window.ResizeObserver){let last='';new ResizeObserver(()=>{const s=svgEl();if(!s)return;const r=s.getBoundingClientRect(),k=Math.round(r.width)+'x'+Math.round(r.height);if(k===last)return;last=k;
+ s.style.transform='translateZ(0)';requestAnimationFrame(()=>{s.style.transform='';applyVB();});}).observe($('fig'));}
+
 /* ---------- pan, pizzico e rotella ---------- */
 const ptrs=new Map();let pan=null,pinch=null,wasPan=false;
 // Dice al gestore del clic se il gesto appena finito era un trascinamento (e lo azzera).
@@ -154,7 +183,7 @@ const fg=$('fig');
 // Un dito: spostamento (con zoom attivo), con eventi pointer. Due dita: vedi il pizzico più sotto.
 // Mouse e penna con due puntatori (raro) restano sugli eventi pointer.
 fg.addEventListener('pointerdown',e=>{
- if(e.target.closest('.tbar'))return;
+ if(e.target.closest('.tbar,#vmenu'))return;
  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});wasPan=false;
  if(ptrs.size===1)pan={x:e.clientX,y:e.clientY,vx:app.VB.x,vy:app.VB.y};
  else{pan=null;if(e.pointerType!=='touch'&&ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}}
@@ -181,7 +210,7 @@ fg.addEventListener('pointerup',endPtr);fg.addEventListener('pointercancel',endP
 let tp=null;
 const twoFingers=t=>({x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2,d:Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)});
 fg.addEventListener('touchstart',e=>{
- if(e.touches.length!==2||!svgEl()||e.target.closest('.tbar'))return;
+ if(e.touches.length!==2||!svgEl()||e.target.closest('.tbar,#vmenu'))return;
  e.preventDefault();tp=twoFingers(e.touches);pan=null;wasPan=true;
 },{passive:false});
 fg.addEventListener('touchmove',e=>{

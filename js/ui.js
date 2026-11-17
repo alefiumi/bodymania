@@ -1,7 +1,7 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
 import {app,S,save,saveGrp,head,touchStreak,bump,queue,itemOf} from './state.js';
-import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView} from './figure.js';
+import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView,viewMenu,closeViewMenu} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
 import {placeAttempt} from './puzzle.js';
@@ -10,7 +10,7 @@ import {renderSocial,loadSocial,setSocialOpen} from './social.js';
 import {showInstall,promptInstall} from './install.js';
 
 export function useMod(id){
- const MOD=app.MODS[id];
+ const MOD=app.MODS[id];if(!MOD)return;
  app.MOD=MOD;app.B=MOD.B;app.GR=MOD.GR;app.M=MOD.M;app.CASES=MOD.CASES;app.VB={x:0,y:0,w:MOD.W,h:MOD.H};app.G=null;app.sel=null;
  buildFig();setTab(app.tab);
 }
@@ -49,17 +49,24 @@ const FOLD='bodymania-fold';
 function setFold(f){$('pw').classList.toggle('fold',f);const t=f?'Rialza la scheda':'Abbassa la scheda';$('fold').title=t;$('fold').setAttribute('aria-label',t);try{localStorage.setItem(FOLD,f?'1':'');}catch(e){}}
 try{setFold(!!localStorage.getItem(FOLD));}catch(e){setFold(false);}
 $('fold').addEventListener('click',()=>setFold(!$('pw').classList.contains('fold')));
+document.addEventListener('click',e=>{if(!e.target.closest('#vmenu,[data-mm]'))closeViewMenu();});
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.t);});
 $('fig').addEventListener('click',e=>{
  const zb=e.target.closest('.zc button');
  if(zb){const k=zb.dataset.z,VB=app.VB;if(k==='reset')resetZoom(true);else zoomAt(k==='in'?1.5:1/1.5,VB.x+VB.w/2,VB.y+VB.h/2);return;}
- const fv=e.target.closest('[data-fv]');if(fv){setView(fv.dataset.fv);if(app.tab==='explore'&&app.sel)selectBone(app.sel);
+ // menu Corpo / Cervello: si apre con il pulsante del modulo, la voce scelta cambia modulo e vista
+ const mmb=e.target.closest('[data-mm]');if(mmb){viewMenu(mmb.dataset.mm,mmb);return;}
+ const vm=e.target.closest('[data-vm]');
+ if(vm){closeViewMenu();const [id,v]=vm.dataset.vm.split(':');
+  if(id!==app.MOD.id){app.bases[id]=v;saveGrp();useMod(id);return;}
+  setView(v);if(!(app.tab==='play'&&app.G&&app.G.focus))resetZoom(true);
+  if(app.tab==='explore'&&app.sel)selectBone(app.sel);
   // in gioco, con la figura ingrandita su una zona, la si ritrova anche nell'altra vista (la mano dorsale è speculare)
   else if(app.tab==='play'&&app.G&&app.G.focus)setTimeout(()=>focusItem(app.G.focus,app.G.mode==='puzzle'?10:14,true),30);return;}
+ if(e.target.closest('#vmenu'))return;
+ closeViewMenu();
  // singole o gruppi: cambia le voci dei giochi, quindi la partita in corso ricomincia dal menu
  if(e.target.closest('[data-fg]')){app.grp=!app.grp;saveGrp();const t=app.tab;buildFig();setTab(t);return;}
- const mb=e.target.closest('.mods button');
- if(mb){useMod(mb.dataset.mod);return;}
  if(e.target.closest('.tbar'))return;
  if(takePan())return;
  // sid: struttura singola toccata; con i gruppi la voce è il suo gruppo
@@ -87,5 +94,5 @@ $('panel').addEventListener('click',e=>{
  else if(t.classList.contains('next'))nextQ();
  else if(t.classList.contains('again'))startGame(G.mode);
  else if(t.classList.contains('menu'))renderMenu();
- else if(t.classList.contains('row')){setTab('explore');selectBone(t.dataset.id);}
+ else if(t.classList.contains('row')){if(t.dataset.mod&&t.dataset.mod!==app.MOD.id){app.tab='explore';useMod(t.dataset.mod);}setTab('explore');selectBone(t.dataset.id);}
 });

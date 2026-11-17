@@ -4,7 +4,7 @@ import {app,S,level,items} from './state.js';
 import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc} from './account.js';
 import {BADGES} from './badges.js';
 
-let editing=false,draft=null;
+let editing=false,draft=null,pmod=null; // pmod: modulo di cui si guarda la maestria (corpo o cervello)
 const ROLES=['Studente di fisioterapia','Fisioterapista','Studente di medicina','Medico','Studente di scienze motorie','Chinesiologo','Altro'];
 const avatar=(src,name,cls='av')=>src?`<img class="${cls}" src="${esc(src)}" alt="">`:`<div class="${cls}">${esc((name||'?').trim().charAt(0).toUpperCase()||'?')}</div>`;
 const day=iso=>new Date(iso).toLocaleDateString('it',{day:'numeric',month:'short',year:'numeric'});
@@ -19,12 +19,15 @@ export function renderProg(){
  const stats=`<div class="stats">${stat(S.xp,'XP')}${stat(S.streak,'giorni di fila')}${stat(tot?Math.round(S.ok/tot*100)+'%':'–','precisione')}${stat(st.games||0,'partite')}</div>`;
  const badges=`<div class="sub">Badge e traguardi · ${got.length}/${BADGES.length}</div><div class="bdg">`+
   BADGES.map(b=>{const d=S.badges[b.id];return `<div class="b${d?'':' lock'}" title="${esc(b.desc)}"><i>${b.icon}</i><b>${esc(b.name)}</b><small>${d?day(d):esc(b.desc)}</small></div>`;}).join('')+'</div>';
- const IL=items().filter(b=>!b.area),mastered=IL.filter(b=>(S.mastery[b.id]||0)>=3).length;
+ // maestria del modulo scelto qui (all'inizio quello aperto), singole o gruppi come nella figura
+ const M=app.MODS[pmod]||app.MOD;pmod=M.id;
+ const IL=(app.grp?M.GR:M.B).filter(b=>!b.area),mastered=IL.filter(b=>(S.mastery[b.id]||0)>=3).length;
  // in ordine di gruppo (dalla testa ai piedi per le ossa, per lobo nel cervello)
- const ord=Object.fromEntries(app.GR.map((g,i)=>[g.id,i]));
- const rows=IL.slice().sort((a,b)=>(ord[a.group?a.id:a.g]??99)-(ord[b.group?b.id:b.g]??99)).map(b=>{const m=S.mastery[b.id]||0;return `<div class="row" data-id="${b.id}"><span>${b.n}</span><span class="dots">${'●'.repeat(m)}<span style="color:var(--line)">${'●'.repeat(3-m)}</span></span></div>`;}).join('');
+ const ord=Object.fromEntries(M.GR.map((g,i)=>[g.id,i]));
+ const rows=IL.slice().sort((a,b)=>(ord[a.group?a.id:a.g]??99)-(ord[b.group?b.id:b.g]??99)).map(b=>{const m=S.mastery[b.id]||0;return `<div class="row" data-id="${b.id}" data-mod="${M.id}"><span>${b.n}</span><span class="dots">${'●'.repeat(m)}<span style="color:var(--line)">${'●'.repeat(3-m)}</span></span></div>`;}).join('');
+ const seg=`<div class="chips seg">`+Object.values(app.MODS).map(x=>`<button class="chip${x.id===M.id?' on':''}" data-pf="mod" data-v="${x.id}">${esc(x.label)}</button>`).join('')+'</div>';
  $('panel').innerHTML=card+stats+badges+accountHtml()+
-  `<div class="sub">Maestria · ${esc(app.MOD.label||app.MOD.id)}</div><p class="mut">${mastered}/${IL.length} ${app.grp?'gruppi':'strutture'} padroneggiat${app.grp?'i':'e'}. ${tot?'':'Gioca un round per iniziare a riempire i progressi.'}</p>${rows}`;
+  `<div class="sub">Maestria</div>${seg}<p class="mut">${mastered}/${IL.length} ${app.grp?'gruppi':'strutture'} padroneggiat${app.grp?'i':'e'}. ${tot?'':'Gioca un round per iniziare a riempire i progressi.'}</p>${rows}`;
 }
 
 function editHtml(){
@@ -59,6 +62,7 @@ export function wireProfile(panel){
   if(k==='edit'){editing=true;A.err='';A.msg='';draft={name:S.prof.name||'',role:S.prof.role||'',bio:S.prof.bio||'',avatar:S.prof.avatar||''};renderProg();}
   else if(k==='cancel'){editing=false;A.err='';renderProg();}
   else if(k==='nophoto'){formVals();draft.avatar='';renderProg();}
+  else if(k==='mod'){pmod=b.dataset.v;renderProg();}
  });
  panel.addEventListener('change',async e=>{
   const i=e.target.closest('input[data-pf="photo"]');if(!i||!i.files[0])return;

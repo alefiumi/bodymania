@@ -53,10 +53,18 @@ export async function loadSocial(){
 /* ---------- disegno ---------- */
 const av=(src,name)=>src?`<img class="sav" src="${esc(src)}" alt="">`:`<span class="sav">${esc((name||'?').charAt(0).toUpperCase())}</span>`;
 const MED=['🥇','🥈','🥉'];
+// Una riga della classifica: toccando il nome di un altro giocatore si apre sotto la riga la richiesta di amicizia.
 function row(r,i){
- const me=A.user&&r.id===A.user.id;
- return `<div class="lb${me?' me':''}"><span class="pos">${i<3?MED[i]:i+1}</span>${av(r.avatar,r.username)}<span class="nm">${esc(r.username)}${me?' <small>(tu)</small>':''}</span>`+
-  `<span class="sk">${r.streak?'🔥 '+r.streak:''}</span><b>⭐ ${r.xp}</b></div>`;
+ const me=A.user&&r.id===A.user.id,open=!me&&SO.pick===r.id;
+ return `<div class="lb${me?' me':''}${open?' open':''}"${me?'':` data-so="pick" data-id="${r.id}" role="button"`}><span class="pos">${i<3?MED[i]:i+1}</span>${av(r.avatar,r.username)}<span class="nm">${esc(r.username)}${me?' <small>(tu)</small>':''}</span>`+
+  `<span class="sk">${r.streak?'🔥 '+r.streak:''}</span><b>⭐ ${r.xp}</b></div>`+(open?`<div class="lbx">${relBtn(r.id)}</div>`:'');
+}
+// stato dell'amicizia con un giocatore e il pulsante per l'azione possibile
+function relBtn(id){
+ const R=SO.rel,has=l=>l.some(p=>p.id===id);
+ return has(R.fr)?'<span class="mut">✅ Siete già amici</span>':has(R.out)?'<span class="mut">Richiesta inviata, in attesa</span>'
+  :has(R.inc)?`<span class="mut">Ti ha chiesto l'amicizia</span><button class="chip on" data-so="acc" data-id="${id}">Accetta</button>`
+  :`<button class="chip on" data-so="ask" data-id="${id}">👋 Chiedi l'amicizia</button>`;
 }
 function person(p,btns){return `<div class="lb">${av(p.avatar,p.username)}<span class="nm">${esc(p.username)}</span><span class="pb">${btns}</span></div>`;}
 const hm=t=>new Date(t).toLocaleString('it',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -75,7 +83,7 @@ export function renderSocial(){
  let body='';
  if(!fresh){body=SO.loading?'':'<p class="mut">Classifica non ancora scaricata: serve la connessione.</p>';}
  else if(SO.tab==='all'){
-  body=`<div class="sub">Classifica generale · XP</div>`+(SO.all.length?SO.all.map(row).join(''):'<p class="mut">Nessuno in classifica per ora.</p>');
+  body=`<div class="sub">Classifica generale · XP</div><p class="mut">Tocca un nome per chiedere l'amicizia.</p>`+(SO.all.length?SO.all.map(row).join(''):'<p class="mut">Nessuno in classifica per ora.</p>');
   if(SO.rank&&name)body+=`<div class="gap">…</div>`+row({id:A.user.id,username:name,xp:S.xp,streak:S.streak,avatar:S.prof.avatar},SO.rank-1);
  }else{
   const R=SO.rel;
@@ -91,9 +99,7 @@ export function renderSocial(){
 function resHtml(){
  if(!SO.found)return '';
  if(!SO.found.length)return '<p class="mut">Nessun utente con questo nome.</p>';
- const R=SO.rel,has=(l,id)=>l.some(p=>p.id===id);
- return SO.found.map(p=>person(p,has(R.fr,p.id)?'<span class="mut">già amici</span>':has(R.out,p.id)?'<span class="mut">richiesta inviata</span>'
-  :has(R.inc,p.id)?`<button class="chip on" data-so="acc" data-id="${p.id}">Accetta</button>`:`<button class="chip on" data-so="ask" data-id="${p.id}">Aggiungi</button>`)).join('');
+ return SO.found.map(p=>person(p,relBtn(p.id))).join('');
 }
 
 /* ---------- azioni ---------- */
@@ -117,7 +123,8 @@ const pair=(a,b)=>`and(user_id.eq.${a},friend_id.eq.${b}),and(user_id.eq.${b},fr
 export function wireSocial(panel){
  panel.addEventListener('click',e=>{
   const b=e.target.closest('[data-so]');if(!b||!A.user)return;const k=b.dataset.so,id=b.dataset.id,uid=A.user.id,sb=A.sb;
-  if(k==='tab'){SO.tab=b.dataset.v;keep();renderSocial();if(SO.tab==='friends')loadSocial();}
+  if(k==='tab'){SO.tab=b.dataset.v;SO.pick=null;keep();renderSocial();if(SO.tab==='friends')loadSocial();}
+  else if(k==='pick'){SO.pick=SO.pick===id?null:id;renderSocial();}
   else if(k==='ask')act(()=>sb.from('friendships').insert({user_id:uid,friend_id:id}),'Richiesta inviata.');
   else if(k==='acc')act(()=>sb.from('friendships').update({status:'accepted'}).eq('user_id',id).eq('friend_id',uid),'Ora siete amici.');
   else if(k==='del')act(()=>sb.from('friendships').delete().or(pair(uid,id)));

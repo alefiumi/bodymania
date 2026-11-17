@@ -6,8 +6,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;height:100vh;height:100svh;overflow:hidden}
-header{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 8px calc(14px + env(safe-area-inset-left));background:var(--card);border-bottom:1px solid var(--line)}
-#lv{font-weight:700;font-size:13px;white-space:nowrap}
+header{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 8px calc(14px + env(safe-area-inset-left));background:var(--card);border-bottom:1px solid var(--line)}
+#lv{font-weight:700;font-size:13px;white-space:nowrap;min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
 .bar{flex:1;height:8px;background:var(--line);border-radius:9px;overflow:hidden;min-width:30px}
 .bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .4s}
 #st{font-size:13px;font-weight:600;white-space:nowrap}
@@ -17,7 +17,15 @@ header{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area
 #off[hidden]{display:none}
 #off.ok{background:var(--ok);color:#fff}
 #off.wait{background:var(--line);color:var(--mut)}
-#fig{flex:1 1 0;min-height:0;display:flex;flex-direction:column;padding:0 2px 2px}
+#fig{flex:1 1 0;min-height:0;display:flex;flex-direction:column;padding:0 2px 2px;position:relative}
+/* menu delle viste di un modulo (Corpo, Cervello), sotto il suo pulsante */
+.vmenu{position:absolute;z-index:6;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px #0004;padding:4px;display:flex;flex-direction:column;min-width:180px}
+.vmenu[hidden]{display:none}
+.vmenu button{text-align:left;font-size:14px;padding:9px 12px;border:0;background:none;color:var(--ink);border-radius:8px}
+.vmenu button.on{background:var(--acc);color:#fff}
+.vsep{font-size:11px;color:var(--mut);padding:6px 12px 2px;text-transform:uppercase;letter-spacing:.04em}
+.mods.mm button{font-size:13px;padding:6px 10px}
+.mm .vn{font-weight:500}
 /* barra sopra la figura: moduli a sinistra, zoom a destra; non copre mai il disegno */
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 2px}
 .tbar.t2{padding-top:0}
@@ -148,6 +156,8 @@ nav button.dot:after{content:"";position:absolute;top:5px;left:calc(50% + 8px);w
 .cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center}
 .lb{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line)}
 .lb.me{background:var(--bg);border-radius:10px}
+.lb[data-so]{cursor:pointer}.lb.open{background:var(--bg);border-radius:10px 10px 0 0;border-bottom:0}
+.lbx{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:4px 8px 9px;background:var(--bg);border-radius:0 0 10px 10px;border-bottom:1px solid var(--line)}
 .lb .pos{flex:none;width:26px;text-align:center;font-weight:700;font-size:14px;color:var(--mut)}
 .sav{flex:none;width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--acc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
 .lb .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}

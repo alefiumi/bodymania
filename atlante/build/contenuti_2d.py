@@ -27,25 +27,6 @@ def bump_version(path):
 
 def shape(d): return [{'poly': d}]
 
-def split_sides(d, W, view):
-    """divide gli anelli di un tracciato tra lato destro e sinistro del corpo (prima il destro): i pezzi del puzzle
-    e gli ingrandimenti usano un lato solo. Ogni anello inizia con M assoluto, quindi si può spostare da solo."""
-    r, l = [], []
-    for lp in [x for x in d.split('z') if x]:
-        nums = [float(v) for v in re.findall(r'-?\d+\.?\d*', lp)]
-        x, xs = nums[0], [nums[0]]
-        for k in range(2, len(nums), 2): x += nums[k]; xs.append(x)
-        cx = sum(xs) / len(xs)
-        (r if (cx < W / 2) == (view == 'a') else l).append(lp + 'z')
-    return [{'poly': ''.join(x)} for x in (r, l) if x]
-
-def center(c):
-    """centro del lato destro del corpo (o del lato più grande): serve per etichette e linee"""
-    if not c: return None
-    if 'r' in c and 'l' in c: k = 'r' if c['r'][2] >= c['l'][2] * 0.5 else 'l'
-    else: k = 'r' if 'r' in c else 'l'
-    return c[k][:2]
-
 # ---------------------------------------------------------------- corpo
 EXTRA = {'Teeth': ['Denti', 'Dentes', 'I denti delle due arcate (incisivi, canini, premolari e molari), infissi negli alveoli di mascellari e mandibola.'],
          'Costal cartilages': ['Cartilagini costali', 'Cartilagines costales', 'Cartilagine ialina che unisce le prime dieci coste allo sterno (direttamente le prime sette, attraverso l\'arcata costale le altre): dà elasticità alla gabbia toracica nella respirazione.']}
@@ -71,15 +52,24 @@ FIX_GROUPS = {'metacarpo': {'n': 'Ossa del metacarpo', 'l': 'Ossa metacarpi', 'f
 # viste di zona (proietta_2d.mjs): nome sul pulsante e vista opposta a cui passa toccandolo
 ZVIEWS = {'mp': {'n': 'Mano · palmare', 'alt': 'md'}, 'md': {'n': 'Mano · dorsale', 'alt': 'mp'},
           'pd': {'n': 'Piede · dall\'alto', 'alt': 'pp'}, 'pp': {'n': 'Piede · pianta', 'alt': 'pd'}}
-ZONE_PAIRS = {g: [('mp', 'md')] for g in ('carpo', 'metacarpo', 'falangi-mano')} | {g: [('pd', 'pp')] for g in ('tarso', 'metatarso', 'falangi-piede')}
+ZONE_PAIRS = {'cranio': [('ld', 'ld')]} | {g: [('mp', 'md')] for g in ('carpo', 'metacarpo', 'falangi-mano')} | {g: [('pd', 'pp')] for g in ('tarso', 'metatarso', 'falangi-piede')}
 
 def full(s, v, x):
-    """sagoma intera del lato destro (pezzi del puzzle), il suo riquadro e la quota che se ne vede in quella vista"""
-    s.setdefault('sf', {})[v] = x['full']['d']; s.setdefault('sb', {})[v] = x['full']['b']; s.setdefault('vis', {})[v] = x['vis']
+    """sagoma intera del lato principale (pezzi del puzzle), il suo riquadro e la quota che se ne vede in quella vista"""
+    if x.get('full'): s.setdefault('sf', {})[v] = x['full']['d']; s.setdefault('sb', {})[v] = x['full']['b']
+    s.setdefault('vis', {})[v] = x['vis']
+
+def put(s, v, x):
+    """forme di una vista (proietta_2d.mjs): prima il lato principale, poi l'altro; centro; sagoma intera"""
+    s['s'][v] = [{'poly': d} for d in x['d']]; s['c'][v] = x['c']; full(s, v, x)
+
+# viste del corpo e del cervello: chiave -> nome nel menu
+BODY_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra', 's': 'Dall\'alto', 'i': 'Dal basso'}
+BRAIN_VIEWS = {'ls': 'Emisfero sinistro', 'ld': 'Emisfero destro', 'm': 'Sagittale', 'f': 'Frontale', 's': 'Dall\'alto', 'i': 'Dal basso'}
 
 def body():
     B = P['body']; V = B['views']; areas = B['areas']
-    names = sorted(set(V['a']) | set(V['p']))
+    names = sorted(set().union(*(V[v] for v in BODY_VIEWS)))
     gid = {}
     for n in names:
         for g, rx in GROUPS_BODY:
@@ -93,11 +83,8 @@ def body():
         it, la = (EXTRA[n][:2] if n in EXTRA else NAMES.get(n) or [n, n])
         f = EXTRA[n][2] if n in EXTRA else DESC.get(n, '')
         s = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': gid[n], 'f': f, 's': {}, 'c': {}}
-        for v in ('a', 'p'):
-            paired = (n + '.r') in D['objs'] or n == 'Costal cartilages' or n.endswith(' rib')
-            if n in V[v]:
-                s['s'][v] = split_sides(V[v][n]['d'], B['W'], v) if paired else shape(V[v][n]['d']); s['c'][v] = center(V[v][n]['c'])
-                full(s, v, V[v][n])
+        for v in BODY_VIEWS:
+            if n in V[v]: put(s, v, V[v][n])
         # viste di zona (mano, piede): solo il lato destro, già nello spazio della figura
         for v, Z in B['zviews'].items():
             if n in Z: s['s'][v] = shape(Z[n]['d']); s['c'][v] = Z[n]['c']; full(s, v, Z[n])
@@ -130,7 +117,7 @@ def body():
         if not i: i = from_text(card.get('it', ''), piede); src = 'testo' if i else src
         if src == 'testo': nofonte += 1
         pts = {}
-        for v in ('a', 'p'):
+        for v in BODY_VIEWS:
             po = [[*areas[a][v], a[-1]] for a in mu['o'] if a in areas and v in areas[a]]
             pi = [[*areas[a][v], a[-1]] for a in mu['e'] if a in areas and v in areas[a]]
             if po or pi: pts[v] = {'o': po, 'i': pi}
@@ -143,7 +130,7 @@ def body():
     for c in cases:
         if c.get('mid'): c['mid'] = slug(c['mid'])
     path = os.path.join(ROOT, 'content/corpo.json')
-    out = {'version': bump_version(path), 'id': 'corpo', 'label': '🦴 Corpo', 'W': B['W'], 'H': B['H'], 'views': ['a', 'p'], 'zviews': ZVIEWS,
+    out = {'version': bump_version(path), 'id': 'corpo', 'label': '🦴 Corpo', 'W': B['W'], 'H': B['H'], 'views': list(BODY_VIEWS), 'vnames': BODY_VIEWS, 'zviews': ZVIEWS,
            'fonte': 'Forme proiettate dal modello 3D Z-Anatomy (CC BY-SA 4.0), vedi atlante/CREDITI.md',
            'structures': structures, 'groups': out_groups, 'muscles': muscles, 'cases': cases}
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
@@ -239,13 +226,13 @@ DESC_ENC = {'Pineal gland': 'Epifisi: piccola ghiandola dell\'epitalamo, dietro 
     'Adenohypophysis': 'Lobo anteriore dell\'ipofisi: produce GH, prolattina, TSH, ACTH, FSH e LH sotto il controllo dell\'ipotalamo.',
     'Neurohypophysis': 'Lobo posteriore dell\'ipofisi: libera ossitocina e vasopressina (ADH) prodotte dai nuclei dell\'ipotalamo.',
     'Posterior transverse collateral sulcus': 'Solco breve sulla faccia inferiore del lobo occipito-temporale, ramo trasverso del solco collaterale.'}
-BRAIN_TITLES = {'lat': '🧠 Laterale', 'sag': '🧠 Sagittale'}
-
-def brain(key):
-    S = P['brain'][key]['shapes']; cat = json.load(open(os.path.join(ROOT, 'content/neuro-strutture.json')))['items']
+def brain():
+    """cervello: un modulo con sei viste (prima erano due moduli, laterale e sagittale); gli id b.* restano gli stessi"""
+    B = P['brain']; cat = json.load(open(os.path.join(ROOT, 'content/neuro-strutture.json')))['items']
     sid = lambda n: 'b.' + slug(n)
+    names = sorted(set().union(*(B['views'][v] for v in BRAIN_VIEWS)))
     structures, members = [], {}
-    for n, v in S.items():
+    for n in names:
         g = next((g for g, rx in LOBES if re.search(rx, n)), None)
         if not g: raise SystemExit('struttura senza lobo: ' + n)
         if n == 'Wernicke area': it, la, f = WERNICKE
@@ -253,7 +240,10 @@ def brain(key):
             it, la = NOMI_ENC.get(n) or NAMES.get(n) or NAMES.get(n.strip()) or [n, n]; f = DESC.get(n) or DESC.get(n.strip()) or DESC_ENC.get(n.strip(), '')
             if it == n: print('  nome non tradotto:', n)
             if not f: print('  senza descrizione:', n)
-        structures.append({'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': g, 'f': f, 'col': cat.get(g, {}).get('col'), 's': {'a': shape(v['d'])}, 'c': {'a': v['c'][:2] if v['c'] else None}})
+        st = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': g, 'f': f, 'col': cat.get(g, {}).get('col'), 's': {}, 'c': {}}
+        for v in BRAIN_VIEWS:
+            if n in B['views'][v]: put(st, v, B['views'][v][n])
+        structures.append(st)
         members.setdefault(g, []).append(sid(n))
         for a, rx in AREAS.items():
             if re.search(rx, n): members.setdefault(a, []).append(sid(n))
@@ -261,11 +251,11 @@ def brain(key):
     for g, m in members.items():
         if g not in cat: raise SystemExit('gruppo senza testo in neuro-strutture.json: ' + g)
         groups.append({'id': g, **{k: v for k, v in cat[g].items()}, 'm': m, 'area': g in AREAS})
-    path = os.path.join(ROOT, f'content/{key}.json')
-    out = {'version': bump_version(path), 'id': key, 'label': BRAIN_TITLES[key], 'W': P['brain'][key]['W'], 'H': P['brain'][key]['H'], 'views': ['a'],
+    path = os.path.join(ROOT, 'content/cervello.json')
+    out = {'version': bump_version(path), 'id': 'cervello', 'label': '🧠 Cervello', 'W': B['W'], 'H': B['H'], 'views': list(BRAIN_VIEWS), 'vnames': BRAIN_VIEWS,
            'fonte': 'Forme proiettate dal modello 3D Z-Anatomy (CC BY-SA 4.0), vedi atlante/CREDITI.md',
-           'structures': structures, 'groups': groups, 'cases': T['casi'][key]}
+           'structures': structures, 'groups': groups, 'cases': T['casi']['lat'] + T['casi']['sag']}
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
-    print(key + ':', len(structures), 'strutture,', len(groups), 'gruppi')
+    print('cervello:', len(structures), 'strutture,', len(groups), 'gruppi')
 
-body(); brain('lat'); brain('sag')
+body(); brain()

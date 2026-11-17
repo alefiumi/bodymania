@@ -1,10 +1,10 @@
 /* Ricomponi: pezzi da rimettere al posto, con tocco o trascinamento.
    Ossa singole: i pezzi sono le ossa di un gruppo (mano, colonna, cranio…), con la figura ingrandita su quella zona.
-   Gruppi: i pezzi sono gruppi interi. Si gioca nella vista attuale (anteriore o posteriore); mano e piede hanno una
-   vista di zona (palmare/dorsale, dall'alto/pianta) che si può girare con il pulsante della vista. */
+   Gruppi: i pezzi sono gruppi interi. Si gioca nella vista attuale; cranio, mano e piede si giocano nella loro vista
+   (laterale, palmare, dall'alto: `zv` del gruppo), che si può cambiare dal menu delle viste. */
 import {$,shuffle,pick} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump,members,itemOf} from './state.js';
-import {els,clearMarks,refreshMastery,slotAt,svgEl,visible,visibleIn,focusItem,resetZoom,setView} from './figure.js';
+import {els,clearMarks,refreshMastery,slotAt,svgEl,visible,visibleIn,focusItem,resetZoom,setView,hasView} from './figure.js';
 import {gh,endGame} from './game.js';
 
 // Il pezzo è la sagoma intera del lato destro (sf), anche delle parti coperte da altre ossa: una costa si vede intera.
@@ -30,9 +30,9 @@ export function startPuzzle(){
  }else{
   // un gruppo con almeno 3 pezzi visibili, nella sua vista di zona se ce l'ha (mano palmare, piede dall'alto…)
   // o in quella attuale; la figura si ingrandisce sulla zona
-  const zv=g=>g.zv&&app.MOD.zviews[g.zv]?g.zv:app.view;
+  const zv=g=>g.zv&&hasView(g.zv)?g.zv:app.view;
   const gs=app.GR.filter(g=>!g.area&&g.m.filter(m=>visibleIn(m,zv(g))).length>=3);
-  const g=pick(gs.length?gs:app.GR);G.zone=G.focus=g.id;setView(zv(g));
+  const g=pick(gs.length?gs:app.GR);G.zone=G.focus=g.id;setView(zv(g),true);
   G.left=shuffle(g.m.filter(visible)).slice(0,8);setTimeout(()=>focusItem(g.id,10,true),30);
  }
  G.total=G.left.length;G.sel=null;

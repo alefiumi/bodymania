@@ -2,11 +2,11 @@
 import {$} from './util.js';
 
 // Modulo e partita correnti. MODS e NC arrivano da content/ all'avvio.
-// B: strutture singole; GR: gruppi; view: vista della figura ('a' anteriore, 'p' posteriore, oppure una vista di zona
-// come 'mp' mano palmare, usata dai giochi); base: l'ultima vista anteriore o posteriore scelta; grp: si gioca per gruppi
-export const app={MODS:{},NC:[],MOD:null,B:[],GR:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null,view:'a',base:'a',grp:false};
-try{app.grp=!!JSON.parse(localStorage.getItem('bodymania-2d')||'{}').grp;}catch(e){}
-export const saveGrp=()=>{try{localStorage.setItem('bodymania-2d',JSON.stringify({grp:app.grp}));}catch(e){}};
+// B: strutture singole; GR: gruppi; view: vista mostrata ('a' anteriore, 'ld' laterale destra… oppure una vista di zona come
+// 'mp' mano palmare, che i giochi usano per poco); bases: per ogni modulo la vista scelta nel menu; grp: si gioca per gruppi
+export const app={MODS:{},NC:[],MOD:null,B:[],GR:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null,view:'a',bases:{},grp:false};
+try{const o=JSON.parse(localStorage.getItem('bodymania-2d')||'{}');app.grp=!!o.grp;app.bases=o.bases||{};}catch(e){}
+export const saveGrp=()=>{try{localStorage.setItem('bodymania-2d',JSON.stringify({grp:app.grp,bases:app.bases}));}catch(e){}};
 export const bone=id=>app.MOD&&app.MOD.byId[id];
 // voci dei giochi e dell'elenco: le singole o i gruppi, secondo la modalità scelta
 export const items=()=>app.grp?app.GR:app.B;
