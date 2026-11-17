@@ -89,12 +89,25 @@ Come si rigenera (serve Blender; i passaggi stanno in `proto3d/build/`):
 1. `Blender -b Startup.blend --python build/za_export.py -- <cartella>` esporta gli strati grezzi e `za_meta.json`
    (`Startup.blend` è dentro `Z-Anatomy.zip` del repository Z-Anatomy/Models-of-human-anatomy).
 2. `node build/za_optimize.mjs <cartella> <uscita>` semplifica e comprime (pacchetti npm `@gltf-transform/*`, `meshoptimizer`).
-3. `python3 build/za_dati.py <cartella>/za_meta.json proto3d/dati.json` unisce metadati, TA2 e `build/schede.json`.
+3. `python3 build/za_dati.py <cartella>/za_meta.json proto3d/dati.json` unisce metadati, TA2, `build/schede.json`
+   e le descrizioni di `build/descrizioni.py` (chiave `desc`). Per aggiornare solo le descrizioni senza Blender:
+   `python3 build/descrizioni.py proto3d/dati.json`.
+
+Funzioni dell'atlante (in `atlante.js`):
+- Muscolo: tre viste, "Forma e aree", "Punti e linee" (pallino blu al centro di ogni area di origine, arancione
+  per l'inserzione, linea viola che li unisce, sempre in primo piano) ed "Entrambe"; reperi della fonte entro 2,5 cm dai punti.
+- Gruppi (`COMBO`): zampa d'oca, ischiocrurali, cuffia dei rotatori, tricipite della sura, quadricipite.
+- Ricerca senza accenti, con abbreviazioni e nomi comuni (`SYN`: SIAS, SIPS, zampa d'oca, Broca…).
+- Encefalo (pulsante 🧠): sezioni assiale, coronale e sagittale con cursore (piano di taglio su tutta la scena;
+  durante il taglio il contorno è spento e le superfici sono a due facce) e scomposizione in 9 strati (`ST`), dalla
+  dura madre ai ventricoli. Dura madre e aracnoide craniche non sono nella fonte: `makeShells()` le genera
+  avvolgendo la corteccia, forma schematica dichiarata nel pannello.
 
 Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e inserzione e nomi vengono
-dalla fonte. I testi di origine, inserzione, azione e innervazione in `build/schede.json` (57 muscoli) sono
-scritti dall'AI a memoria: da verificare su un atlante. Per gli altri 151 muscoli quei testi mancano.
-Non c'è ancora: descrizione delle ossa e dei reperi, funzione delle aree dell'encefalo, giochi sul modello 3D.
+dalla fonte. Scritti dall'AI a memoria, da verificare su un atlante: i testi dei muscoli in `build/schede.json`
+(57 muscoli; per gli altri 151 mancano), le descrizioni di `build/descrizioni.py` (tutte le ossa, 341 reperi su 606,
+quasi tutte le strutture dell'encefalo) e i testi di gruppi e strati in `atlante.js`.
+Non c'è ancora: descrizione degli altri 265 reperi (soprattutto cranio, laringe, orecchio), giochi sul modello 3D.
 
 Requisiti dell'autore per il 3D (16/11/2026):
 - Fluidità: 60 fps fissi su iPhone 15 con il solo scheletro della prima versione. Con più strati accesi
