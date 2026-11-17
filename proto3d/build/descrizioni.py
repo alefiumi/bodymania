@@ -879,6 +879,12 @@ def correggi_aree(mus):
         st = [n for n in m['e'] if n.startswith('Sternocostal head')]
         if st: m['e'] = [n for n in m['e'] if n not in st]; m['o'] += st; m['fix'] = 1
 
+def schede_muscoli(mus):
+    # schede dei muscoli che non ne hanno una da schede.json (testi in schede2.py)
+    import schede2
+    for r, (ot, it, a, nv) in schede2.S.items():
+        if r in mus and 'card' not in mus[r]: mus[r]['card'] = {'ot': ot, 'it': it, 'a': a, 'nv': nv}
+
 def build(D):
     import collections
     B = lambda n: re.sub(r'\.(?:[oe]\d*[rl]|[rl]|[a-z])$', '', n)

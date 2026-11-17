@@ -79,7 +79,7 @@ File (ogni strato si scarica solo quando viene acceso; `ossa.glb` all'avvio):
 - `dati.json`: `names` (nome inglese senza lato → [italiano, latino]), `objs` (nome della parte → [strato,
   materiale della fonte, gruppo]), `lm` (606 reperi: nome, parte a cui appartiene, punto, direzione verso fuori),
   `mus` (208 muscoli per radice del nome: parti, aree di origine `o` e inserzione `e`, gruppo funzionale,
-  e `card` con i testi scritti a mano per 57 muscoli).
+  e `card` con origine, inserzione, azione e innervazione per tutti i 208 muscoli).
 - Nei nomi delle parti il suffisso indica il lato (`.r` destro, `.l` sinistro) e, per le aree, `.o…`/`.e…`
   origine/inserzione. three.js toglie punti e spazi da `mesh.name`: il nome vero è in `mesh.userData.name`.
 - Assi: Y in alto, +Z davanti, −X lato destro del corpo. Il modello è simmetrico: i reperi di destra
@@ -110,7 +110,7 @@ I "muscoli qui vicino" di un repere contano solo le aree il cui osso più vicino
 
 Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e inserzione e nomi vengono
 dalla fonte. Scritti dall'AI a memoria, da verificare su un atlante: i testi dei muscoli in `build/schede.json`
-(57 muscoli; per gli altri 151 mancano), le descrizioni di `build/descrizioni.py` (tutte le ossa, tutti i 606 reperi,
+(57 muscoli) e `build/schede2.py` (gli altri 151: ora tutti i 208 hanno la scheda), le descrizioni di `build/descrizioni.py` (tutte le ossa, tutti i 606 reperi,
 quasi tutte le strutture dell'encefalo) e i testi di gruppi e strati in `atlante.js`.
 Non c'è ancora: giochi sul modello 3D.
 

@@ -390,8 +390,8 @@ function panel(){
   const q=S.q.toLowerCase(),all=Object.entries(DATA.mus).filter(([r,m])=>!q||m.n.toLowerCase().includes(q)||r.includes(q)).sort((a,b)=>a[1].n.localeCompare(b[1].n));
   const gs=[...new Set(all.map(([,m])=>m.g))].sort((a,b)=>itOf(a).localeCompare(itOf(b)));
   h=`<div class="h">Muscoli (${all.length})</div><input id="q" placeholder="Cerca un muscolo…" value="${S.q}">`+
-   gs.map(g=>`<div class="sub">${itOf(g)||'Altri'}</div><div class="chips">${all.filter(([,m])=>m.g===g).map(([r,m])=>chip(m.card?'on':'',`data-mu="${r}"`,m.n.replace(/^Muscol[oi] /,''))).join('')}</div>`).join('')+
-   `<p class="note">In verde i muscoli che hanno anche il testo con azione e innervazione.</p><div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
+   gs.map(g=>`<div class="sub">${itOf(g)||'Altri'}</div><div class="chips">${all.filter(([,m])=>m.g===g).map(([r,m])=>chip('',`data-mu="${r}"`,m.n.replace(/^Muscol[oi] /,''))).join('')}</div>`).join('')+
+   `<p class="note">Testi di origine, inserzione, azione e innervazione scritti dall'AI: da verificare su un atlante.</p><div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='search'){
   const q=norm(S.q),res=[],has=s=>norm(s).includes(q);
   if(q.length>1){
