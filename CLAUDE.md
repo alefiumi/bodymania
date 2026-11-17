@@ -45,6 +45,9 @@ Prototipo diviso in:
   (`visibleIn`, `MIN_VIS`): niente pisiforme da dietro. Lo zoom sulla zona usa le proporzioni del riquadro sullo schermo.
 - Safari a volte non ridisegna l'svg quando cambia altezza (scheda abbassata) e mostra la figura due volte: un ResizeObserver
   in `figure.js` lo costringe a ridisegnare. Non provato su Safari vero dall'AI.
+- Altezza su iPhone: `body` usa `--app-h` = `innerHeight`, aggiornata in `main.js` a ogni resize, focusout, pageshow e ritorno
+  in primo piano (con la pagina riportata in cima): nell'app installata, dopo la tastiera o il ritorno da Google, Safari lasciava
+  la barra in basso a metà schermo con una fascia nera sotto. Non provato su iPhone vero dall'AI.
 - Scheda sotto la figura dentro `#pw`: la freccia `#fold` sul bordo in alto a destra la abbassa (striscia di due righe
   scorrevole, in gioco resta la domanda) e la rialza; scelta in `bodymania-fold`. Stessa freccia nell'atlante 3D (`bodymania-fold3d`).
 - Spunta verde in alto a destra (`#off`) quando la copia offline è pronta; il pulsante "Installa l'app"
