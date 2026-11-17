@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 50, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 50 (51 sul branch di sviluppo), contenuti
   `version` 8 (`corpo` 10, `cervello` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -147,6 +147,10 @@ Contenuto del gioco:
   "Aggiungi password" per chi è entrato solo con Google. La cancellazione libera subito il nome utente
   (`20261119130000_nome_libero.sql`: resta in `deleted_username`, il ripristino lo restituisce se è ancora libero). Nel riquadro Account "Collega Google" (`linkIdentity`, serve "manual
   linking" attivo su Supabase) per entrare con Google nello stesso account invece di crearne un secondo.
+  Password: il link "Password dimenticata" (evento `PASSWORD_RECOVERY`, `A.recovery`) apre a tutto schermo "Scegli una nuova
+  password" (`showRecovery()` in `gate.js`, due campi; si esce solo salvando o con "Annulla ed esci"); "Cambia password" nel
+  profilo chiede quella attuale (verificata con un client a parte, `setNewPassword()`); dopo ogni cambio si chiudono le sessioni
+  sugli altri dispositivi (`signOut({scope:'others'})`).
   All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
   per la serie vale il giorno più recente; profilo: vince la modifica più recente, `profile_at`), poi dopo ogni `save()`
   parte un invio (3 s). Le partite finite vanno in `bodymania-queue` e si inviano con upsert che ignora i doppioni.

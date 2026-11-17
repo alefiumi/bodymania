@@ -33,7 +33,8 @@ async function client(){
  await loadLib();
  A.sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
  A.sb.auth.onAuthStateChange((ev,session)=>{
-  if(ev==='PASSWORD_RECOVERY'){A.view='pw';A.msg='Scegli la nuova password.';}
+  // link "Password dimenticata": schermata a tutto schermo per la nuova password (gate.js), non il profilo
+  if(ev==='PASSWORD_RECOVERY'){A.recovery=true;A.view='';A.msg='';}
   const u=session?session.user:null,changed=(u&&u.id)!==(A.user&&A.user.id);A.user=u;if(changed)A.profile=null;
   if(!u){A.profile=null;onChange();return;}
   // "dirty" vale per l'account a cui si riferisce: entrando con un altro account non si porta dietro
@@ -88,8 +89,25 @@ export const signOut=()=>run(async()=>{
  if(mine&&lastAccount()?.dirty&&navigator.onLine)await sync(false);
  await (await client()).auth.signOut({scope:'local'});setLast(null);A.user=null;A.profile=null;A.view='';A.conflict=null;A.choice=null;A.msg='Sei uscito: i progressi restano su questo dispositivo.';
 });
-export const setNewPassword=pw=>run(async()=>{const had=hasPassword();const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw error;if(data&&data.user)A.user=data.user;
- A.msg=had?'Password cambiata.':'Password aggiunta: ora puoi entrare anche con '+(A.user.email||'la tua email')+' e questa password.';A.view='';});
+// Password: nuova dal link di recupero (recover), cambio dal profilo (serve quella attuale, verificata con un client a parte che
+// non tocca la sessione) o aggiunta per chi è entrato con Google. Dopo il cambio si chiudono le sessioni sugli altri dispositivi.
+const PWERR={'New password should be different from the old password.':'La nuova password deve essere diversa da quella di prima.'};
+async function closeOthers(){try{await A.sb.auth.signOut({scope:'others'});}catch(e){}}
+export const recoverPassword=pw=>run(async()=>{
+ const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw new Error(PWERR[error.message]||error.message);
+ if(data&&data.user)A.user=data.user;await closeOthers();A.recovery=false;A.msg='Password cambiata. Le sessioni aperte su altri dispositivi sono state chiuse.';
+});
+export const setNewPassword=(pw,cur)=>run(async()=>{const had=hasPassword();
+ if(had){
+  if(!cur)throw new Error('Scrivi la password attuale.');
+  const tmp=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bm-verifica'}});
+  const {error:e1}=await tmp.auth.signInWithPassword({email:A.user.email,password:cur});
+  if(e1)throw new Error(/invalid/i.test(e1.message||'')?'La password attuale non è giusta.':e1.message);
+  try{await tmp.auth.signOut({scope:'local'});}catch(e){}
+ }
+ const {data,error}=await A.sb.auth.updateUser({password:pw});if(error)throw new Error(PWERR[error.message]||error.message);if(data&&data.user)A.user=data.user;
+ if(had)await closeOthers();
+ A.msg=had?'Password cambiata. Le sessioni aperte su altri dispositivi sono state chiuse.':'Password aggiunta: ora puoi entrare anche con '+(A.user.email||'la tua email')+' e questa password.';A.view='';});
 export const setView=v=>{A.view=v;A.err='';A.msg='';onChange();};
 // scelta per i progressi di un altro account sul dispositivo (vedi sync)
 export function resolveOwner(choice){A.choice=choice;A.conflict=null;sync(true);}
@@ -255,7 +273,10 @@ export function accountHtml(){
   const state=A.syncing?'⏳ Sincronizzo…':!navigator.onLine?'📴 Senza connessione: i progressi si salvano qui e partono appena torna la rete.'
    :dirty||pend?'⚠️ Ci sono progressi non ancora salvati online.':A.lastSync?'✅ Tutto salvato online alle '+hm(A.lastSync)+'.':'';
   return `<div class="acc"><div class="sub">Account</div><p class="mut">${esc(A.user.email||'')}</p><p class="mut">${state}${pend?' Partite in attesa: '+pend+'.':''}</p>${note}
-   ${A.view==='pw'?`<form data-acc="newpw"><input name="p" type="password" placeholder="${hasPassword()?'Nuova password':'Password per entrare anche con '+esc(A.user.email||'email')}" autocomplete="new-password" minlength="8" required><button class="btn"${A.busy?' disabled':''}>${hasPassword()?'Cambia':'Aggiungi'}</button></form>`:''}
+   ${A.view==='pw'?`<form data-acc="newpw">${hasPassword()?'<input name="cur" type="password" placeholder="Password attuale" autocomplete="current-password" required>':`<p class="mut">Con una password entri anche con ${esc(A.user.email||'la tua email')}, oltre che con Google.</p>`}
+    <input name="p" type="password" placeholder="Nuova password (almeno 8 caratteri)" autocomplete="new-password" minlength="8" required>
+    <input name="p2" type="password" placeholder="Ripeti la nuova password" autocomplete="new-password" minlength="8" required>
+    <button class="btn"${A.busy?' disabled':''}>${hasPassword()?'Cambia password':'Aggiungi password'}</button></form>`:''}
    <div class="chips"><button class="chip on" data-acc="sync"${A.syncing?' disabled':''}>🔄 Sincronizza ora</button><button class="chip" data-acc="pw">${hasPassword()?'Cambia password':'Aggiungi password'}</button>${hasGoogle()?'<span class="chip">✅ Google collegato</span>':'<button class="chip" data-acc="google">Collega Google</button>'}<button class="chip" data-acc="out">Esci</button></div></div>`;
  }
  if(last)return `<div class="acc"><div class="sub">Account</div><p><b>${esc(last.email)}</b></p>
@@ -278,6 +299,6 @@ export function wireAccount(panel,openLogin){
  });
  panel.addEventListener('submit',e=>{
   const f=e.target.closest('form[data-acc]');if(!f)return;e.preventDefault();
-  if(f.dataset.acc==='newpw')setNewPassword(f.elements.p.value);
+  if(f.dataset.acc==='newpw'){if(f.elements.p.value!==f.elements.p2.value){A.err='Le due password nuove non coincidono.';onChange();return;}setNewPassword(f.elements.p.value,f.elements.cur?f.elements.cur.value:'');}
  });
 }

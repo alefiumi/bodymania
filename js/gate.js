@@ -5,7 +5,7 @@
 import {$,toast} from './util.js';
 import {installHint} from './install.js';
 import {S} from './state.js';
-import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice} from './account.js';
+import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice,recoverPassword} from './account.js';
 
 const GUEST='bodymania-guest'; // "Continua senza account" scelto: agli avvii successivi non si chiede più
 let mode='boot',reason='',fromApp=false,ownImp=false,delOld=false;
@@ -49,7 +49,8 @@ export async function boot(){
  status(lastAccount()?'Sincronizzo i progressi…':'Quasi pronto…');
  const r=await timeout(startAccount(),15000,'offline');
  await settle();
- if(A.conflict)showOwner();
+ if(A.recovery)showRecovery();
+ else if(A.conflict)showOwner();
  else if(r==='ok'){if(needName()){A.err='';showName();}else closeGate();}
  else if(r==='offline'){closeGate();if(lastAccount())toast('Server non raggiungibile: si gioca in locale, sincronizzo appena possibile.');}
  else if(r==='expired')openLogin(lastAccount()?.dirty?'dirty':'expired');
@@ -81,6 +82,18 @@ function renderLogin(){
   <p class="gsw">${v==='signup'?'Hai già un account? <button class="lnk" data-g="login">Accedi</button>':v==='login'?'Non hai un account? <button class="lnk" data-g="signup">Registrati</button>':'<button class="lnk" data-g="login">Torna all\'accesso</button>'}</p>
   <button class="btn alt wide" data-g="guest">${fromApp?'Torna all\'app':'Continua senza account'}</button>
   <p class="note">${reason?'Continuando senza accedere i progressi restano su questo dispositivo: potrai sincronizzarli dal profilo.':'Senza account si gioca lo stesso e i progressi restano su questo dispositivo. Con l\'account li ritrovi ovunque e quelli già fatti qui si uniscono.'}</p></div>`;
+}
+
+/* ---------- nuova password dal link "Password dimenticata" ---------- */
+// Il link fa entrare nell'account: finché non si sceglie la password nuova (o si esce) l'app resta qui, a tutto schermo.
+function showRecovery(){
+ mode='recovery';show();const err=A.err?`<p class="err">${esc(A.err)}</p>`:'';
+ box().innerHTML=`<div class="gform"><div class="h">Scegli una nuova password</div>${err}
+  <p class="mut">Per <b>${esc(A.user&&A.user.email||'')}</b>. Dopo il cambio si chiudono le sessioni aperte su altri dispositivi.</p>
+  <form data-g="recover"><input name="p" type="password" placeholder="Nuova password (almeno 8 caratteri)" autocomplete="new-password" minlength="8" required>
+  <input name="p2" type="password" placeholder="Ripeti la nuova password" autocomplete="new-password" minlength="8" required>
+  <button class="btn"${A.busy?' disabled':''}>${A.busy?'Salvo…':'Salva la nuova password'}</button></form>
+  <button class="lnk" data-g="rec-out">Annulla ed esci</button></div>`;
 }
 
 /* ---------- progressi di un altro account su questo dispositivo ---------- */
@@ -118,6 +131,8 @@ function showName(){
 }
 
 addAccountListener(()=>{
+ if(A.recovery){if(mode==='recovery')keep(showRecovery);else if(mode!=='boot')showRecovery();return;}
+ if(mode==='recovery'){const m=A.msg;closeGate();if(m)toast('✅ '+m);return;}
  if(A.conflict&&mode!=='owner'&&mode!=='boot'){showOwner();return;}
  if(mode==='owner'){if(A.conflict){keep(()=>showOwner(ownImp));return;}if(!A.user){openLogin('');return;}if(A.profile&&!A.syncing){if(needName()){A.err='';showName();}else{closeGate();toast('✅ Accesso fatto.');}}return;}
  if(mode==='login'){
@@ -135,6 +150,7 @@ export function wireGate(){
   if(k==='google')google();
   else if(k==='own-fresh'){box().innerHTML='<div class="spin"></div><p class="gst">Sincronizzo…</p>';resolveOwner('fresh');}
   else if(k==='own-imp'){A.err='';showOwner(true);}
+  else if(k==='rec-out'){A.recovery=false;mode='login';signOut().then(()=>{A.msg='';openLogin('');});}
   else if(k==='own-back'){A.err='';showOwner();}
   else if(k==='own-out'){A.conflict=null;mode='login';signOut().then(()=>{A.msg='';openLogin('');});}
   // esce e apre subito la scelta dell'account Google (la pagina va su Google e torna qui già dentro)
@@ -149,6 +165,7 @@ export function wireGate(){
   else if(k==='signup')signUp(v('e'),f.elements.p.value);
   else if(k==='reset')resetPw(v('e'));
   else if(k==='name')saveProfile({...S.prof,name:v('u')});
+  else if(k==='recover'){if(f.elements.p.value!==f.elements.p2.value){A.err='Le due password non coincidono.';showRecovery();return;}A.err='';recoverPassword(f.elements.p.value);}
   else if(k==='own-import'){const del=f.elements.del&&f.elements.del.checked,op=f.elements.op.value;
    if(del&&!op){A.err='Scrivi la password del vecchio account, o togli la spunta.';showOwner(true);return;}
    const c=A.conflict;importDevice({pw:f.elements.np?f.elements.np.value:'',oldEmail:c.email,oldPw:del?op:''});}
