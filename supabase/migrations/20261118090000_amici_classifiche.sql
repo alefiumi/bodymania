@@ -13,15 +13,18 @@ create unique index if not exists friendships_coppia
 -- ---------- classifiche ----------
 -- con la foto e la serie valida: chi non gioca da più di un giorno ha la serie a zero
 -- (la serie salvata è quella dell'ultimo giorno giocato)
+-- stesse colonne nello stesso ordine della vista di prima (create or replace non può spostarle)
 create or replace view public.leaderboard with (security_invoker = true) as
-  select id, username, xp, avatar,
-    case when last_day >= current_date - 1 then streak else 0 end as streak
+  select id, username, xp,
+    case when last_day >= current_date - 1 then streak else 0 end as streak,
+    avatar
   from public.profiles where username is not null;
 
 drop view if exists public.leaderboard_friends;
 create view public.leaderboard_friends with (security_invoker = true) as
-  select p.id, p.username, p.xp, p.avatar,
-    case when p.last_day >= current_date - 1 then p.streak else 0 end as streak
+  select p.id, p.username, p.xp,
+    case when p.last_day >= current_date - 1 then p.streak else 0 end as streak,
+    p.avatar
   from public.profiles p
   where p.username is not null and (
     p.id = auth.uid() or exists (
