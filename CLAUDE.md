@@ -15,6 +15,23 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
 - **Setup minimale**: `requisiti.txt` + `setup.sh`. Non aggiungere altri file di configurazione
   o documentazione senza motivo.
 
+## Situazione al 20/11/2026
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 49, contenuti
+  `version` 8 (`corpo` 10, `cervello` 1). Usata dall'autore e da circa 40 amici.
+- **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
+  pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
+  Chiedere sempre prima di commit e push. A ogni file dell'app cambiato aumenta `APP_VERSION`; a ogni contenuto cambiato le `version`.
+- **Supabase** (progetto `zxtamxgmvtgvpgngecyz`, piano gratuito, regione UE Parigi): applicati dall'autore tutti i file di
+  `supabase/migrations/` fino a `20261120110000_trigger_privato.sql` (i due sui testi dei badge sono facoltativi: non verificato
+  se applicati). Quando un file cambia regole lette dall'app, si pubblica prima l'app (compatibile con prima e dopo) e poi si
+  applica il file. Security Advisor: restano solo gli avvisi voluti su `delete_my_account()` e `my_profile()` e la protezione
+  dalle password trapelate (solo piani a pagamento). Query Performance azzerato il 20/11: le query dell'app stavano a 2–4 ms.
+- **Accesso**: email e password (conferma dell'email attiva, minimo 8 caratteri anche sul server) e Google (client OAuth su
+  Google Cloud, progetto "BodyMania", app pubblicata; Site URL e redirect `https://alefiumi.github.io/bodymania/`).
+  L'account dell'autore è `alessandro.fiumicelli@gmail.com` (Google più password); il vecchio `alefiumi42` è stato cancellato.
+- **Ambiente cloud**: l'ambiente "bodymania" raggiunge solo l'host del progetto Supabase (prove dell'API con la chiave pubblica,
+  nessuna chiave salvata). Nel container c'è PostgreSQL 16 per provare le migrazioni con un finto schema `auth`.
+
 ## Stato attuale
 Prototipo diviso in:
 - `index.html` (solo struttura), `css/style.css`.
@@ -244,10 +261,10 @@ Requisiti dell'autore per il 3D (16/11/2026):
 
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
-2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
-   installazione su telefono vero ancora da provare).
-3. ~~Supabase: schema e regole in file SQL versionati (`supabase/migrations/`)~~ (scritti; da applicare al progetto).
-4. ~~Registrazione e login~~ (email e password, Google ancora da attivare su Supabase), ~~pagina profilo~~.
+2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto; installata dall'autore
+   su iPhone; su Android la finestra di installazione con un tocco non è ancora stata provata).
+3. ~~Supabase: schema e regole in file SQL versionati (`supabase/migrations/`)~~ (applicati al progetto).
+4. ~~Registrazione e login~~ (email e password e Google, attivi), ~~pagina profilo~~.
 5. ~~Sincronizzazione~~: coda locale (in localStorage invece di IndexedDB), invio idempotente, unione dei progressi.
 6. ~~Amici (richiesta, accettazione) e due classifiche: tutti gli iscritti e solo amici~~ (scheda "🏆 Amici", `js/social.js`;
    terzo file SQL `20261118090000_amici_classifiche.sql`: una sola amicizia per coppia, serie a zero se non si gioca da più
@@ -255,7 +272,15 @@ Requisiti dell'autore per il 3D (16/11/2026):
    nome in classifica si apre sotto la riga "Chiedi l'amicizia" (o lo stato della richiesta).
    Badge "Giramondo": corpo, cervello e 3D (testo in `20261119090000_badge_moduli.sql`, facoltativo).
 7. ~~Badge e traguardi mostrati nel profilo~~ (20 badge; altri trofei si aggiungono in `badges.js` e nel file SQL).
-8. Pubblicazione su GitHub Pages.
+8. ~~Pubblicazione su GitHub Pages~~ (online dal branch `pwa`).
+
+Ancora aperti:
+- Invio delle email di registrazione: il servizio integrato di Supabase ne manda poche all'ora; con molti iscritti insieme
+  serve un SMTP proprio (per esempio Resend) in Authentication → Emails.
+- Da verificare su telefoni veri: correzione di Safari per la figura disegnata due volte e altezza della pagina dopo tastiera e
+  ritorno da Google (l'autore ha confermato la seconda), installazione su Android, ritardo del tocco singolo col doppio tocco.
+- Revisione dei testi scritti dall'AI (schede dei muscoli, descrizioni, casi clinici) su un atlante o con un docente.
+- Ricontrollare Query Performance dopo qualche giorno di uso: le query dell'app (con `public.`) devono restare veloci.
 
 Idee rimandate: livello tendini
 e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno, altre ghiandole.
@@ -291,7 +316,7 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
   altrui): da rifare se si cambiano le policy.
 - App: l'app non scrive SQL (PostgREST passa i valori come parametri); gli id che finiscono in un filtro `.or()` passano da
   `UUID` in `social.js`; tutto il testo degli utenti passa da `esc()`. Content-Security-Policy in `<meta>` di `index.html`,
-  `atlante/index.html` e `privacy.html`: niente script in linea (tema in `js/tema.js`, pagina dell'atlante in `atlante/pagina.js`),
+  `atlante/index.html`, `privacy.html` e `termini.html`: niente script in linea (tema in `js/tema.js`, pagina dell'atlante in `atlante/pagina.js`),
   solo la mappa degli import dell'atlante con l'impronta sha256 (se la cambi, ricalcola l'impronta), rete solo verso Supabase.
 - Informativa: `privacy.html` (titolare Alessandro Fiumicelli, dati su Supabase in UE, Parigi). Termini di servizio: `termini.html`
   (uso solo per studio, contenuti dell'AI da verificare, regole di comportamento, licenze, responsabilità); accettati con la
