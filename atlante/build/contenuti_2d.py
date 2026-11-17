@@ -51,7 +51,7 @@ FIX_GROUPS = {'metacarpo': {'n': 'Ossa del metacarpo', 'l': 'Ossa metacarpi', 'f
 
 # viste di zona (proietta_2d.mjs): nome sul pulsante e vista opposta a cui passa toccandolo
 ZVIEWS = {'mp': {'n': 'Mano · palmare', 'alt': 'md'}, 'md': {'n': 'Mano · dorsale', 'alt': 'mp'},
-          'pd': {'n': 'Piede · dall\'alto', 'alt': 'pp'}, 'pp': {'n': 'Piede · pianta', 'alt': 'pd'}}
+          'pd': {'n': 'Piede · dorsale', 'alt': 'pp'}, 'pp': {'n': 'Piede · plantare', 'alt': 'pd'}}
 ZONE_PAIRS = {'cranio': [('ld', 'ld')]} | {g: [('mp', 'md')] for g in ('carpo', 'metacarpo', 'falangi-mano')} | {g: [('pd', 'pp')] for g in ('tarso', 'metatarso', 'falangi-piede')}
 
 def full(s, v, x):
@@ -64,8 +64,10 @@ def put(s, v, x):
     s['s'][v] = [{'poly': d} for d in x['d']]; s['c'][v] = x['c']; full(s, v, x)
 
 # viste del corpo e del cervello: chiave -> nome nel menu
-BODY_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra', 's': 'Dall\'alto', 'i': 'Dal basso'}
-BRAIN_VIEWS = {'ls': 'Emisfero sinistro', 'ld': 'Emisfero destro', 'm': 'Sagittale', 'f': 'Frontale', 's': 'Dall\'alto', 'i': 'Dal basso'}
+# nomi delle viste con i termini dell'anatomia (quelli dei libri e degli esami)
+BODY_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra', 's': 'Superiore (craniale)', 'i': 'Inferiore (caudale)'}
+BRAIN_VIEWS = {'ls': 'Laterale sinistra', 'ld': 'Laterale destra', 'm': 'Mediale (sagittale)', 'f': 'Anteriore (frontale)', 'p': 'Posteriore (occipitale)',
+               's': 'Superiore (dorsale)', 'i': 'Inferiore (basale)'}
 
 def body():
     B = P['body']; V = B['views']; areas = B['areas']
@@ -207,7 +209,8 @@ AREAS = {'broca': r'^(Opercular|Triangular) part of inferior frontal gyrus', 'we
          'mesencefalo': r'^(Midbrain|Base of peduncle|Interpeduncular|Superior colliculus|Inferior colliculus|Aqueduct)', 'ponte': r'^Pons', 'bulbo': r'^(Medulla|Pyramid of medulla|Olive)'}
 WERNICKE = ['Area di Wernicke', 'Area di Wernicke', 'Parte posteriore del giro temporale superiore dell\'emisfero dominante, legata alla comprensione del linguaggio. Il confine non è nella fonte: qui è il terzo posteriore del giro, un\'approssimazione.']
 # nomi che mancano in TA2 o che nella fonte si ripetono (giri e solchi dell'atlante di Destrieux divisi in parti)
-NOMI_ENC = {'Paracentral gyrus and sulcus*': ['Lobulo paracentrale', 'Lobulus paracentralis'],
+NOMI_ENC = {'Culmen': ['Culmine del verme', 'Culmen'], 'Declive': ['Declive del verme', 'Declive'],
+    'Paracentral gyrus and sulcus*': ['Lobulo paracentrale', 'Lobulus paracentralis'],
     'Cingulate gyrus and sulcus (Middle anterior part)': ['Giro del cingolo (parte medio-anteriore)', 'Gyrus cinguli'],
     'Cingulate gyrus and sulcus (Middle posterior part)': ['Giro del cingolo (parte medio-posteriore)', 'Gyrus cinguli'],
     'Cingulate gyrus and sulcus (Posterior dorsal part)': ['Giro del cingolo (parte dorsale posteriore)', 'Gyrus cinguli'],
@@ -222,7 +225,8 @@ NOMI_ENC = {'Paracentral gyrus and sulcus*': ['Lobulo paracentrale', 'Lobulus pa
     'Precentral sulcus (Superior part)*': ['Solco precentrale (parte superiore)', 'Sulcus precentralis'], 'Precentral sulcus (inferior part)*': ['Solco precentrale (parte inferiore)', 'Sulcus precentralis'],
     'Orbital gyri (Frontomarginal gyrus and sulcus*)': ['Giro frontomarginale', 'Gyrus frontomarginalis'], 'Orbital gyri': ['Giri orbitali', 'Gyri orbitales'],
     'Orbital sulci (H-shaped orbital sulci*)': ['Solchi orbitali (a H)', 'Sulci orbitales'], 'Orbital sulci (Lateral Orbital sulcus*)': ['Solco orbitale laterale', 'Sulcus orbitalis lateralis']}
-DESC_ENC = {'Pineal gland': 'Epifisi: piccola ghiandola dell\'epitalamo, dietro il terzo ventricolo; produce melatonina e regola il ritmo sonno-veglia.',
+DESC_ENC = {'Declive': 'Declive del verme: lobulo del lobo posteriore del cervelletto, subito dietro la fessura prima; con il folium partecipa al controllo dei movimenti oculari.',
+    'Pineal gland': 'Epifisi: piccola ghiandola dell\'epitalamo, dietro il terzo ventricolo; produce melatonina e regola il ritmo sonno-veglia.',
     'Adenohypophysis': 'Lobo anteriore dell\'ipofisi: produce GH, prolattina, TSH, ACTH, FSH e LH sotto il controllo dell\'ipotalamo.',
     'Neurohypophysis': 'Lobo posteriore dell\'ipofisi: libera ossitocina e vasopressina (ADH) prodotte dai nuclei dell\'ipotalamo.',
     'Posterior transverse collateral sulcus': 'Solco breve sulla faccia inferiore del lobo occipito-temporale, ramo trasverso del solco collaterale.'}

@@ -346,11 +346,11 @@ for (const p of enc) { p.key = base(p.name); p.side = side(p.name); }
   stg.split = {key: 'Wernicke area', f: (x, y, z) => z < zW};
 }
 // ls/ld: emisfero sinistro o destro visto di lato; m: faccia mediale dell'emisfero destro (sezione sagittale, come prima);
-// f: da davanti; s: dall'alto; i: dal basso. Nelle viste con i due emisferi il lato principale è il sinistro (linguaggio).
+// f: da davanti; p: da dietro; s: dall'alto; i: dal basso. Nelle viste con i due emisferi il lato principale è il sinistro (linguaggio).
 const brainP = project(enc, {
   ls: {proj: VIEWS6.ls, prim: 'l'}, ld: {proj: VIEWS6.ld, prim: 'r'},
   m: {proj: VIEWS6.ls, prim: 'r', keep: p => p.side !== 'l'},
-  f: {proj: VIEWS6.a, prim: 'l'}, s: {proj: VIEWS6.s, prim: 'l'}, i: {proj: VIEWS6.i, prim: 'l'}}, 5000, 4, 0.7, 'encefalo');
+  f: {proj: VIEWS6.a, prim: 'l'}, p: {proj: VIEWS6.p, prim: 'l'}, s: {proj: VIEWS6.s, prim: 'l'}, i: {proj: VIEWS6.i, prim: 'l'}}, 5000, 4, 0.7, 'encefalo');
 const brain = brainP.out;
 
 fs.writeFileSync(OUT, JSON.stringify({body, brain}));

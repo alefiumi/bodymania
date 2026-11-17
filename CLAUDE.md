@@ -17,7 +17,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
 
 ## Situazione al 20/11/2026
 - **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 52, contenuti
-  `version` 8 (`corpo` 10, `cervello` 1). Usata dall'autore e da circa 40 amici.
+  `version` 8 (`corpo` 10, `cervello` 1); sul branch di sviluppo app 53, contenuti 9 (`corpo` 11, `cervello` 2). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
   Chiedere sempre prima di commit e push. A ogni file dell'app cambiato aumenta `APP_VERSION`; a ogni contenuto cambiato le `version`.
@@ -58,10 +58,13 @@ Prototipo diviso in:
 - Menu della figura: un pulsante per modulo ("🦴 Corpo · Anteriore ▾", "🧠 Cervello ▾") apre l'elenco delle viste del modulo
   (`viewMenu()` in `figure.js`, `#vmenu`); la vista scelta per ogni modulo è in `app.bases`, salvata in `bodymania-2d` con `grp`.
   Viste (`views` e nomi `vnames` nei contenuti): corpo `a` `p` `ld` `ls` `s` `i` (anteriore, posteriore, laterale destra e
-  sinistra, dall'alto, dal basso); cervello `ls` `ld` (emisferi), `m` (sagittale: faccia mediale del destro), `f` frontale, `s`, `i`.
+  sinistra, superiore, inferiore); cervello `ls` `ld` (facce laterali), `m` (mediale: faccia mediale del destro), `f` anteriore, `p`
+  posteriore, `s` superiore, `i` inferiore o basale. I nomi usano i termini dell'anatomia (`BODY_VIEWS`, `BRAIN_VIEWS`, `ZVIEWS` in
+  `contenuti_2d.py`: "Superiore (craniale)", "Inferiore (basale)", "Piede · plantare"…). In Esplora, se una struttura nella vista
+  si vede poco, la scheda dice in quali viste si vede bene (`seenIn()` in `explore.js`).
   Tutte le viste di un modulo stanno nello stesso spazio 300×H (stessa scala, ognuna centrata); cambiando vista e con ⟲ la
   figura si adatta al disegno della vista (`resetZoom`), il riquadro può essere più largo della figura (`maxW`, `clampT`).
-- Viste di zona (`zviews` in `corpo.json`): `mp`/`md` mano palmare e dorsale, `pd`/`pp` piede dall'alto e dalla pianta, solo il
+- Viste di zona (`zviews` in `corpo.json`): `mp`/`md` mano palmare e dorsale, `pd`/`pp` piede dorsale e plantare, solo il
   lato destro. I gruppi `cranio` (vista `ld`), mano e piede hanno `zv` (vista preferita): Ricomponi li gioca lì e Trova chiede lì
   le loro ossa, con `setView(v,true)` (temporanea, non cambia `app.bases`); nel menu compare anche la coppia della zona.
   `baseView()` torna alla vista del menu a ogni domanda, al menu dei giochi e al cambio di scheda.
@@ -105,7 +108,7 @@ Prototipo diviso in:
   Android con Chrome, Firefox, Samsung Internet, Edge. Provati dall'AI solo Chrome desktop ed emulazione mobile.
 
 Contenuto del gioco:
-- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, sei viste; 208 muscoli) e `cervello` (106 strutture in sei viste; fino al
+- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, sei viste; 208 muscoli) e `cervello` (106 strutture in sette viste; fino al
   18/11/2026 erano due moduli, `lat` e `sag`: gli id `b.*` e la maestria sono gli stessi), 12 nervi cranici.
 - Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` (gira anche nel cloud:
   legge solo i `.glb` del repository, pochi secondi) proietta ossa, viste di zona di mano e piede (assi principali delle loro ossa),
