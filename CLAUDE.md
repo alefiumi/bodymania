@@ -275,8 +275,9 @@ Requisiti dell'autore per il 3D (16/11/2026):
 8. ~~Pubblicazione su GitHub Pages~~ (online dal branch `pwa`).
 
 Ancora aperti:
-- Invio delle email di registrazione: il servizio integrato di Supabase ne manda poche all'ora; con molti iscritti insieme
-  serve un SMTP proprio (per esempio Resend) in Authentication → Emails.
+- Invio delle email (conferma e recupero password): SMTP di Gmail con password per le app dell'account del titolare
+  (smtp.gmail.com:587, circa 500 al giorno), impostato dall'autore in Authentication → Emails → SMTP; Resend scartato perché
+  vuole un dominio proprio. Dichiarato nell'informativa. Da verificare dopo la configurazione con una registrazione di prova.
 - Da verificare su telefoni veri: correzione di Safari per la figura disegnata due volte e altezza della pagina dopo tastiera e
   ritorno da Google (l'autore ha confermato la seconda), installazione su Android, ritardo del tocco singolo col doppio tocco.
 - Revisione dei testi scritti dall'AI (schede dei muscoli, descrizioni, casi clinici) su un atlante o con un docente.
