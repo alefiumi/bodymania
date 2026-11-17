@@ -81,6 +81,7 @@ function groupColor(u){
  let h=0;for(const ch of key)h=(h*31+ch.charCodeAt(0))>>>0;
  return new THREE.Color().setHSL((h%360)/360,0.55,0.74).getHex();
 }
+const MIRROR_FIX=['Ciliary body-curve.l'];
 const loader=new GLTFLoader();loader.setMeshoptDecoder(MeshoptDecoder);
 function loadFile(file){
  if(!FILES[file])FILES[file]={promise:new Promise((ok,ko)=>loader.load(file+'.glb',g=>{
@@ -92,7 +93,17 @@ function loadFile(file){
    u.own=u.layer==='inserzioni'?(u.kind==='e'?M_E:M_O):toon(u.mat==='Cartilage'&&u.layer!=='meningi'?FIX.Cartilage:L.c!==null?L.c:groupColor(u),u.layer==='nervi'||u.layer==='vasi');
    u.st=stratumOf(u);o.userData=u;o.material=u.own;meshes.push(o);byName.set(name,o);
   });
-  scene.add(g.scene);FILES[file].loaded=true;
+  scene.add(g.scene);
+  // parti esportate con una trasformazione sbagliata (il corpo ciliare sinistro diventava un anello di 2 m):
+  // le rifaccio come copia speculare della parte destra, che è corretta
+  for(const n of MIRROR_FIX){const bad=byName.get(n),ok=byName.get(n.replace(/\.l$/,'.r'));if(!bad||!ok||bad.userData.fixed)continue;
+   ok.updateWorldMatrix(true,false);const src=ok.geometry.attributes.position,geo=new THREE.BufferGeometry(),f=new Float32Array(src.count*3);
+   for(let i=0;i<src.count;i++){f[i*3]=src.getX(i);f[i*3+1]=src.getY(i);f[i*3+2]=src.getZ(i);} // le posizioni compresse (interi) non reggono le coordinate del mondo
+   geo.setAttribute('position',new THREE.BufferAttribute(f,3));if(ok.geometry.index)geo.setIndex(Array.from(ok.geometry.index.array));
+   geo.applyMatrix4(ok.matrixWorld).applyMatrix4(new THREE.Matrix4().makeScale(-1,1,1));
+   if(geo.index){const ix=geo.index.array;for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t;}} // lo specchio inverte il verso delle facce
+   geo.computeVertexNormals();bad.removeFromParent();bad.geometry=geo;bad.position.set(0,0,0);bad.rotation.set(0,0,0);bad.scale.set(1,1,1);bad.userData.fixed=true;scene.add(bad);}
+  FILES[file].loaded=true;
   if(FILES.encefalo&&FILES.encefalo.loaded&&FILES.meningi&&FILES.meningi.loaded)makeShells();
   ok();
  },undefined,ko))};

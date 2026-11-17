@@ -103,6 +103,9 @@ Funzioni dell'atlante (in `atlante.js`):
   dura madre ai ventricoli. Dura madre e aracnoide craniche non sono nella fonte: `makeShells()` le genera
   avvolgendo la corteccia, forma schematica dichiarata nel pannello.
 
+Correzione all'esportazione: `Ciliary body-curve.l` in `sensi.glb` esce con una trasformazione sbagliata (anello di 2 m
+dietro lo scheletro); `atlante.js` lo sostituisce al caricamento con la copia speculare del destro (`MIRROR_FIX`).
+
 Correzioni alla fonte: in 12 muscoli Z-Anatomy ha origine e inserzione scambiate (piccolo pettorale, dentato anteriore,
 trapezio, scaleni anteriore e medio, tiroioideo, retto dell'addome, retti e obliquo inferiore della testa; capo
 sternocostale del grande pettorale). `correggi_aree()` in `build/descrizioni.py` le scambia; il pannello lo segnala.
