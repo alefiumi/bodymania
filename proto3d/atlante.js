@@ -478,7 +478,10 @@ async function toggleLayer(k){
  refresh();
 }
 async function findPart(name){
- const k=DATA.objs[name][0];await loadFile(LAYERS[k].file);
+ const k=DATA.objs[name][0];
+ // un muscolo cercato si apre da solo, con origine e inserzione: lo strato dei muscoli lo accende l'utente
+ if(k==='muscoli'){const r=rootOf(baseOf(name));if(DATA.mus[r]){showMuscle(r,sideOf(name)||S.side);return;}}
+ await loadFile(LAYERS[k].file);
  if(k!=='ossa'&&!V[k]){V[k]=true;if(INSIDE.includes(k)&&S.bones==='on')S.bones='ghost';}
  const m=byName.get(name);if(m){m.userData.hidden=false;if(m.userData.st>=0&&m.userData.st<S.lev)S.lev=m.userData.st;selectPart(m,true);}
 }
