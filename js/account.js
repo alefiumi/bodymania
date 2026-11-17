@@ -64,7 +64,8 @@ export async function startAccount(){
 }
 
 /* ---------- accesso ---------- */
-const ERR={'Invalid login credentials':'Email o password sbagliate.','Email not confirmed':'Conferma prima l\'email: ti abbiamo mandato un link.',
+export const CONTATTO='alessandro.fiumicelli@gmail.com';
+const ERR={'Invalid login credentials':'Email o password sbagliate.','User is banned':'Questo account è in cancellazione. Entro 30 giorni dalla richiesta puoi chiederne il ripristino scrivendo a '+CONTATTO+'.','Email not confirmed':'Conferma prima l\'email: ti abbiamo mandato un link.',
  'User already registered':'Questa email è già registrata: accedi.','Password should be at least 6 characters.':'La password deve avere almeno 6 caratteri.'};
 const it=e=>ERR[e&&e.message]||(!navigator.onLine?'Serve la connessione.':/fetch|network|load failed/i.test(e&&e.message||'')?'Server non raggiungibile: riprova tra poco.':(e&&e.message)||'Errore');
 async function run(f){A.busy=true;A.err='';A.msg='';onChange();try{await f();}catch(e){A.err=it(e);}A.busy=false;onChange();}
@@ -101,7 +102,8 @@ export async function myData(){
  }else if(A.user)out.account={email:A.user.email,nota:'Senza connessione: qui ci sono solo i dati del dispositivo.'};
  return out;
 }
-// cancella l'account sul server (con profilo, partite, maestria, amicizie e badge) ed esce
+// cancella l'account sul server: subito bloccato e tolto da classifiche e amicizie, cancellato per sempre dopo 30 giorni
+// (entro allora l'amministratore può ripristinarlo su richiesta), poi esce
 export const deleteAccount=()=>run(async()=>{
  if(!navigator.onLine)throw new Error('Per cancellare l\'account serve la connessione.');
  const {error}=await A.sb.rpc('delete_my_account');

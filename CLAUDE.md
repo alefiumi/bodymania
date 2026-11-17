@@ -257,7 +257,11 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
   del progetto nel pannello di Supabase). Colonne modificabili del profilo elencate nel `grant update`; nelle amicizie si cambia
   solo `status` (prima chi riceveva una richiesta poteva cambiare `user_id`); badge visibili solo a chi li ha; limiti su lunghezze,
   XP e formato della foto (JPEG/PNG/WebP base64). Nessun ruolo di amministratore nelle tabelle.
-  Cancellazione: `delete_my_account()` (cascata su profilo, partite, maestria, amicizie, badge).
+  Cancellazione in due tempi (`20261119120000_cancellazione_ripristino.sql`): `delete_my_account()` mette `profiles.deleted_at`,
+  blocca l'accesso (`auth.users.banned_until`), chiude le sessioni, toglie l'account da viste e amicizie; dopo 30 giorni
+  `admin.pulisci_cancellati()` (pg_cron ogni notte) cancella `auth.users` e a cascata tutto il resto. Schema `admin` (non esposto,
+  solo SQL Editor): vista `account_in_cancellazione`, `ripristina_account(email)`, `cancella_definitivamente(email)`.
+  Richieste di amicizia solo verso profili di `public_profiles` (attivi e con nome).
   Le regole sono state provate su PostgreSQL 16 con un finto schema `auth` (utenti A, B, C che provano a leggere e scrivere i dati
   altrui): da rifare se si cambiano le policy.
 - App: l'app non scrive SQL (PostgREST passa i valori come parametri); gli id che finiscono in un filtro `.or()` passano da

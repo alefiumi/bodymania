@@ -1,7 +1,7 @@
 /* Scheda Profilo: foto, nome, ruolo e presentazione (modificabili), statistiche, badge, account, maestria. */
 import {$,toast} from './util.js';
 import {app,S,level,items} from './state.js';
-import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc,myData,deleteAccount} from './account.js';
+import {account as A,accountHtml,saveProfile,NAME_RE,NAME_RULE,esc,myData,deleteAccount,CONTATTO} from './account.js';
 import {BADGES} from './badges.js';
 
 let editing=false,draft=null,pmod=null; // pmod: modulo di cui si guarda la maestria (corpo o cervello)
@@ -86,8 +86,8 @@ export function wireProfile(panel){
   else if(k==='export')exportData();
   else if(k==='wipe'){if(confirm(A.user?'Cancellare da questo dispositivo progressi, profilo e accesso? Il tuo account e i dati sul server restano: li ritrovi accedendo di nuovo.':'Cancellare da questo dispositivo tutti i progressi e il profilo? Senza account non si possono recuperare.'))wipeDevice();}
   else if(k==='delacc'){
-   if(prompt('Eliminare per sempre l\'account con profilo, progressi, amicizie e badge? Non si può annullare.\nScrivi ELIMINA per confermare.')!=='ELIMINA')return;
-   deleteAccount().then(()=>{if(A.deleted){alert('Account eliminato. Ora tolgo anche i dati da questo dispositivo.');wipeDevice();}else renderProg();});
+   if(prompt('Eliminare l\'account? Viene bloccato subito, sparisce da classifiche e amicizie e dopo 30 giorni è cancellato per sempre con profilo, progressi e badge. Entro i 30 giorni puoi chiederne il ripristino scrivendo a '+CONTATTO+'.\nScrivi ELIMINA per confermare.')!=='ELIMINA')return;
+   deleteAccount().then(()=>{if(A.deleted){alert('Account eliminato: sarà cancellato per sempre tra 30 giorni. Ora tolgo anche i dati da questo dispositivo.');wipeDevice();}else renderProg();});
   }
  });
  panel.addEventListener('change',async e=>{
