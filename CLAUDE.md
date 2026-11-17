@@ -62,41 +62,46 @@ Contenuto del gioco:
 Mai provato su un dispositivo reale dall'AI: il tocco e il trascinamento li ha provati solo l'autore.
 
 ## Prototipo 3D (in valutazione)
-`proto3d/` è una pagina di prova separata dall'app: scheletro 3D ruotabile in stile cartoon (three.js in
-`proto3d/vendor/`, `skeleton.glb` da 1,6 MB). Il modello viene da BodyParts3D (© The Database Center for Life
-Science, CC BY 4.0, da citare): 200 ossa separate più sterno in tre parti e cartilagini costali; mancano gli
-ossicini dell'orecchio. Ogni parte ha il codice FMA come nome e il nome inglese. Gli script che lo hanno
-prodotto sono in `proto3d/build/` (`bones.mjs` elenca le ossa, `build.mjs` semplifica e comprime; servono
-i file scaricati da BodyParts3D e i pacchetti npm `@gltf-transform/*` e `meshoptimizer`). Obiettivo: sostituire la figura 2D, con reperi (SIAS, SIPS…) come punti sul modello.
-Reperi e muscoli coprono tutto lo scheletro: `proto3d/reperi.json` contiene 282 reperi (149 diversi: 133 per
-lato più 16 sulla linea mediana; id, osso FMA, posizione `p` in metri, normale `nrm`, nome, latino, descrizione),
-55 muscoli (origini `o`, inserzioni `i` e, se serve, coppie `seg` da disegnare; testi, azione, innervazione,
-regione `g`) e i nomi italiani di tutte le 217 parti. Si rigenera con `python3 proto3d/build/reperi.py
-proto3d/reperi.json`, che unisce i punti di bacino e anca (dentro lo script), `build/punti.json` (punti presi
-sul modello per il resto del corpo) e `build/testi.py` (testi e traduzione dei nomi delle ossa).
-Assi del modello: Y in alto, +Z davanti, −X lato destro del corpo. Il lato sinistro è la copia speculare
-riportata sulla superficie. Posizioni prese dall'AI (in parte per geometria, in parte a vista) e testi scritti
-a memoria: da verificare su un atlante. Mancano ancora: muscoli della mano e del piede, muscoli profondi
-dell'anca e del dorso, addominali obliqui, muscoli mimici e del collo anteriore; il cervello resta in 2D.
+`proto3d/` è una pagina di prova separata dall'app: un atlante 3D ruotabile in stile cartoon, a strati
+sovrapponibili (three.js in `proto3d/vendor/`, logica in `proto3d/atlante.js`).
+
+Fonte: **Z-Anatomy** (CC BY-SA 4.0, derivato da BodyParts3D), scelto al posto di BodyParts3D perché ha nello
+stesso modello coerente ossa, muscoli completi, legamenti, sistema nervoso centrale e periferico, vasi, visceri,
+le aree di origine e inserzione dei muscoli e le etichette dei reperi già posizionate. Nomi italiani e latini
+dalla Terminologia Anatomica 2 (`build/TA2.csv`). Crediti e licenze in `proto3d/CREDITI.md`: i file derivati
+vanno distribuiti con la stessa licenza CC BY-SA 4.0. Rene e orecchio interno (licenza non commerciale nella
+fonte) sono esclusi.
+
+File (ogni strato si scarica solo quando viene acceso; `ossa.glb` all'avvio):
+- `ossa.glb` (277 parti), `muscoli.glb` (464 muscoli più 205 fasce, tendini e borse), `legamenti.glb`,
+  `inserzioni.glb` (705 aree di origine e inserzione), `encefalo.glb`, `midollo.glb`, `nervi.glb`,
+  `meningi.glb`, `sensi.glb` (occhio e orecchio), `vasi.glb`, `visceri.glb`. In tutto circa 8 MB.
+- `dati.json`: `names` (nome inglese senza lato → [italiano, latino]), `objs` (nome della parte → [strato,
+  materiale della fonte, gruppo]), `lm` (606 reperi: nome, parte a cui appartiene, punto, direzione verso fuori),
+  `mus` (208 muscoli per radice del nome: parti, aree di origine `o` e inserzione `e`, gruppo funzionale,
+  e `card` con i testi scritti a mano per 57 muscoli).
+- Nei nomi delle parti il suffisso indica il lato (`.r` destro, `.l` sinistro) e, per le aree, `.o…`/`.e…`
+  origine/inserzione. three.js toglie punti e spazi da `mesh.name`: il nome vero è in `mesh.userData.name`.
+- Assi: Y in alto, +Z davanti, −X lato destro del corpo. Il modello è simmetrico: i reperi di destra
+  valgono a sinistra cambiando segno alla X.
+
+Come si rigenera (serve Blender; i passaggi stanno in `proto3d/build/`):
+1. `Blender -b Startup.blend --python build/za_export.py -- <cartella>` esporta gli strati grezzi e `za_meta.json`
+   (`Startup.blend` è dentro `Z-Anatomy.zip` del repository Z-Anatomy/Models-of-human-anatomy).
+2. `node build/za_optimize.mjs <cartella> <uscita>` semplifica e comprime (pacchetti npm `@gltf-transform/*`, `meshoptimizer`).
+3. `python3 build/za_dati.py <cartella>/za_meta.json proto3d/dati.json` unisce metadati, TA2 e `build/schede.json`.
+
+Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e inserzione e nomi vengono
+dalla fonte. I testi di origine, inserzione, azione e innervazione in `build/schede.json` (57 muscoli) sono
+scritti dall'AI a memoria: da verificare su un atlante. Per gli altri 151 muscoli quei testi mancano.
+Non c'è ancora: descrizione delle ossa e dei reperi, funzione delle aree dell'encefalo, giochi sul modello 3D.
 
 Requisiti dell'autore per il 3D (16/11/2026):
-- Fluidità: 60 fps fissi su iPhone 15 con lo scheletro attuale (383k triangoli, contorno attivo). Va tenuta.
-- Strati sovrapponibili, come nei software di visualizzazione anatomica: scheletro, muscoli (forme vere, non
-  solo linee da origine a inserzione) e cervello con le sue aree, ciascuno da accendere o spegnere sopra gli altri.
+- Fluidità: 60 fps fissi su iPhone 15 con il solo scheletro della prima versione. Con più strati accesi
+  non è ancora stata misurata sul telefono.
+- Strati sovrapponibili, come nei software di visualizzazione anatomica: scheletro, muscoli con la forma vera,
+  cervello con le sue aree, sistema nervoso, ciascuno da accendere o spegnere sopra gli altri.
 - Precisione scientifica in ogni modalità di gioco: l'app serve per studiare e passare gli esami.
-- Anche il sistema nervoso come strato da accendere o spegnere.
-
-Strati del prototipo (pannello "Strati", ogni file si scarica solo quando si accende lo strato):
-- `skeleton.glb` ossa (visibili, trasparenti o nascoste), `muscoli.glb` (422 parti, 362k triangoli),
-  `encefalo.glb` (97 parti in quattro gruppi: corteccia, strutture profonde, tronco e cervelletto, meningi),
-  `nervi.glb` (40 parti: solo nervi dell'orbita e vie ottiche).
-- `strati.json` (da `build/strati.py`): nomi italiani, colori, gruppi e descrizioni dell'encefalo; nomi dei nervi;
-  per i muscoli il collegamento tra forma e scheda di `reperi.json` e i nomi italiani (dove mancano resta il
-  nome latino della fonte). I file .glb si rigenerano con `build/layers.mjs`.
-- Limiti della fonte (BodyParts3D): niente midollo spinale né nervi periferici (plessi, sciatico…); mancano
-  le forme di gran dorsale, retto dell'addome, obliquo interno, trasverso, quadrato dei lombi, massetere,
-  temporale, pterigoidei e muscoli mimici. Per questi serve un'altra fonte (es. Z-Anatomy, CC BY-SA, richiede Blender).
-- Le aree funzionali (Broca, Wernicke, motoria primaria…) sono indicate nella descrizione del giro corrispondente.
 
 ## Da fare, in ordine
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
