@@ -122,7 +122,16 @@ Cosa viene dalla fonte e cosa no: forme, posizioni dei reperi, aree di origine e
 dalla fonte. Scritti dall'AI a memoria, da verificare su un atlante: i testi dei muscoli in `build/schede.json`
 (57 muscoli) e `build/schede2.py` (gli altri 151: ora tutti i 208 hanno la scheda), le descrizioni di `build/descrizioni.py` (tutte le ossa, tutti i 606 reperi,
 quasi tutte le strutture dell'encefalo) e i testi di gruppi e strati in `atlante.js`.
-Non c'è ancora: giochi sul modello 3D (vanno rifatti uno alla volta; quelli 2D restano come sono).
+Giochi sul modello 3D (si rifanno uno alla volta; quelli 2D restano come sono). Fatto: **Trova la struttura** in tre
+serie (ossa, muscoli, reperi), nel menu Gioca sotto "Sul modello 3D". Il menu chiama `play3d()` in `js/ui.js`, che apre la
+scheda e manda all'iframe `{bm:1,type:'game',set}` (anche in attesa del messaggio `ready` se l'atlante non è ancora carico);
+l'atlante gioca (`startGame`, `gameTap`, `gamePanel` in `atlante.js`) e rimanda `res` (ogni risposta: XP, serie, maestria
+con chiave `3d:<serie>:<nome>`), `end` (bonus) e `menu`. XP e salvataggio restano solo nell'app.
+Si chiede solo ciò che si vede da fuori ruotando il modello: `seenFrom()` disegna la scena da 26 direzioni con un colore
+per candidato e conta i pixel (ossa e muscoli ≥ 4 su 200×400, reperi come pallini di 5 mm ≥ 4 su 300×600). Restano 131 ossa
+(esclusi denti, ossicini, cellule etmoidali, seni, cartilagini di naso e laringe), 131 muscoli (esclusi i profondi, es.
+sovraspinato) e 470 reperi. Le domande si scelgono prima per famiglia (`famOf`: coste, falangi, vertebre…).
+Da fare: gli altri giochi sul 3D.
 
 Requisiti dell'autore per il 3D (16/11/2026):
 - Fluidità: 60 fps fissi su iPhone 15 con il solo scheletro della prima versione. Con più strati accesi

@@ -13,7 +13,11 @@ export function renderMenu(){
   mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP')+
   '<div class="sub">Quiz</div>'+mb('find','🎯 Trova la struttura','Tocca quella giusta sulla figura')+
   (body?mb('musc','💪 Origine e inserzione','Collega ogni muscolo al suo osso'):mb('func','🧠 Funzione → struttura','Quale struttura svolge questa funzione?')+mb('nc','🔢 Nervi cranici','Nome, numero e funzione dei 12 nervi'))+
-  mb('mix','🔀 Misto',"Un po' di tutto");
+  mb('mix','🔀 Misto',"Un po' di tutto")+
+  // giochi sul modello 3D: si giocano nella scheda Atlante 3D (vedi play3d in ui.js)
+  '<div class="sub">Sul modello 3D</div>'+mb('3d-ossa','🦴 Trova l\'osso','Tocca l\'osso giusto sul modello 3D')+
+  mb('3d-muscoli','💪 Trova il muscolo','Tocca il muscolo giusto tra quelli visibili')+
+  mb('3d-reperi','📍 Trova il repere','Tocca il repere osseo giusto (SIAS, epicondili…)');
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){

@@ -1,6 +1,6 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
-import {app} from './state.js';
+import {app,S,save,head,touchStreak,bump} from './state.js';
 import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
@@ -19,6 +19,20 @@ function showAtlas(on){
  $('fig').hidden=$('panel').hidden=on;$('atlas').hidden=!on;
  if(on&&!$('atlas').firstChild)$('atlas').innerHTML='<iframe src="atlante/index.html" title="Atlante 3D" allow="fullscreen"></iframe>';
 }
+// Giochi 3D: la partita si svolge nell'atlante, che rimanda qui ogni risposta per XP, serie e maestria.
+let atlasReady=false,pending3d=null;
+const atlasWin=()=>$('atlas').querySelector('iframe')?.contentWindow;
+function play3d(set){
+ setTab('atlas');
+ if(atlasReady)atlasWin().postMessage({bm:1,type:'game',set},location.origin);else pending3d=set;
+}
+window.addEventListener('message',e=>{
+ const d=e.data;if(e.origin!==location.origin||!d||!d.bm||e.source!==atlasWin())return;
+ if(d.type==='ready'){atlasReady=true;if(pending3d){atlasWin().postMessage({bm:1,type:'game',set:pending3d},location.origin);pending3d=null;}}
+ else if(d.type==='res'){touchStreak();if(d.ok){S.xp+=10;S.ok++;bump(d.key,1);}else{S.ko++;bump(d.key,-1);}save();head();}
+ else if(d.type==='end'){if(d.done)S.xp+=20;save();head();}
+ else if(d.type==='menu')setTab('play');
+});
 function setTab(t){
  app.tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
  showAtlas(t==='atlas');if(t==='atlas')return;
@@ -44,7 +58,7 @@ $('panel').addEventListener('click',e=>{
  const t=e.target.closest('button,.row');if(!t)return;
  const G=app.G;
  if(t.classList.contains('mc')){const m=app.M.find(x=>x.id===t.dataset.m);showMuscle(m);$('mdet').innerHTML=muscleHtml(m);}
- else if(t.classList.contains('mode'))startGame(t.dataset.mode);
+ else if(t.classList.contains('mode')){const m=t.dataset.mode;if(m.startsWith('3d-'))play3d(m.slice(3));else startGame(m);}
  else if(t.classList.contains('opt')&&G&&G.cur.t==='musc')answerMusc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='func')answerFunc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='nc')answerNc(t.dataset.k);

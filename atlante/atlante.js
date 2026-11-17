@@ -283,6 +283,7 @@ const boxOf=list=>{const b=new THREE.Box3();list.forEach(o=>b.expandByObject(o))
 // combo = gruppo di muscoli aperto (zampa d'oca…); mv = vista del muscolo: both | shape | lines
 // cut = piano di sezione {ax, t}; lev = strati dell'encefalo tolti (0 = tutti presenti)
 const S={part:null,lm:null,mus:null,combo:null,side:'r',bones:'on',allLm:false,list:null,q:'',mv:'both',cut:{ax:null,t:0.5},lev:0};
+let GAME=null; // partita in corso (gioco Trova la struttura nel 3D)
 const musOf=m=>m&&m.userData.root&&DATA.mus[m.userData.root]?m.userData.root:null;
 const roots=()=>S.combo?COMBO[S.combo].mus:S.mus?[S.mus]:[];
 // parti del muscolo aperto: le sue forme e le sue aree (anche quelle condivise, come il tendine del quadricipite)
@@ -344,6 +345,7 @@ function musTools(){
 }
 function panel(){
  const p=$('panel');let h='';
+ if(GAME){p.innerHTML=gamePanel();return;}
  if(S.combo){
   const c=COMBO[S.combo];
   h=`<div class="h">${c.n} <i>lato ${sideName(S.side)}</i></div><div class="mut"><i>${c.la}</i></div><p>${c.t}</p>
@@ -537,6 +539,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.cli
 renderer.domElement.addEventListener('pointerup',e=>{
  if(!down)return;const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y),dt=performance.now()-down.t;down=null;
  if(moved>8||dt>500)return;
+ if(GAME){if(!GAME.over)gameTap(e.clientX,e.clientY);return;}
  const l=pickLandmark(e.clientX,e.clientY);
  if(l){showLandmark(l,false);lastTap=0;return;}
  const m=pickPart(e.clientX,e.clientY),now=performance.now();
@@ -545,6 +548,142 @@ renderer.domElement.addEventListener('pointerup',e=>{
  else if(m&&roots().length&&inFocus(m)){/* tocco sul muscolo già aperto: resta la scheda */}
  else if(m||(!roots().length&&S.list!=='brain'))selectPart(m);
  lastTap=now;
+});
+
+/* ---------- gioco: Trova la struttura nel 3D ---------- */
+// L'app (menu Gioca) manda {bm:'game',set}; qui si gioca e si rimandano all'app le risposte ({bm:'res'}) e la fine
+// ({bm:'end'}), così XP, serie e maestria restano nel salvataggio dell'app. Domande solo su nomi e forme della fonte,
+// e solo su strutture che si possono vedere dall'esterno ruotando il modello (vedi seenFrom).
+const M_OK=toon(0x22c55e),M_BAD=toon(0xef4444);
+const MKG={ok:new THREE.MeshBasicMaterial({color:0x22c55e}),bad:new THREE.MeshBasicMaterial({color:0xef4444})};
+for(const k in MKG)MKG[k].userData.outlineParameters={visible:false};
+const toApp=msg=>{if(window.parent!==window)window.parent.postMessage({bm:1,...msg},location.origin);};
+const SETS={
+ ossa:{n:'Ossa',ask:'Tocca l\'osso'},
+ muscoli:{n:'Muscoli',ask:'Tocca il muscolo'},
+ reperi:{n:'Reperi ossei',ask:'Tocca il repere'}};
+const TEETH=/(incisor|canine|molar|premolar)/i,BONE_SKIP=/(cartilage|cells of ethmoid|Sinus of)/i,KEEP_CART=/^(Costal cartilage|Thyroid cartilage|Cricoid cartilage)/;
+// famiglia di un nome (tutte le coste, tutte le falangi…): si sceglie prima la famiglia, così coste e falangi non dominano
+const famOf=b=>b.replace(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\b/gi,'#').replace(/\b[CTL]\d+\b/,'#').replace(/\b(Proximal|Middle|Distal)\b/,'#');
+// quali candidati si vedono da fuori: disegno la scena da 26 direzioni con un colore per candidato e conto i pixel
+function seenFrom(cands,occl,W=200){
+ const H=W*2,rt=new THREE.WebGLRenderTarget(W,H),buf=new Uint8Array(W*H*4),cam=new THREE.PerspectiveCamera(30,W/H,0.03,20);
+ const black=new THREE.MeshBasicMaterial({color:0}),saved=[],ids=new Map();
+ scene.traverse(o=>{if(o.isMesh){saved.push([o,o.visible,o.material]);o.visible=false;}});
+ cands.forEach((m,i)=>{const c=new THREE.Color().setRGB(((i+1)&255)/255,((i+1)>>8)/255,0,THREE.LinearSRGBColorSpace);m.material=new THREE.MeshBasicMaterial({color:c});m.visible=true;ids.set(i+1,m);});
+ occl.forEach(m=>{m.material=black;m.visible=true;});
+ cands.forEach(m=>m.visible=true);
+ const bg=scene.background,clip=renderer.clippingPlanes;scene.background=new THREE.Color(0);renderer.clippingPlanes=[];
+ const seen=new Map(),dist=height*2.2;
+ for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+  if(!x&&!y&&!z)continue;
+  cam.position.copy(center).add(new THREE.Vector3(x,y,z).normalize().multiplyScalar(dist));cam.up.set(0,Math.abs(y)===1&&!x&&!z?0:1,Math.abs(y)===1&&!x&&!z?-1:0);cam.lookAt(center);
+  renderer.setRenderTarget(rt);renderer.render(scene,cam);renderer.readRenderTargetPixels(rt,0,0,W,H,buf);
+  const cnt=new Map();for(let i=0;i<buf.length;i+=4){const id=buf[i]+buf[i+1]*256;if(id)cnt.set(id,(cnt.get(id)||0)+1);}
+  for(const [id,n] of cnt){const m=ids.get(id);if(m)seen.set(m,Math.max(seen.get(m)||0,n));}
+ }
+ renderer.setRenderTarget(null);scene.background=bg;renderer.clippingPlanes=clip;rt.dispose();
+ cands.forEach(m=>m.material.dispose());
+ saved.forEach(([m,v,mat])=>{m.visible=v;m.material=mat;});
+ return seen;
+}
+const POOL={},LM_MIN=4; // pixel minimi (su 300×600) perché un repere conti come visibile da fuori
+async function poolOf(set){
+ if(POOL[set])return POOL[set];
+ let items=[];  // {key, n, la, fam}
+ const clean=t=>t.replace(/^\((.*)\)$/,'$1'),add=(key,b)=>items.push({key,n:clean(itOf(b)),la:clean(laOf(b)),fam:famOf(b)});
+ if(set==='ossa'){
+  const bones=meshes.filter(m=>m.userData.layer==='ossa'&&!TEETH.test(m.userData.base)&&(!BONE_SKIP.test(m.userData.base)||KEEP_CART.test(m.userData.base)));
+  const seen=seenFrom(bones,[]),ok=new Set();for(const [m,n] of seen)if(n>=4)ok.add(m.userData.base);
+  [...ok].forEach(b=>add(b,b));
+ }else if(set==='muscoli'){
+  await loadFile('muscoli');
+  const mus=meshes.filter(m=>m.userData.layer==='muscoli'),bones=meshes.filter(m=>m.userData.layer==='ossa');
+  const seen=seenFrom(mus,bones),ok=new Set();for(const [m,n] of seen)if(n>=4&&DATA.mus[m.userData.root])ok.add(m.userData.root);
+  [...ok].forEach(r=>items.push({key:r,n:clean(DATA.mus[r].n),la:clean(DATA.mus[r].la),fam:r}));
+ }else{
+  // reperi: pallini di 5 mm sulle ossa, contati come le ossa; esclusi i nomi che sono quelli di un osso intero
+  const bones=meshes.filter(m=>m.userData.layer==='ossa'),boneNames=new Set(bones.map(m=>m.userData.base)),list=LMS.filter(l=>!boneNames.has(l.b)&&l.b!=='Vertebra');
+  list.forEach(l=>{markerOf(l).scale.setScalar(0.005);});
+  const seen=seenFrom(list.map(l=>l.mesh),bones,300),ok=new Set();for(const l of list)if((seen.get(l.mesh)||0)>=LM_MIN)ok.add(l.b);
+  [...ok].forEach(b=>add(b,b));
+ }
+ // un nome che compare due volte (es. stesso repere su due ossa) vale una volta sola
+ const u=new Map();items.forEach(i=>{if(!u.has(i.n))u.set(i.n,i);});
+ return POOL[set]=[...u.values()];
+}
+const pickQ=()=>{const G=GAME,fams=[...new Set(G.pool.map(i=>i.fam))];let it,tries=0;
+ do{const f=fams[Math.floor(Math.random()*fams.length)],c=G.pool.filter(i=>i.fam===f);it=c[Math.floor(Math.random()*c.length)];}while((G.used.has(it.key)||it.key===G.last)&&++tries<50);
+ G.used.add(it.key);G.last=it.key;return it;};
+// le parti che rispondono alla domanda (tutti e due i lati)
+const targets=it=>GAME.set==='muscoli'?meshes.filter(m=>m.userData.layer==='muscoli'&&m.userData.root===it.key):GAME.set==='ossa'?meshes.filter(m=>m.userData.layer==='ossa'&&m.userData.base===it.key):[];
+const lmTargets=it=>LMS.filter(l=>l.b===it.key);
+async function startGame(set){
+ if(!SETS[set])return;
+ GAME={set,q:0,total:8,hearts:3,score:0,gain:0,cur:null,locked:false,used:new Set(),last:null,pool:null,marks:[]};
+ document.body.classList.add('game');
+ S.mus=S.combo=S.lm=S.part=null;S.list=null;S.cut.ax=null;S.lev=0;S.mv='both';
+ for(const k in V)V[k]=false;S.bones='on';S.allLm=false;meshes.forEach(m=>m.userData.hidden=false);
+ S.loading=true;refresh();
+ GAME.pool=await poolOf(set);
+ if(set==='muscoli')V.muscoli=true;
+ if(set==='reperi')S.allLm=true;
+ S.loading=false;nextGameQ();
+}
+function clearGameMarks(){for(const [m,mat] of GAME.marks)m.material=mat;GAME.marks=[];}
+function gameMark(list,mat){for(const m of list){GAME.marks.push([m,m.material]);m.material=mat;}}
+function nextGameQ(){
+ const G=GAME;
+ if(G.hearts<=0||G.q>=G.total)return endGame();
+ G.locked=false;G.cur=pickQ();G.res=null;refresh();clearGameMarks();
+ flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
+}
+function gameTap(x,y){
+ const G=GAME;if(!G||G.locked||!G.cur)return;
+ let ok,hit;
+ if(G.set==='reperi'){
+  const l=pickLandmark(x,y);if(!l)return;hit={n:itOf(l.b),l};ok=l.b===G.cur.key;
+ }else{
+  const m=pickPart(x,y);if(!m)return;const u=m.userData;
+  if(G.set==='muscoli'&&u.layer!=='muscoli'){G.hint='Hai toccato un osso: tocca un muscolo.';panel();return;}
+  hit={n:G.set==='muscoli'?(DATA.mus[u.root]||{n:itOf(u.base)}).n:itOf(u.base),m};
+  ok=G.set==='muscoli'?u.root===G.cur.key:u.base===G.cur.key;
+ }
+ G.locked=true;G.hint='';G.q++;
+ if(ok){G.score++;G.gain+=10;}else G.hearts--;
+ toApp({type:'res',ok,key:'3d:'+G.set+':'+G.cur.key});
+ // colori: verde la risposta giusta (tutti e due i lati), rosso quella toccata se sbagliata
+ if(G.set==='reperi'){
+  const tl=lmTargets(G.cur);tl.forEach(l=>{const k=markerOf(l);k.visible=true;});gameMark(tl.map(l=>l.mesh),MKG.ok);if(!ok)gameMark([hit.l.mesh],MKG.bad);
+  if(!ok){const near=tl.reduce((a,b)=>a.p.distanceTo(hit.l.p)<b.p.distanceTo(hit.l.p)?a:b);flyTo(near.p.clone().addScaledVector(near.d,0.35),near.p.clone());}
+ }else{
+  const t=targets(G.cur);gameMark(t,M_OK);if(!ok)gameMark([hit.m],M_BAD);
+  if(!ok){const side=hit.m.userData.side,same=t.filter(m=>!side||m.userData.side===side);frameBox(boxOf(same.length?same:t),0.3);}
+ }
+ G.res={ok,hit:ok?null:hit.n};panel();
+}
+function endGame(){
+ const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
+ toApp({type:'end',done});G.over=true;G.cur=null;clearGameMarks();panel();
+}
+function quitGame(){if(GAME)clearGameMarks();GAME=null;document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+function gamePanel(){
+ const G=GAME,hearts=`<div class="gh"><span>${'❤️'.repeat(Math.max(0,G.hearts))}${'🖤'.repeat(3-Math.max(0,G.hearts))}</span><span>${SETS[G.set].n} · ${Math.min(G.q+(G.res?0:1),G.total)}/${G.total}</span></div>`;
+ if(G.over){const st=G.score/G.q>=.9?3:G.score/G.q>=.6?2:1;
+  return `<div class="res"><div class="big">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</div><div class="h">${G.score}/${G.q} corrette</div><p>+${G.gain} XP${G.hearts>0&&G.q>=G.total?' (bonus round +20)':''}</p>
+   ${G.hearts<=0?'<p class="mut">Cuori finiti: ripassa esplorando il modello e riprova.</p>':''}
+   <div class="chips" style="justify-content:center"><button class="chip on" data-g="again">Rigioca</button><button class="chip" data-g="menu">Cambia sfida</button><button class="chip" data-g="quit">Esplora il modello</button></div></div>`;}
+ if(!G.cur)return `<p class="mut">${S.loading?(G.set==='muscoli'&&!FILES.muscoli?.loaded?'Carico i muscoli…':'Preparo le domande…'):''}</p>`;
+ const q=`<div class="q">${SETS[G.set].ask}:<br><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</div>`;
+ if(!G.res)return hearts+q+`<p class="mut">${G.hint||'Ruota e ingrandisci il modello come vuoi: vale tutti e due i lati.'}</p><div class="chips"><button class="chip" data-g="quit">Esci</button></div>`;
+ const last=G.hearts<=0||G.q>=G.total;
+ return hearts+`<div class="h">${G.res.ok?'✅ Esatto! +10 XP':'❌ Non proprio'}</div>`+
+  (G.res.ok?`<p><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</p>`:`<p>Hai toccato: <b>${G.res.hit}</b>. In verde: <b>${G.cur.n}</b>.</p>`)+
+  `<div class="chips"><button class="chip on" data-g="next">${last?'Vedi risultato':'Avanti'}</button></div>`;
+}
+window.addEventListener('message',e=>{
+ if(e.origin!==location.origin||!e.data||!e.data.bm)return;
+ if(e.data.type==='game')startGame(e.data.set);
 });
 
 /* ---------- copia offline degli strati ---------- */
@@ -584,7 +723,8 @@ $('bar').addEventListener('click',e=>{
 });
 $('panel').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
- if(d.mu)showMuscle(d.mu);
+ if(d.g){if(d.g==='next')nextGameQ();else if(d.g==='again')startGame(GAME.set);else if(d.g==='menu'){quitGame();toApp({type:'menu'});}else quitGame();}
+ else if(d.mu)showMuscle(d.mu);
  else if(d.offall){if(!OFF.busy)offlineAll();}
  else if(d.combo)showCombo(d.combo);
  else if(d.mv){S.mv=d.mv;refresh();}
@@ -619,6 +759,7 @@ try{await loadFile('ossa');}catch(e){$('msg').textContent='Non riesco a caricare
 {const box=boxOf(meshes);box.getCenter(center);height=box.getSize(new THREE.Vector3()).y;}
 controls.minDistance=height*0.04;controls.maxDistance=height*3.2;
 setView('front',false);$('msg').remove();refresh();
+toApp({type:'ready'}); // l'app può mandare la richiesta di una partita
 let frames=0,last=performance.now();
 renderer.setAnimationLoop(now=>{
  if(!view.clientHeight)return; // scheda dell'app nascosta: niente disegno, si risparmia batteria
@@ -627,7 +768,9 @@ renderer.setAnimationLoop(now=>{
  controls.update();
  // i reperi tengono una dimensione leggibile a qualsiasi zoom
  const px=2*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/view.clientHeight;
- for(const l of LMS)if(l.mesh&&l.mesh.visible){const d=camera.position.distanceTo(l.mesh.position);l.mesh.scale.setScalar(Math.max(0.0012,d*px*(l===S.lm?7:4.5)));}
+ // con tutti i reperi accesi (o nel gioco) i pallini restano piccoli, sennò a corpo intero coprono lo scheletro
+ const many=S.allLm||(GAME&&GAME.set==='reperi');
+ for(const l of LMS)if(l.mesh&&l.mesh.visible){const d=camera.position.distanceTo(l.mesh.position);l.mesh.scale.setScalar(many&&l!==S.lm?Math.min(0.004,Math.max(0.001,d*px*2.6)):Math.max(0.0012,d*px*(l===S.lm?7:4.5)));}
  for(const m of pts.children){const d=camera.position.distanceTo(m.position);
   if(m.userData.dot)m.scale.setScalar(Math.max(0.0015,d*px*6));else{const r=Math.max(0.0006,d*px*1.6);m.scale.set(r,m.userData.len,r);}}
  // con una sezione il contorno (facce posteriori ingrandite) riempirebbe di scuro il taglio: lo spengo
@@ -635,4 +778,4 @@ renderer.setAnimationLoop(now=>{
  frames++;
  if(now-last>=1000){$('fps').textContent=`${Math.round(frames*1000/(now-last))} fps · ${Math.round(renderer.info.render.triangles/1000)}k triangoli`;frames=0;last=now;}
 });
-window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts};
+window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts,startGame,gameTap,poolOf,get GAME(){return GAME;}};
