@@ -4,25 +4,36 @@ import {app,S,bone,members,itemOf,bonesName} from './state.js';
 
 // Ogni vista (anteriore, posteriore) è un gruppo SVG con tutte le strutture singole; si vede una vista alla volta.
 // Le marcature (selezione, risposte, pezzi del puzzle) valgono in tutte e due le viste, così cambiando vista restano.
+// Le viste di zona (mano palmare e dorsale, piede dall'alto e dalla pianta) sono altri gruppi con solo le ossa di quella zona:
+// le usano Ricomponi e Trova la struttura per le ossa piccole, poi si torna alla vista di base.
+const fvLabel=v=>{const z=app.MOD.zviews[v];return (z?z.n:v==='a'?'Anteriore':'Posteriore')+' ⇄';};
+const fvNext=v=>{const z=app.MOD.zviews[v];return z?z.alt:v==='a'?'p':'a';};
 export function buildFig(){
  const {B,MODS,MOD,VB}=app;
- if(!MOD.views.includes(app.view))app.view=MOD.views[0];
- const vs=MOD.views.map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
+ if(!MOD.views.includes(app.view))app.view=MOD.views.includes(app.base)?app.base:MOD.views[0];
+ const vs=[...MOD.views,...Object.keys(MOD.zviews)].map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
   B.filter(b=>b.s[v]).map(b=>`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s[v]}</g></g>`).join('')+'</g>').join('');
  const mods=Object.keys(MODS).map(k=>`<button data-mod="${k}" class="${k===MOD.id?'on':''}">${MODS[k].label}</button>`).join('');
  const body=MOD.id==='corpo';
- const opts=(MOD.views.length>1?`<button data-fv="${app.view==='a'?'p':'a'}" title="Cambia vista">${app.view==='a'?'Anteriore':'Posteriore'} ⇄</button>`:'')+
+ const opts=(MOD.views.length>1?`<button data-fv="${fvNext(app.view)}" title="Cambia vista">${fvLabel(app.view)}</button>`:'')+
   `<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
  $('fig').innerHTML=`<div class="tbar"><div class="mods">${mods}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><div class="tbar t2"><div class="mods">${opts}</div></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs>${vs}<g id="ov" pointer-events="none"></g></svg>`;
 }
 // cambia vista senza ridisegnare (le marcature restano)
 export function setView(v){
+ if(!app.MOD.zviews[v])app.base=v;
  app.view=v;$('fig').querySelectorAll('.view').forEach(g=>g.setAttribute('display',g.dataset.v===v?'inline':'none'));
- const b=$('fig').querySelector('[data-fv]');if(b){b.dataset.fv=v==='a'?'p':'a';b.textContent=(v==='a'?'Anteriore':'Posteriore')+' ⇄';}
+ const b=$('fig').querySelector('[data-fv]');if(b){b.dataset.fv=fvNext(v);b.textContent=fvLabel(v);}
 }
+export const inZone=()=>!!app.MOD.zviews[app.view];
+// torna alla vista anteriore o posteriore dopo una vista di zona
+export function baseView(){if(inZone())setView(app.base||'a');}
 const activeView=()=>$('fig').querySelector(`.view[data-v="${app.view}"]`);
-// la struttura è disegnata nella vista attuale?
-export const visible=id=>members(id).some(m=>bone(m)&&bone(m).s[app.view]);
+// la struttura si vede nella vista v (attuale se manca)? Almeno un quarto della sagoma del lato destro non deve essere
+// coperto da altre ossa: il pisiforme da dietro o le falangi del piede di scorcio non si chiedono.
+const MIN_VIS=.25;
+export const visibleIn=(id,v)=>members(id).some(m=>{const b=bone(m);return b&&b.s[v]&&(b.vis[v]??1)>=MIN_VIS;});
+export const visible=id=>visibleIn(id,app.view);
 let tw=0;
 export const svgEl=()=>$('fig').querySelector('svg');
 export function svgPt(x,y){const s=svgEl(),p=s.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(s.getScreenCTM().inverse());}
@@ -43,8 +54,11 @@ export function zoomAt(k,cx,cy){
 }
 function focusPts(pts,pad){
  const MOD=app.MOD;
- const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),asp=MOD.H/MOD.W;
- let w=Math.max(x1-x0+2*pad,(y1-y0+2*pad)/asp,MOD.W/5);w=Math.min(w,MOD.W);const h=w*asp;
+ // proporzioni del riquadro sullo schermo (non della figura intera, molto più alta): una zona larga come le dita
+ // del piede riempie la larghezza invece di restare piccola in mezzo
+ const r=svgEl()?.getBoundingClientRect(),asp=r&&r.width>0&&r.height>0?r.height/r.width:MOD.H/MOD.W;
+ const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+ let w=Math.max(x1-x0+2*pad,(y1-y0+2*pad)/asp,MOD.W/5);w=Math.min(w,MOD.W);const h=Math.min(w*asp,MOD.H);
  setVB({x:(x0+x1)/2-w/2,y:(y0+y1)/2-h/2,w,h},true);
  return w;
 }

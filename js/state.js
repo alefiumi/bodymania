@@ -2,8 +2,9 @@
 import {$} from './util.js';
 
 // Modulo e partita correnti. MODS e NC arrivano da content/ all'avvio.
-// B: strutture singole; GR: gruppi; view: vista della figura ('a' anteriore, 'p' posteriore); grp: si gioca per gruppi
-export const app={MODS:{},NC:[],MOD:null,B:[],GR:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null,view:'a',grp:false};
+// B: strutture singole; GR: gruppi; view: vista della figura ('a' anteriore, 'p' posteriore, oppure una vista di zona
+// come 'mp' mano palmare, usata dai giochi); base: l'ultima vista anteriore o posteriore scelta; grp: si gioca per gruppi
+export const app={MODS:{},NC:[],MOD:null,B:[],GR:[],M:[],CASES:[],VB:{x:0,y:0,w:300,h:640},tab:'explore',sel:null,G:null,view:'a',base:'a',grp:false};
 try{app.grp=!!JSON.parse(localStorage.getItem('bodymania-2d')||'{}').grp;}catch(e){}
 export const saveGrp=()=>{try{localStorage.setItem('bodymania-2d',JSON.stringify({grp:app.grp}));}catch(e){}};
 export const bone=id=>app.MOD&&app.MOD.byId[id];

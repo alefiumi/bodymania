@@ -28,7 +28,14 @@ Prototipo diviso in:
   vengono annullati dal sistema); un dito sposta la figura quando è ingrandita.
 - Puzzle: `slotAt(x,y,id)` in `figure.js` sceglie il posto vuoto più vicino entro `SLOT_PX` (28 px), anche se
   coperto da altre ossa, con precedenza al pezzo in mano; altrimenti l'osso sotto il dito (errore).
-  Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito.
+  Il pezzo trascinato è disegnato alla scala della figura, con il centro 42 px sopra il dito. I pezzi sono la sagoma intera
+  del lato destro (`sf`, riquadro `sb`), anche delle parti coperte da altre ossa: una costa si vede intera.
+- Viste di zona (`zviews` in `corpo.json`): `mp`/`md` mano palmare e dorsale, `pd`/`pp` piede dall'alto e dalla pianta, solo il
+  lato destro, disegnate al centro dello stesso spazio 300×747. I gruppi di mano e piede hanno `zv` (vista preferita): Ricomponi
+  li gioca lì, e Trova chiede lì le loro ossa; il pulsante della vista passa all'altra della coppia. `baseView()` in `figure.js`
+  torna ad anteriore/posteriore (`app.base`) a ogni domanda, al menu e al cambio di scheda.
+- `vis[v]`: quota della sagoma visibile in quella vista. Giochi e puzzle usano solo strutture con almeno il 25% visibile
+  (`visibleIn`, `MIN_VIS`): niente pisiforme da dietro. Lo zoom sulla zona usa le proporzioni del riquadro sullo schermo.
 - Scheda sotto la figura dentro `#pw`: la freccia `#fold` sul bordo in alto a destra la abbassa (striscia di due righe
   scorrevole, in gioco resta la domanda) e la rialza; scelta in `bodymania-fold`. Stessa freccia nell'atlante 3D (`bodymania-fold3d`).
 - Spunta verde in alto a destra (`#off`) quando la copia offline è pronta; il pulsante "Installa l'app"
@@ -37,7 +44,9 @@ Prototipo diviso in:
   `neuro-strutture.json` (testi in comune tra `lat` e `sag`), `nervi-cranici.json`. Ogni file ha `version`.
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`
   (tipi in `js/shapes.js`). Quando cambi un contenuto, aumenta la `version` del file e quella di `index.json`.
-- Serve un server locale (`npx serve .`): con il doppio clic su `index.html` (`file://`) moduli e JSON non si caricano.
+- Serve un server locale (`python3 -m http.server`): con il doppio clic su `index.html` (`file://`) moduli e JSON non si caricano.
+  Non usare `npx serve`: reindirizza `/atlante/index.html` → `/atlante` e il service worker rifiuta le risposte reindirizzate
+  (atlante vuoto, app che non si apre offline). GitHub Pages non reindirizza.
 - PWA: `manifest.webmanifest`, icone in `icons/` (PNG generate da uno script, non nel repo), `sw.js`.
   Il service worker copia in cache l'elenco `APP_FILES` all'installazione e serve l'app dalla cache; all'installazione
   scarica anche i contenuti se la versione è cambiata (una versione nuova dell'app può richiedere il formato nuovo).
@@ -57,8 +66,9 @@ Prototipo diviso in:
 Contenuto del gioco:
 - Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, vista anteriore e posteriore; 208 muscoli), `lat` (emisfero
   sinistro visto di lato, 57 strutture) e `sag` (faccia mediale dell'emisfero destro, 81 strutture), 12 nervi cranici.
-- Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` proietta ossa,
-  encefalo e aree di origine e inserzione (z-buffer in software, contorni dei pixel visibili → tracciati SVG; senza pacchetti
+- Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` (gira anche nel cloud:
+  legge solo i `.glb` del repository, pochi secondi) proietta ossa, viste di zona di mano e piede (assi principali delle loro ossa),
+  sagome intere delle singole ossa, encefalo e aree di origine e inserzione (z-buffer in software, contorni dei pixel visibili → tracciati SVG; senza pacchetti
   npm), poi `python3 atlante/build/contenuti_2d.py <tmp.json>` scrive `content/corpo.json`, `lat.json`, `sag.json` con nomi
   (TA2), descrizioni (`desc` di `dati.json`), gruppi, muscoli e casi (testi dei gruppi di ossa e casi in `atlante/build/testi_2d.json`,
   gruppi del cervello in `content/neuro-strutture.json`). Ogni struttura ha `s.a`/`s.p` (forme per vista; per le ossa pari il

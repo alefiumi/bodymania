@@ -1,17 +1,23 @@
 /* Ricomponi: pezzi da rimettere al posto, con tocco o trascinamento.
    Ossa singole: i pezzi sono le ossa di un gruppo (mano, colonna, cranio…), con la figura ingrandita su quella zona.
-   Gruppi: i pezzi sono gruppi interi. Si gioca nella vista attuale (anteriore o posteriore). */
+   Gruppi: i pezzi sono gruppi interi. Si gioca nella vista attuale (anteriore o posteriore); mano e piede hanno una
+   vista di zona (palmare/dorsale, dall'alto/pianta) che si può girare con il pulsante della vista. */
 import {$,shuffle,pick} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump,members,itemOf} from './state.js';
-import {els,clearMarks,refreshMastery,slotAt,svgEl,visible,focusItem,resetZoom} from './figure.js';
+import {els,clearMarks,refreshMastery,slotAt,svgEl,visible,visibleIn,focusItem,resetZoom,setView} from './figure.js';
 import {gh,endGame} from './game.js';
 
-// riquadro del pezzo: solo il lato destro delle ossa pari (primo tracciato), così il pezzo non è minuscolo
-const box=id=>{let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;for(const g of els(id,true)){const b=(g.querySelector('.f')||g).getBBox();x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.width);y1=Math.max(y1,b.y+b.height);}return {x:x0,y:y0,w:x1-x0,h:y1-y0};};
+// Il pezzo è la sagoma intera del lato destro (sf), anche delle parti coperte da altre ossa: una costa si vede intera.
+// Riquadro del pezzo: dalla sagoma intera (sb) se c'è, altrimenti dal primo tracciato disegnato.
+const box=id=>{let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;const v=app.view;
+ const add=(x,y,w,h)=>{x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x+w);y1=Math.max(y1,y+h);};
+ for(const m of members(id)){const sb=bone(m)?.sb?.[v];if(sb)add(...sb);}
+ if(x0===Infinity)for(const g of els(id,true)){const b=(g.querySelector('.f')||g).getBBox();add(b.x,b.y,b.width,b.height);}
+ return {x:x0,y:y0,w:x1-x0,h:y1-y0};};
 const thumbSide=id=>{const b=box(id);return Math.max(b.w,b.h)*1.15+2;};
 function thumb(id){
  const b=box(id),s=thumbSide(id),v=app.view;
- const inner=members(id).map(m=>bone(m)&&bone(m).s1[v]?`<g class="bone m0"${bone(m).col?` style="--b:${bone(m).col}"`:''}>${bone(m).s1[v]}</g>`:'').join('');
+ const inner=members(id).map(m=>{const x=bone(m),sh=x&&(x.sf[v]||x.s1[v]);return sh?`<g class="bone m0"${x.col?` style="--b:${x.col}"`:''}>${sh}</g>`:'';}).join('');
  return `<svg viewBox="${b.x+b.w/2-s/2} ${b.y+b.h/2-s/2} ${s} ${s}">${inner}</svg>`;
 }
 // Il pezzo trascinato ha la stessa scala della figura (con zoom compreso), così combacia con il suo posto.
@@ -22,9 +28,11 @@ export function startPuzzle(){
  if(app.grp){
   G.left=shuffle(app.GR.filter(g=>!g.area&&visible(g.id))).slice(0,app.MOD.id==='corpo'?8:6).map(g=>g.id);resetZoom(true);
  }else{
-  // un gruppo con almeno 3 pezzi visibili; le ossa minuscole (falangi, carpo) si vedono grazie all'ingrandimento
-  const gs=app.GR.filter(g=>!g.area&&g.m.filter(visible).length>=3);
-  const g=pick(gs.length?gs:app.GR);G.zone=g.id;
+  // un gruppo con almeno 3 pezzi visibili, nella sua vista di zona se ce l'ha (mano palmare, piede dall'alto…)
+  // o in quella attuale; la figura si ingrandisce sulla zona
+  const zv=g=>g.zv&&app.MOD.zviews[g.zv]?g.zv:app.view;
+  const gs=app.GR.filter(g=>!g.area&&g.m.filter(m=>visibleIn(m,zv(g))).length>=3);
+  const g=pick(gs.length?gs:app.GR);G.zone=G.focus=g.id;setView(zv(g));
   G.left=shuffle(g.m.filter(visible)).slice(0,8);setTimeout(()=>focusItem(g.id,10,true),30);
  }
  G.total=G.left.length;G.sel=null;

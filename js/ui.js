@@ -1,7 +1,7 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
 import {app,S,save,saveGrp,head,touchStreak,bump,queue,itemOf} from './state.js';
-import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem} from './figure.js';
+import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
 import {placeAttempt} from './puzzle.js';
@@ -40,7 +40,7 @@ function setTab(t){
  app.tab=t;document.body.classList.toggle('pg',t==='prog'||t==='soc'); // profilo e amici usano tutto lo schermo, senza figura
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
  showAtlas(t==='atlas');if(t==='atlas')return;
- clearGhosts();clearMarks();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg,soc:renderSocial})[t]();if(t==='soc')loadSocial();
+ clearGhosts();clearMarks();baseView();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg,soc:renderSocial})[t]();if(t==='soc')loadSocial();
 }
 setSocialOpen(()=>app.tab==='soc');
 /* Freccia sul bordo della scheda sotto la figura: la abbassa (resta una striscia con l'inizio del testo, la figura si allarga)
@@ -53,7 +53,9 @@ document.querySelector('nav').addEventListener('click',e=>{const b=e.target.clos
 $('fig').addEventListener('click',e=>{
  const zb=e.target.closest('.zc button');
  if(zb){const k=zb.dataset.z,VB=app.VB;if(k==='reset')resetZoom(true);else zoomAt(k==='in'?1.5:1/1.5,VB.x+VB.w/2,VB.y+VB.h/2);return;}
- const fv=e.target.closest('[data-fv]');if(fv){setView(fv.dataset.fv);if(app.tab==='explore'&&app.sel)selectBone(app.sel);return;}
+ const fv=e.target.closest('[data-fv]');if(fv){setView(fv.dataset.fv);if(app.tab==='explore'&&app.sel)selectBone(app.sel);
+  // in gioco, con la figura ingrandita su una zona, la si ritrova anche nell'altra vista (la mano dorsale è speculare)
+  else if(app.tab==='play'&&app.G&&app.G.focus)setTimeout(()=>focusItem(app.G.focus,app.G.mode==='puzzle'?10:14,true),30);return;}
  // singole o gruppi: cambia le voci dei giochi, quindi la partita in corso ricomincia dal menu
  if(e.target.closest('[data-fg]')){app.grp=!app.grp;saveGrp();const t=app.tab;buildFig();setTab(t);return;}
  const mb=e.target.closest('.mods button');

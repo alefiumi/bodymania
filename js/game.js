@@ -1,11 +1,11 @@
 /* Tab Gioca: menu, quiz, Tendine-ponte, Caso clinico, fine partita. */
 import {$,shuffle,pick} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump,queue,items,members,itemOf,itemSet,bonesName} from './state.js';
-import {clearMarks,mark,refreshMastery,resetZoom,showMuscle,muscleHtml,visible,focusItem,itemBox} from './figure.js';
+import {clearMarks,mark,refreshMastery,resetZoom,showMuscle,muscleHtml,visible,visibleIn,focusItem,itemBox,setView,baseView} from './figure.js';
 import {startPuzzle} from './puzzle.js';
 
 export function renderMenu(){
- app.G=null;clearGhosts();const body=app.MOD.id==='corpo';
+ app.G=null;clearGhosts();baseView();const body=app.MOD.id==='corpo';
  const mb=(m,t,x)=>`<button class="mode" data-mode="${m}"><b>${t}</b><small>${x}</small></button>`;
  const what=app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
  $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto${body?', dove scegli anche la vista anteriore o posteriore':''}.</p><div class="sub">Puzzle</div>`+
@@ -27,14 +27,14 @@ export function renderMenu(){
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){
- app.G={mode,q:0,total:mode==='case'?6:8,hearts:3,score:0,gain:0,last:null,cur:null,locked:false,used:[],att:0,left:[]};
+ baseView();app.G={mode,q:0,total:mode==='case'?6:8,hearts:3,score:0,gain:0,last:null,cur:null,locked:false,used:[],att:0,left:[]};
  if(mode==='puzzle')return startPuzzle();
  nextQ();
 }
 export const gh=()=>{const G=app.G;return `<div class="gh"><span>${'❤️'.repeat(G.hearts)}${'🖤'.repeat(3-G.hearts)}</span><span>${Math.min(G.q+1,G.total)}/${G.total}</span></div>`;};
 export function nextQ(){
  const G=app.G,{B,M,CASES,NC}=app;
- clearMarks();
+ clearMarks();baseView();
  if(G.hearts<=0||G.q>=G.total)return endGame();
  const t=G.mode==='mix'?pick(app.MOD.id==='corpo'?['find','musc','bridge']:['find','func','nc']):G.mode;G.locked=false;resetZoom(true);
  if(t==='find'){
@@ -63,17 +63,20 @@ export function nextQ(){
  }
 }
 // Voce da trovare: tra quelle visibili nella vista attuale; con le singole prima si sceglie il gruppo (così non escono
-// sempre falangi e vertebre) e, se la struttura è piccola, la figura si ingrandisce sulla sua zona.
+// sempre falangi e vertebre). Le ossa di mano e piede si chiedono nella vista di zona del loro gruppo (palmare, dall'alto…);
+// se la struttura è piccola, la figura si ingrandisce sulla sua zona.
 function pickItem(G){
  let b,n=0;
+ const zv=g=>!app.grp&&g.zv&&app.MOD.zviews[g.zv]?g.zv:app.view;
  do{
   if(app.grp)b=pick(app.GR.filter(x=>visible(x.id)));
-  else{const g=pick(app.GR.filter(x=>!x.area&&x.m.some(visible)));b=bone(pick(g.m.filter(visible)));}
+  else{const g=pick(app.GR.filter(x=>!x.area&&x.m.some(m=>visibleIn(m,zv(x)))));b=bone(pick(g.m.filter(m=>visibleIn(m,zv(g)))));}
  }while((b.id===G.last||(G.used.includes(b.id)&&n<30))&&++n<60);
- G.last=b.id;G.used.push(b.id);G.zoomed=false;
+ G.last=b.id;G.used.push(b.id);G.zoomed=false;G.focus=null;
+ const gz=!app.grp&&bone(b.g);if(gz&&zv(gz)!==app.view){setView(zv(gz));setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;G.focus=b.g;return b;}
  const p=itemBox(b.id);
  if(p.length){const xs=p.map(q=>q[0]),ys=p.map(q=>q[1]),size=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys));
-  if(size<app.MOD.W*0.06&&!app.grp){setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;}}
+  if(size<app.MOD.W*0.06&&!app.grp){setTimeout(()=>focusItem(b.g,14,true),30);G.zoomed=true;G.focus=b.g;}}
  return b;
 }
 // muscoli con origine e inserzione su ossa note

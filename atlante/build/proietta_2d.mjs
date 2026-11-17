@@ -65,14 +65,18 @@ const concat = a => { if (a.length === 1) return a[0]; const o = new Float32Arra
 /* ---------- proiezione con z-buffer ---------- */
 // view: proj(x,y,z) -> [u, v, profondità] (u a destra, v in basso, profondità più grande = più vicino)
 // parts: [{tris, lab}] (lab = etichetta intera >0; oppure labOf(tri centro) per dividere una parte)
-function render(parts, proj, pxPerM) {
-  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
-  for (const p of parts) for (let k = 0; k < p.tris.length; k += 3) {
-    const [u, v] = proj(p.tris[k], p.tris[k + 1], p.tris[k + 2]);
-    if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v;
+// frame: {u0, v0, w, h} per disegnare nello stesso riferimento di un'altra immagine (sagome intere delle singole ossa)
+function render(parts, proj, pxPerM, frame) {
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity, w, h;
+  if (frame) ({u0, v0, w, h} = frame);
+  else {
+    for (const p of parts) for (let k = 0; k < p.tris.length; k += 3) {
+      const [u, v] = proj(p.tris[k], p.tris[k + 1], p.tris[k + 2]);
+      if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v;
+    }
+    const pad = 0.01; u0 -= pad; v0 -= pad; u1 += pad; v1 += pad;
+    w = Math.ceil((u1 - u0) * pxPerM); h = Math.ceil((v1 - v0) * pxPerM);
   }
-  const pad = 0.01; u0 -= pad; v0 -= pad; u1 += pad; v1 += pad;
-  const w = Math.ceil((u1 - u0) * pxPerM), h = Math.ceil((v1 - v0) * pxPerM);
   const L = new Int32Array(w * h), D = new Float32Array(w * h).fill(-Infinity);
   const P = new Float32Array(9);
   for (const p of parts) {
@@ -142,12 +146,12 @@ function simplify(pts, tol) { // Douglas-Peucker su anello chiuso
   const A = dp(pts.slice(0, far + 1)), B = dp([...pts.slice(far), pts[0]]);
   return [...A, ...B.slice(1, -1)];
 }
-// anelli in unità della figura -> tracciato SVG relativo con un decimale
-function toPath(loops, k) {
+// anelli in unità della figura -> tracciato SVG relativo con un decimale (ox, oy: spostamento in unità della figura)
+function toPath(loops, k, ox = 0, oy = 0) {
   let s = '', px = 0, py = 0;
   for (const lp of loops) {
     lp.forEach((p, i) => {
-      const x = Math.round(p[0] * k * 10), y = Math.round(p[1] * k * 10);
+      const x = Math.round((p[0] * k + ox) * 10), y = Math.round((p[1] * k + oy) * 10);
       if (i === 0) s += 'M' + (x / 10) + ' ' + (y / 10); else { const dx = (x - px) / 10, dy = (y - py) / 10; s += 'l' + dx + (dy < 0 ? '' : ' ') + dy; }
       px = x; py = y;
     });
@@ -166,6 +170,47 @@ function centers(R, labSide) {
   for (let y = 0; y < R.h; y++) for (let x = 0; x < R.w; x++) { const l = R.L[y * R.w + x]; if (!l) continue; const s = labSide ? labSide(l, x / R.w) : ''; const k = l + '|' + s; const a = acc.get(k) || [0, 0, 0]; a[0] += x; a[1] += y; a[2]++; acc.set(k, a); }
   return acc;
 }
+
+/* ---------- sagoma intera di un osso (senza ciò che lo copre), nello stesso riferimento di R ---------- */
+// Serve per i pezzi del puzzle (una costa intera, non i tratti che si vedono tra le altre) e per sapere quanta
+// parte dell'osso si vede in una vista (vis = pixel visibili / pixel della sagoma).
+function solo(parts, proj, R) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const p of parts) for (let k = 0; k < p.tris.length; k += 3) {
+    const [u, v] = proj(p.tris[k], p.tris[k + 1], p.tris[k + 2]), x = (u - R.u0) * R.pxPerM, y = (v - R.v0) * R.pxPerM;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  x0 = Math.floor(x0) - 2; y0 = Math.floor(y0) - 2;
+  const w = Math.ceil(x1) - x0 + 3, h = Math.ceil(y1) - y0 + 3;
+  const S = render(parts.map(p => ({tris: p.tris, lab: 1})), proj, R.pxPerM, {u0: R.u0 + x0 / R.pxPerM, v0: R.v0 + y0 / R.pxPerM, w, h});
+  let n = 0; for (let i = 0; i < S.L.length; i++) if (S.L[i]) n++;
+  return {loops: trace(S).get(1) || [], x0, y0, n};
+}
+function soloOut(parts, proj, R, k, ox, oy) {
+  const so = solo(parts, proj, R), d = toPath(so.loops, k, so.x0 * k + ox, so.y0 * k + oy);
+  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+  for (const lp of so.loops) for (const [x, y] of lp) { const X = (x + so.x0) * k + ox, Y = (y + so.y0) * k + oy; bx0 = Math.min(bx0, X); by0 = Math.min(by0, Y); bx1 = Math.max(bx1, X); by1 = Math.max(by1, Y); }
+  return {d, b: [+bx0.toFixed(1), +by0.toFixed(1), +(bx1 - bx0).toFixed(1), +(by1 - by0).toFixed(1)], n: so.n};
+}
+// assi principali di una nuvola di punti (autovettori della covarianza, dal più lungo al più corto), metodo di Jacobi
+function axes(V) {
+  const m = [0, 0, 0], n = V.length / 3; for (let k = 0; k < V.length; k += 3) for (let c = 0; c < 3; c++) m[c] += V[k + c] / n;
+  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (let k = 0; k < V.length; k += 3) for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) A[i][j] += (V[k + i] - m[i]) * (V[k + j] - m[j]) / n;
+  const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  for (let it = 0; it < 50; it++) for (const [p, q] of [[0, 1], [0, 2], [1, 2]]) {
+    if (Math.abs(A[p][q]) < 1e-15) continue;
+    const th = (A[q][q] - A[p][p]) / (2 * A[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), sn = t * c;
+    for (let k = 0; k < 3; k++) { const a = A[k][p], b = A[k][q]; A[k][p] = c * a - sn * b; A[k][q] = sn * a + c * b; }
+    for (let k = 0; k < 3; k++) { const a = A[p][k], b = A[q][k]; A[p][k] = c * a - sn * b; A[q][k] = sn * a + c * b; }
+    for (let k = 0; k < 3; k++) { const a = E[k][p], b = E[k][q]; E[k][p] = c * a - sn * b; E[k][q] = sn * a + c * b; }
+  }
+  return [0, 1, 2].map(i => ({l: A[i][i], v: [E[0][i], E[1][i], E[2][i]]})).sort((a, b) => b.l - a.l).map(a => a.v);
+}
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const neg = a => a.map(x => -x);
+const centroid = parts => { const m = [0, 0, 0]; let n = 0; for (const p of parts) for (let k = 0; k < p.verts.length; k += 3) { m[0] += p.verts[k]; m[1] += p.verts[k + 1]; m[2] += p.verts[k + 2]; n++; } return m.map(x => x / n); };
 
 /* ---------- corpo: ossa, vista anteriore e posteriore ---------- */
 const SKIP = /(cells of ethmoid|Sinus of|Incus|Malleus|Stapes|cartilage(?! of .* rib)|Arytenoid|Corniculate|Cricoid|Thyroid|alar|Sesamoid)/i;
@@ -187,10 +232,49 @@ for (const [v, proj] of Object.entries(views)) {
   for (const [lab, lp] of loops) {
     const k = bodyLab.names[lab - 1], c = {};
     for (const s of ['r', 'l']) { const a = C.get(lab + '|' + s); if (a && a[2] > 20) c[s] = [+(a[0] / a[2] * bodyK).toFixed(1), +(a[1] / a[2] * bodyK).toFixed(1), a[2]]; }
-    out[k] = {d: toPath(lp, bodyK), c};
+    // sagoma intera del lato destro (o dell'osso intero se è impari) e quota visibile di quel lato
+    const mine = ossa.filter(p => p.lab === lab), right = mine.filter(p => side(p.name) === 'r'), paired = right.length > 0;
+    const full = soloOut(paired ? right : mine, proj, R, bodyK, 0, 0);
+    const seen = paired ? (C.get(lab + '|r') || [0, 0, 0])[2] : ((C.get(lab + '|r') || [0, 0, 0])[2] + (C.get(lab + '|l') || [0, 0, 0])[2]);
+    out[k] = {d: toPath(lp, bodyK), c, full: {d: full.d, b: full.b}, vis: +Math.min(1, seen / Math.max(1, full.n)).toFixed(2)};
   }
   body.views[v] = out;
   console.log('corpo', v, R.w + '×' + R.h, Object.keys(out).length, 'ossa visibili');
+}
+
+/* ---------- viste di zona: mano (palmare, dorsale) e piede (dall'alto, dal basso), solo il lato destro ---------- */
+// Nella vista anteriore del corpo la mano e soprattutto il piede si vedono di scorcio (le dita del piede puntano verso
+// chi guarda): per il puzzle e per le domande sulle ossa piccole si usa una vista perpendicolare alla zona, ricavata
+// dagli assi principali delle sue ossa. Disegno centrato e ingrandito nello stesso spazio 300×H della figura.
+body.zviews = {};
+{
+  const HAND = /^(Scaphoid|Lunate|Triquetrum|Pisiform|Trapezium|Trapezoid|Capitate|Hamate) bone$|metacarpal bone$|phalanx of .* of hand$/;
+  const FOOT = /^(Talus|Calcaneus|Navicular bone|Cuboid bone|(Medial|Intermediate|Lateral) cuneiform bone)$|metatarsal bone$|phalanx of .* of foot$/;
+  const PX_Z = 8000;
+  for (const [zone, rx, proxRx, distRx, views] of [
+    // mano: in alto il polso; palmare = da davanti nella posizione anatomica
+    ['mano', HAND, / bone$/, /phalanx/, [['mp', n => n[2] > 0 ? n : neg(n)], ['md', n => n[2] > 0 ? neg(n) : n]]],
+    // piede: in alto le dita; dall'alto (dorso) e dal basso (pianta)
+    ['piede', FOOT, /^Calcaneus$/, /phalanx/, [['pd', n => n[1] > 0 ? n : neg(n)], ['pp', n => n[1] > 0 ? neg(n) : n]]]]) {
+    const parts = ossa.filter(p => side(p.name) === 'r' && rx.test(base(p.name)));
+    const ax = axes(concat(parts.map(p => p.verts)));
+    const prox = centroid(parts.filter(p => proxRx.test(base(p.name)))), dist = centroid(parts.filter(p => distRx.test(base(p.name))));
+    const toward = zone === 'mano' ? prox.map((x, i) => x - dist[i]) : dist.map((x, i) => x - prox[i]);
+    const up = dot(ax[0], toward) > 0 ? ax[0] : neg(ax[0]);
+    for (const [key, orient] of views) {
+      const n = orient(ax[2]), right = cross(up, n);
+      const proj = (x, y, z) => { const p = [x, y, z]; return [dot(p, right), -dot(p, up), dot(p, n)]; };
+      const R = render(parts, proj, PX_Z), loops = trace(R), C = centers(R);
+      const k = Math.min(270 / R.w, 300 / R.h), ox = (300 - R.w * k) / 2, oy = (body.H - R.h * k) / 2;
+      const out = {};
+      for (const [lab, lp] of loops) {
+        const name = bodyLab.names[lab - 1], a = C.get(lab + '|'), full = soloOut(parts.filter(p => p.lab === lab), proj, R, k, ox, oy);
+        out[name] = {d: toPath(lp, k, ox, oy), c: a ? [+(a[0] / a[2] * k + ox).toFixed(1), +(a[1] / a[2] * k + oy).toFixed(1)] : null, full: {d: full.d, b: full.b}, vis: +Math.min(1, (a ? a[2] : 0) / Math.max(1, full.n)).toFixed(2)};
+      }
+      body.zviews[key] = out;
+      console.log('zona', key, R.w + '×' + R.h, Object.keys(out).length, 'ossa visibili, scala', k.toFixed(3));
+    }
+  }
 }
 
 /* ---------- aree di origine e inserzione: osso su cui stanno e punto visibile in ogni vista ---------- */

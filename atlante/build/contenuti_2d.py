@@ -68,6 +68,15 @@ NEW_GROUPS = {
 FIX_GROUPS = {'metacarpo': {'n': 'Ossa del metacarpo', 'l': 'Ossa metacarpi', 'f': 'Cinque ossa lunghe del palmo, tra carpo e falangi; il primo (del pollice) è il più corto e il più mobile.'},
               'metatarso': {'n': 'Ossa del metatarso', 'l': 'Ossa metatarsi', 'f': 'Cinque ossa lunghe tra tarso e falangi; le teste dei metatarsi sono i punti d\'appoggio anteriori del piede.'}}
 
+# viste di zona (proietta_2d.mjs): nome sul pulsante e vista opposta a cui passa toccandolo
+ZVIEWS = {'mp': {'n': 'Mano · palmare', 'alt': 'md'}, 'md': {'n': 'Mano · dorsale', 'alt': 'mp'},
+          'pd': {'n': 'Piede · dall\'alto', 'alt': 'pp'}, 'pp': {'n': 'Piede · pianta', 'alt': 'pd'}}
+ZONE_PAIRS = {g: [('mp', 'md')] for g in ('carpo', 'metacarpo', 'falangi-mano')} | {g: [('pd', 'pp')] for g in ('tarso', 'metatarso', 'falangi-piede')}
+
+def full(s, v, x):
+    """sagoma intera del lato destro (pezzi del puzzle), il suo riquadro e la quota che se ne vede in quella vista"""
+    s.setdefault('sf', {})[v] = x['full']['d']; s.setdefault('sb', {})[v] = x['full']['b']; s.setdefault('vis', {})[v] = x['vis']
+
 def body():
     B = P['body']; V = B['views']; areas = B['areas']
     names = sorted(set(V['a']) | set(V['p']))
@@ -86,12 +95,23 @@ def body():
         s = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': gid[n], 'f': f, 's': {}, 'c': {}}
         for v in ('a', 'p'):
             paired = (n + '.r') in D['objs'] or n == 'Costal cartilages' or n.endswith(' rib')
-            if n in V[v]: s['s'][v] = split_sides(V[v][n]['d'], B['W'], v) if paired else shape(V[v][n]['d']); s['c'][v] = center(V[v][n]['c'])
+            if n in V[v]:
+                s['s'][v] = split_sides(V[v][n]['d'], B['W'], v) if paired else shape(V[v][n]['d']); s['c'][v] = center(V[v][n]['c'])
+                full(s, v, V[v][n])
+        # viste di zona (mano, piede): solo il lato destro, già nello spazio della figura
+        for v, Z in B['zviews'].items():
+            if n in Z: s['s'][v] = shape(Z[n]['d']); s['c'][v] = Z[n]['c']; full(s, v, Z[n])
         structures.append(s)
     out_groups = []
+    vis = {x['id']: x['vis'] for x in structures}
     for g, _ in GROUPS_BODY:
         m = [sid(n) for n in names if gid[n] == g]
-        if m: out_groups.append({'id': g, **groups[g], 'm': m})
+        if not m: continue
+        G = {'id': g, **groups[g], 'm': m}
+        # vista di zona preferita: quella delle due in cui si vedono meglio i membri (a pari merito la prima)
+        for pair in ZONE_PAIRS.get(g, []):
+            G['zv'] = max(pair, key=lambda v: sum(min(vis[x].get(v, 0), .5) for x in m))
+        out_groups.append(G)
     # muscoli: ossa di origine e inserzione dalle aree della fonte; se mancano, dal testo della scheda
     known = {n: sid(n) for n in names}
     muscles, nofonte = [], 0
@@ -123,7 +143,7 @@ def body():
     for c in cases:
         if c.get('mid'): c['mid'] = slug(c['mid'])
     path = os.path.join(ROOT, 'content/corpo.json')
-    out = {'version': bump_version(path), 'id': 'corpo', 'label': '🦴 Corpo', 'W': B['W'], 'H': B['H'], 'views': ['a', 'p'],
+    out = {'version': bump_version(path), 'id': 'corpo', 'label': '🦴 Corpo', 'W': B['W'], 'H': B['H'], 'views': ['a', 'p'], 'zviews': ZVIEWS,
            'fonte': 'Forme proiettate dal modello 3D Z-Anatomy (CC BY-SA 4.0), vedi atlante/CREDITI.md',
            'structures': structures, 'groups': out_groups, 'muscles': muscles, 'cases': cases}
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
