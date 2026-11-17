@@ -22,7 +22,16 @@ header{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 2px}
 .tbar.t2{padding-top:0}
 #fig svg{flex:1 1 0;min-height:0;width:100%;height:100%;display:block;touch-action:none}
-#panel{flex:0 0 auto;max-height:46vh;overflow:auto;background:var(--card);border-top:1px solid var(--line);padding:12px 14px}
+/* scheda sotto la figura; la freccia sul bordo in alto a destra la abbassa (resta l'inizio del testo) e la rialza */
+#pw{flex:0 0 auto;position:relative;display:flex;flex-direction:column;max-height:46vh;background:var(--card);border-top:1px solid var(--line)}
+#pw[hidden]{display:none}
+#panel{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 14px}
+#fold{position:absolute;z-index:3;top:-14px;right:12px;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);box-shadow:0 1px 4px #0002;cursor:pointer}
+#fold:before{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:translate(-50%,-70%) rotate(45deg);transition:transform .2s}
+#pw.fold #fold:before{transform:translate(-50%,-30%) rotate(-135deg)}
+/* abbassata: striscia di due righe che si può scorrere; in gioco resta la domanda (punteggio e cuori nascosti) */
+#pw.fold #panel{max-height:68px;padding-top:8px;padding-bottom:8px;-webkit-mask-image:linear-gradient(#000 70%,#0008);mask-image:linear-gradient(#000 70%,#0008)}
+#pw.fold .gh{display:none}
 /* barra a schede: icona sopra, nome sotto; il margine in basso lascia libera la lineetta di sistema dell'iPhone
    (env() funziona grazie a viewport-fit=cover nel meta viewport) */
 nav{display:flex;background:var(--card);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right) max(4px,env(safe-area-inset-bottom)) env(safe-area-inset-left)}
@@ -105,7 +114,8 @@ button.lnk{font:inherit;font-size:14px;background:none;border:0;padding:4px 0;co
 .gform .err,.pfe .err{color:var(--bad)}.gform .okm{color:var(--ok)}
 .note{color:var(--mut);font-size:12px}
 /* profilo: a tutto schermo, senza figura */
-.pg #fig{display:none}.pg #panel{flex:1 1 0;max-height:none;border-top:0}
+.pg #fig{display:none}.pg #pw{flex:1 1 0;max-height:none;border-top:0}.pg #fold{display:none}
+.pg #pw.fold #panel{max-height:none;overflow:auto;-webkit-mask-image:none;mask-image:none}
 .pg #panel>*{max-width:640px;margin-left:auto;margin-right:auto}
 .pf{display:flex;gap:12px;align-items:center;margin-bottom:10px}
 .pfi{min-width:0;flex:1}
@@ -131,3 +141,20 @@ button.lnk{font:inherit;font-size:14px;background:none;border:0;padding:4px 0;co
 .acc form .btn{margin:0}
 .acc .err{color:var(--bad)}.acc .okm{color:var(--ok)}
 .acc .note{color:var(--mut);font-size:12px}
+/* scheda Amici: classifiche e richieste */
+nav button{position:relative}
+nav button.dot:after{content:"";position:absolute;top:5px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
+.seg{margin:8px 0}
+.cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center}
+.lb{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--line)}
+.lb.me{background:var(--bg);border-radius:10px}
+.lb .pos{flex:none;width:26px;text-align:center;font-weight:700;font-size:14px;color:var(--mut)}
+.sav{flex:none;width:32px;height:32px;border-radius:50%;object-fit:cover;background:var(--acc);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.lb .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.lb .nm small{color:var(--mut);font-weight:400}
+.lb .sk{font-size:13px;color:var(--mut)}
+.lb b{font-size:14px;white-space:nowrap}
+.lb .pb{display:flex;gap:6px;align-items:center}
+.gap{text-align:center;color:var(--mut);padding:2px}
+.soq{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;margin-bottom:4px}
+.err{color:var(--bad)}

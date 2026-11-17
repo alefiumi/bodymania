@@ -8,6 +8,7 @@ import {addAccountListener,wireAccount} from './account.js';
 import {refreshProg,wireProfile} from './progress.js';
 import {boot,wireGate,openLogin} from './gate.js';
 import {checkBadges} from './badges.js';
+import {wireSocial,socialAccountChanged} from './social.js';
 
 /* ---------- sfondo chiaro o scuro ---------- */
 // Senza scelta segue il sistema; il pulsante salva la scelta (anche l'atlante 3D la legge, vedi atlante.js).
@@ -53,6 +54,7 @@ onSave(()=>{const f=checkBadges();if(f.length){save();toast('🏅 Nuovo badge: '
 /* ---------- schermata di avvio, account e profilo ---------- */
 // l'app si prepara sotto la schermata di avvio, che intanto controlla aggiornamenti, sincronizzazione e accesso
 wireGate();wireAccount($('panel'),()=>openLogin('',true));wireProfile($('panel'));addAccountListener(refreshProg);
+wireSocial($('panel'));addAccountListener(socialAccountChanged);
 boot();
 try{
  const c=await loadContent();

@@ -6,6 +6,7 @@ import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
 import {placeAttempt} from './puzzle.js';
 import {renderProg} from './progress.js';
+import {renderSocial,loadSocial,setSocialOpen} from './social.js';
 import {showInstall,promptInstall} from './install.js';
 
 export function useMod(id){
@@ -16,7 +17,7 @@ export function useMod(id){
 // L'atlante 3D è una pagina a sé (atlante/index.html) in un iframe: si carica la prima volta che si apre la
 // scheda e resta in memoria, così passando da una scheda all'altra non si perde la vista.
 function showAtlas(on){
- $('fig').hidden=$('panel').hidden=on;$('atlas').hidden=!on;
+ $('fig').hidden=$('pw').hidden=on;$('atlas').hidden=!on;
  if(on&&!$('atlas').firstChild)$('atlas').innerHTML='<iframe src="atlante/index.html" title="Atlante 3D" allow="fullscreen"></iframe>';
 }
 // Giochi 3D: la partita si svolge nell'atlante, che rimanda qui ogni risposta per XP, serie e maestria.
@@ -34,11 +35,18 @@ window.addEventListener('message',e=>{
  else if(d.type==='menu')setTab('play');
 });
 function setTab(t){
- app.tab=t;document.body.classList.toggle('pg',t==='prog'); // il profilo usa tutto lo schermo, senza figura
+ app.tab=t;document.body.classList.toggle('pg',t==='prog'||t==='soc'); // profilo e amici usano tutto lo schermo, senza figura
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
  showAtlas(t==='atlas');if(t==='atlas')return;
- clearGhosts();clearMarks();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg})[t]();
+ clearGhosts();clearMarks();resetZoom(false);refreshMastery();({explore:renderExplore,play:renderMenu,prog:renderProg,soc:renderSocial})[t]();if(t==='soc')loadSocial();
 }
+setSocialOpen(()=>app.tab==='soc');
+/* Freccia sul bordo della scheda sotto la figura: la abbassa (resta una striscia con l'inizio del testo, la figura si allarga)
+   e la rialza. La scelta resta salvata (bodymania-fold). */
+const FOLD='bodymania-fold';
+function setFold(f){$('pw').classList.toggle('fold',f);const t=f?'Rialza la scheda':'Abbassa la scheda';$('fold').title=t;$('fold').setAttribute('aria-label',t);try{localStorage.setItem(FOLD,f?'1':'');}catch(e){}}
+try{setFold(!!localStorage.getItem(FOLD));}catch(e){setFold(false);}
+$('fold').addEventListener('click',()=>setFold(!$('pw').classList.contains('fold')));
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.t);});
 $('fig').addEventListener('click',e=>{
  const zb=e.target.closest('.zc button');

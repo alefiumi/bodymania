@@ -37,7 +37,6 @@ insert into public.badge_classes (id, name, description, criteria, image) values
   ('d3', 'In tre dimensioni', 'Finisci una partita sul modello 3D', 'Finisci una partita sul modello 3D', '🧍'),
   ('d3tutti', 'Esploratore 3D', 'Gioca tutte e quattro le sfide sul modello 3D', 'Gioca tutte e quattro le sfide sul modello 3D', '🌐'),
   ('casi5', 'Occhio clinico', 'Finisci 5 casi clinici', 'Finisci 5 casi clinici', '🩺'),
-  ('moduli', 'Giramondo', 'Gioca in tutti i moduli: corpo, cervello laterale e sagittale, 3D', 'Gioca in tutti i moduli: corpo, cervello laterale e sagittale, 3D', '🗺️'),
-  ('corpo', 'sag', '3d', '3d', 'lat')
+  ('moduli', 'Giramondo', 'Gioca in tutti i moduli: corpo, cervello laterale e sagittale, 3D', 'Gioca in tutti i moduli: corpo, cervello laterale e sagittale, 3D', '🗺️')
 on conflict (id) do update set name = excluded.name, description = excluded.description,
   criteria = excluded.criteria, image = excluded.image;
