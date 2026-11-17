@@ -3,6 +3,7 @@
    Con un account la cui sessione non vale più (per esempio dopo aver giocato offline a lungo) chiede di accedere di nuovo;
    chi preferisce può continuare senza account e sincronizzare dopo dal profilo. */
 import {$,toast} from './util.js';
+import {installHint} from './install.js';
 import {S} from './state.js';
 import {account as A,configured,startAccount,addAccountListener,lastAccount,signIn,signUp,google,resetPw,setView,saveProfile,NAME_RE,NAME_RULE,esc,resolveOwner,signOut,hasPassword,importDevice} from './account.js';
 
@@ -15,6 +16,7 @@ const timeout=(p,ms,v)=>Promise.race([p,wait(ms).then(()=>v)]);
 
 export function closeGate(){
  mode='closed';A.err='';A.msg='';const g=$('gate');g.classList.add('out');setTimeout(()=>{if(mode==='closed')g.hidden=true;},250);
+ setTimeout(installHint,1500); // nel browser: striscia "Installa l'app sul telefono"
 }
 function show(){const g=$('gate');g.hidden=false;g.classList.remove('out');}
 

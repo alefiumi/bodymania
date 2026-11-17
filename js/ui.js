@@ -7,7 +7,7 @@ import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridg
 import {placeAttempt} from './puzzle.js';
 import {renderProg} from './progress.js';
 import {renderSocial,loadSocial,setSocialOpen} from './social.js';
-import {showInstall,promptInstall} from './install.js';
+import {showInstall,promptInstall,installNow} from './install.js';
 
 export function useMod(id){
  const MOD=app.MODS[id];if(!MOD)return;
@@ -87,7 +87,7 @@ $('panel').addEventListener('click',e=>{
  else if(t.classList.contains('opt')&&G&&G.cur.t==='musc')answerMusc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='func')answerFunc(t.dataset.id);
  else if(t.classList.contains('opt')&&G&&G.cur.t==='nc')answerNc(t.dataset.k);
- else if(t.classList.contains('act')){const a=t.dataset.act;if(a==='ncl')showNc();else if(a==='inst')showInstall();else if(a==='prompt')promptInstall();else renderExplore();}
+ else if(t.classList.contains('act')){const a=t.dataset.act;if(a==='ncl')showNc();else if(a==='inst')installNow();else if(a==='insthelp')showInstall();else if(a==='prompt')promptInstall();else renderExplore();}
  else if(t.classList.contains('opt')&&G&&G.cur.t==='case')answerCase(t.dataset.o);
  else if(t.classList.contains('more')&&G&&G.cur.t==='case'){G.cur.clues++;casePanel();}
  else if(t.classList.contains('undo')&&G&&G.cur.t==='bridge'){G.cur.step=0;G.cur.first=null;clearMarks();bridgePrompt();}

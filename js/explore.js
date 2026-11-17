@@ -8,7 +8,7 @@ export function renderExplore(){
  app.sel=null;const body=app.MOD.id==='corpo';
  $('panel').innerHTML=`<div class="h">${body?'Esplora lo scheletro':'Esplora il cervello'}</div><p class="mut">${body?'Tocca un osso per vedere nome, funzione e muscoli collegati; tocca un muscolo per vedere origine (O) e inserzione (I). In alto scegli la vista (anteriore, laterale, dall\'alto…) e ossa singole o gruppi.':'Tocca una struttura per vedere nome e funzione. In alto scegli la vista (emisferi, sagittale, frontale, dall\'alto, dal basso) e giri e solchi o lobi e aree.'} Usa ＋ − o pizzica per ingrandire.</p>`+
   '<p class="mut">Forme ricavate dal modello 3D Z-Anatomy (CC BY-SA 4.0); testi scritti dall\'AI, da verificare.</p>'+(body?'':'<button class="btn alt act" data-act="ncl">📖 Nervi cranici</button>')+`<div class="leg">Colori: beige/pastello = da studiare · verde = in corso · oro = padroneggiato</div>`+
-  (isStandalone()?'':'<button class="btn alt act" data-act="inst">📲 Installa l\'app</button>');
+  (isStandalone()?'':'<button class="btn alt act" data-act="inst">📲 Installa l\'app</button><button class="lnk act" data-act="insthelp">Altri telefoni e uso offline</button>');
 }
 export function showNc(){
  clearMarks();

@@ -52,6 +52,11 @@ Prototipo diviso in:
   scorrevole, in gioco resta la domanda) e la rialza; scelta in `bodymania-fold`. Stessa freccia nell'atlante 3D (`bodymania-fold3d`).
 - Spunta verde in alto a destra (`#off`) quando la copia offline è pronta; il pulsante "Installa l'app"
   in Esplora compare solo fuori dall'app installata.
+  Installazione (`installNow()` in `install.js`): su Android con la richiesta del browser (`beforeinstallprompt`) un tocco apre
+  la finestra di installazione; su iPhone (Apple non lascia installare i siti da soli) una guida a schermo intero (`#iguide`)
+  con i tre passi, le icone di Condividi e "Aggiungi alla schermata Home" e una freccia verso Condividi; nei browser dentro
+  altre app (Instagram, Facebook, Gmail…) dice di aprire in Safari o Chrome. Nel browser, dopo l'avvio, una striscia
+  "📲 Installa l'app sul telefono" sopra la barra in basso (`#ibar`, chiusa con ✕ non torna: `bodymania-installhint`).
 - `content/`: `index.json` (versione globale, ordine dei moduli), `corpo.json`, `cervello.json`,
   `neuro-strutture.json` (testi dei gruppi del cervello), `nervi-cranici.json`. Ogni file ha `version`.
   Le forme sono descrizioni come `{"poly":"M…"}`, `{"ln":[x1,y1,x2,y2,spessore]}`, `{"stack":[x,y,w,h,n]}`

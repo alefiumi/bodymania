@@ -173,3 +173,14 @@ nav button.dot:after{content:"";position:absolute;top:5px;left:calc(50% + 8px);w
 .cons{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;text-align:left;margin:2px 0 6px;color:var(--mut)}
 .cons input{flex:none;width:18px;height:18px;margin:1px 0 0}
 .chip.bad{color:var(--bad);border-color:var(--bad)}
+/* installazione: guida a schermo intero (iPhone) e striscia sopra la barra in basso */
+#iguide{position:fixed;inset:0;z-index:40;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
+.ig-card{background:var(--card);color:var(--ink);border-radius:16px;padding:16px 18px;max-width:420px;width:100%;box-shadow:0 10px 30px #0006}
+.ig-card ol{padding-left:22px;margin:8px 0}.ig-card li{margin:8px 0;line-height:1.4}
+.ig-i{display:inline-flex;vertical-align:middle;color:#0a84ff;background:var(--bg);border-radius:6px;padding:1px 3px}
+.ig-arrow{position:fixed;left:50%;transform:translateX(-50%);font-size:44px;color:#fff;animation:igb 1s ease-in-out infinite;text-shadow:0 2px 8px #000}
+.ig-arrow.bottom{bottom:calc(6px + env(safe-area-inset-bottom))}.ig-arrow.top{top:calc(6px + env(safe-area-inset-top));left:auto;right:18px;transform:none}
+@keyframes igb{50%{translate:0 8px}}.ig-arrow.top{animation-name:igt}@keyframes igt{50%{translate:0 -8px}}
+#ibar{flex:none;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--acc);color:#fff}
+#ibar button{background:none;border:0;color:#fff;font-weight:700;font-size:14px;padding:6px 4px}
+#ibar .ib-go{flex:1;text-align:left}
