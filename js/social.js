@@ -27,11 +27,11 @@ export async function loadSocial(){
  try{
   const sb=A.sb,uid=A.user.id,cols='id,username,xp,streak,avatar';
   const [all,fr,rel]=await Promise.all([
-   sb.from('leaderboard').select(cols).order('xp',{ascending:false}).limit(50),
+   sb.from('leaderboard').select(cols).order('xp',{ascending:false}).limit(100),
    sb.from('leaderboard_friends').select(cols).order('xp',{ascending:false}).limit(200),
    sb.from('friendships').select('user_id,friend_id,status,created_at')]);
   for(const r of [all,fr,rel])if(r.error)throw r.error;
-  // posizione propria se non è tra i primi 50
+  // posizione propria se non è tra i primi 100
   let rank=null;
   if(A.profile&&A.profile.username&&!all.data.some(r=>r.id===uid)){
    const {count,error}=await sb.from('leaderboard').select('id',{count:'exact',head:true}).gt('xp',S.xp);if(!error)rank=(count||0)+1;
