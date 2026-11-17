@@ -39,6 +39,9 @@ Prototipo diviso in:
   `state.js` (stato condiviso `app`, salvataggio), `figure.js` (figura, zoom, pan), `explore.js`,
   `game.js`, `puzzle.js`, `progress.js`, `ui.js` (cambio di modulo e tab, clic),
   `gate.js` (schermata di avvio), `account.js`, `badges.js`, `social.js` (scheda Amici), `install.js` (pannello "Installa e usa offline": istruzioni per browser, stato della copia offline).
+- Computer e tablet in orizzontale (almeno 900 px e più larghi che alti, `@media` in fondo a `css/style.css` e in
+  `atlante/index.html`): figura a sinistra e scheda a destra (griglia), senza la freccia `#fold`; in colonna la figura restava
+  alta 180 px e le risposte uscivano dallo schermo. Se la finestra cambia forma e la figura era intera, si riadatta (`atHome()`).
 - Figura: barra `.tbar` sopra il disegno (moduli a sinistra, zoom a destra), mai sovrapposta; l'svg occupa
   tutta la larghezza e mantiene le proporzioni (con lo zoom si vede anche ciò che sta ai lati).
   Zoom: pulsanti, rotella, pizzico a due dita con eventi touch (su iPhone gli eventi pointer a due dita

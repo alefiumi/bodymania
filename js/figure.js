@@ -59,7 +59,7 @@ const maxW=()=>Math.max(app.MOD.W,app.MOD.H/scrAsp());
 // il riquadro resta sulla figura; se è più grande della figura, la figura sta al centro
 const clampT=t=>{const {W,H}=app.MOD;return {...t,x:t.w>=W?(W-t.w)/2:Math.max(0,Math.min(W-t.w,t.x)),y:t.h>=H?(H-t.h)/2:Math.max(0,Math.min(H-t.h,t.y))};};
 export function setVB(t,anim){
- const id=++tw;t=clampT(t);
+ const id=++tw;t=clampT(t);lastT=t;
  if(!anim){app.VB=t;applyVB();return;}
  const s0={...app.VB},t0=performance.now();
  (function f(n){if(id!==tw)return;const k=Math.min(1,(n-t0)/260),e=k*(2-k);
@@ -69,7 +69,11 @@ export function setVB(t,anim){
 export function resetZoom(anim){
  const g=activeView(),b=g&&g.getBBox();
  if(b&&b.width>0)focusPts([[b.x,b.y],[b.x+b.width,b.y+b.height]],6,anim,0);else setVB({x:0,y:0,w:app.MOD.W,h:app.MOD.H},anim);
+ homeT=lastT;
 }
+// ultimo riquadro chiesto e quello della vista intera: se la finestra cambia forma e la figura era intera, si riadatta
+let lastT=null,homeT=null;
+const atHome=()=>{const V=app.VB,h=homeT;return h&&Math.abs(V.x-h.x)+Math.abs(V.y-h.y)+Math.abs(V.w-h.w)<1;};
 // doppio tocco: ingrandisce 2,5 volte centrando il punto toccato; se il passo dopo andrebbe oltre l'ingrandimento utile
 // (meno di 1/12 della larghezza della figura), torna alla vista intera
 export function doubleTapZoom(x,y){
@@ -181,7 +185,7 @@ export const muscleHtml=m=>`<div class="md"><b>${m.n}</b> <i class="mut">${m.l||
 // Safari a volte non ridisegna l'svg quando cambia la sua altezza (scheda abbassata o rialzata) e lascia sullo schermo
 // pezzi del disegno vecchio accanto a quello nuovo: a ogni cambio di misura lo si costringe a ridisegnare tutto.
 if(window.ResizeObserver){let last='';new ResizeObserver(()=>{const s=svgEl();if(!s)return;const r=s.getBoundingClientRect(),k=Math.round(r.width)+'x'+Math.round(r.height);if(k===last)return;last=k;
- s.style.transform='translateZ(0)';requestAnimationFrame(()=>{s.style.transform='';applyVB();});}).observe($('fig'));}
+ const home=atHome();s.style.transform='translateZ(0)';requestAnimationFrame(()=>{s.style.transform='';if(home)resetZoom(false);else applyVB();});}).observe($('fig'));}
 
 /* ---------- pan, pizzico e rotella ---------- */
 const ptrs=new Map();let pan=null,pinch=null,wasPan=false;

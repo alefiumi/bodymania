@@ -54,6 +54,12 @@ button.chip.on small{color:#ffffffcc}
 .gh{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
 .q{font-size:18px;margin-bottom:8px}.q i{font-weight:400;color:var(--mut);font-size:14px}
 .res{text-align:center}.big{font-size:32px}.emb #panel{padding-bottom:10px}
+/* computer e tablet in orizzontale: modello a sinistra e scheda a destra */
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+body{display:grid;grid-template-columns:minmax(0,1fr) clamp(340px,32vw,460px);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"h h" "b b" "v p"}
+header{grid-area:h}#bar{grid-area:b}#view{grid-area:v}#pw{grid-area:p;max-height:none;border-top:0;border-left:1px solid var(--line)}
+#fold{display:none}#pw.fold #panel{max-height:none;-webkit-mask-image:none;mask-image:none}#pw.fold .gh{display:flex}
+}
 </style>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
 </head>
