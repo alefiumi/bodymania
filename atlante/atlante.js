@@ -716,7 +716,7 @@ function gameTap(x,y){
 }
 function endGame(){
  const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
- toApp({type:'end',done});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
+ toApp({type:'end',done,set:G.set,score:G.score,total:G.q,gain:G.gain});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
 }
 function quitGame(){if(GAME)clearGameMarks();GAME=null;S.mus=null;S.mv='both';document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
 // risposta del gioco origine e inserzione: aree in blu (origine) e arancione (inserzione), testo della scheda

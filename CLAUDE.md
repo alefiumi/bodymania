@@ -57,7 +57,15 @@ Contenuto del gioco:
 - Modalità: Ricomponi (puzzle con trascinamento), Tendine-ponte, Caso clinico (indizi progressivi),
   Trova la struttura, Origine e inserzione, Funzione → struttura, Nervi cranici, Misto.
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.
-- Salvataggio solo locale: `localStorage`, chiave `bodymania-v1`.
+- Salvataggio locale: `localStorage`, chiave `bodymania-v1`. **L'account è facoltativo**: senza account si gioca e si
+  esplora tutto come prima e i progressi restano solo sul dispositivo.
+- Account (`js/account.js`, sezione in cima a Progressi): email e password o Google (Supabase Auth, flusso PKCE). La
+  libreria `vendor/supabase.js` (supabase-js 2.118.0, UMD) si carica solo se c'è una sessione o si apre l'accesso.
+  Configurazione in `js/config.js` (indirizzo del progetto e chiave pubblica anon; vuoti = solo locale).
+  All'accesso i progressi locali si uniscono al server tenendo il valore più alto (XP, risposte, maestria per voce;
+  per la serie vale il giorno più recente), poi dopo ogni `save()` parte un invio (3 s). Le partite finite vanno in
+  `bodymania-queue` (localStorage, id generato sul dispositivo) e si inviano con upsert che ignora i doppioni.
+  Uscendo i progressi restano sul dispositivo. Il nome utente si sceglie dopo la prima registrazione.
 - Sfondo chiaro o scuro: senza scelta segue il sistema; il pulsante 🌙/☀️ nell'intestazione (e nella barra dell'atlante
   aperto da solo) mette `data-theme` su `<html>` e lo salva in `localStorage` (`bodymania-theme`). Uno script in testa a
   `index.html` e `atlante/index.html` lo applica prima di disegnare; l'atlante nell'iframe segue l'app con l'evento `storage`.
@@ -153,10 +161,9 @@ Requisiti dell'autore per il 3D (16/11/2026):
 1. ~~Dividere `index.html` in contenuti JSON versionati e moduli JS~~ (fatto).
 2. ~~PWA: manifest, service worker con cache di app e contenuti, controllo delle versioni~~ (fatto;
    installazione su telefono vero ancora da provare).
-3. Supabase: schema e regole in file SQL versionati (`supabase/migrations/`).
-4. Registrazione e login (il primo accesso richiede la rete), pagina profilo.
-5. Sincronizzazione: coda locale in IndexedDB, invio idempotente (ogni partita ha un id
-   generato sul dispositivo), unione dei progressi locali con quelli del server.
+3. ~~Supabase: schema e regole in file SQL versionati (`supabase/migrations/`)~~ (scritti; da applicare al progetto).
+4. ~~Registrazione e login~~ (email e password, Google; da provare con il progetto vero), pagina profilo.
+5. ~~Sincronizzazione~~: coda locale (in localStorage invece di IndexedDB), invio idempotente, unione dei progressi.
 6. Amici (richiesta, accettazione) e due classifiche: tutti gli iscritti e solo amici.
 7. Badge, trofei e achievement mostrati nel profilo.
 8. Pubblicazione su GitHub Pages.

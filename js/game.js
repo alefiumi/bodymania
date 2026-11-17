@@ -1,6 +1,6 @@
 /* Tab Gioca: menu, quiz, Tendine-ponte, Caso clinico, fine partita. */
 import {$,shuffle,pick} from './util.js';
-import {app,S,bone,save,touchStreak,head,bump} from './state.js';
+import {app,S,bone,save,touchStreak,head,bump,queue} from './state.js';
 import {clearMarks,mark,refreshMastery,resetZoom,showMuscle,muscleHtml} from './figure.js';
 import {startPuzzle} from './puzzle.js';
 
@@ -77,7 +77,8 @@ export function answerMusc(id){
 export function endGame(){
  const G=app.G;
  clearGhosts();clearMarks();
- const pz=G.mode==='puzzle',n=pz?G.att:G.q,done=G.hearts>0&&(pz?!G.left.length:G.q>=G.total),bonus=done?20:0;S.xp+=bonus;G.gain+=bonus;save();head();
+ const pz=G.mode==='puzzle',n=pz?G.att:G.q,done=G.hearts>0&&(pz?!G.left.length:G.q>=G.total),bonus=done?20:0;S.xp+=bonus;G.gain+=bonus;
+ queue.add({module:app.MOD.id,mode:G.mode,score:G.score,total:n,xp:G.gain});save();head();
  const acc=n?G.score/n:0,st=acc>=.9?3:acc>=.6?2:1;
  $('panel').innerHTML=`<div class="res"><div class="big">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</div><div class="h">${G.score}/${n} corrette</div><p>+${G.gain} XP${done?' (bonus round +20)':''}</p>${G.hearts<=0?'<p class="mut">Cuori finiti: ripassa nella sezione Esplora e riprova.</p>':''}<button class="btn again">Rigioca</button><button class="btn alt menu">Cambia sfida</button></div>`;
 }

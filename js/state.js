@@ -8,7 +8,16 @@ export const bone=id=>app.B.find(b=>b.id===id);
 const KEY='bodymania-v1';
 export const S={xp:0,streak:0,last:'',mastery:{},ok:0,ko:0};
 try{Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){}
-export const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+// dopo ogni salvataggio l'account (se c'è) invia i progressi: account.js registra la funzione, qui niente import circolari
+let afterSave=null;export const onSave=f=>{afterSave=f;};
+export const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}afterSave&&afterSave();};
+// partite finite in attesa di invio al server (solo con un account; senza account restano qui e non vanno da nessuna parte)
+const QKEY='bodymania-queue';
+export const queue={
+ all(){try{return JSON.parse(localStorage.getItem(QKEY)||'[]');}catch(e){return [];}},
+ set(a){try{localStorage.setItem(QKEY,JSON.stringify(a.slice(-500)));}catch(e){}},
+ add(r){const a=queue.all();a.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),played_at:new Date().toISOString(),...r});queue.set(a);}
+};
 const ymd=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 export function touchStreak(){const t=ymd(new Date());if(S.last===t)return;S.streak=(S.last===ymd(new Date(Date.now()-864e5)))?S.streak+1:1;S.last=t;}
 const TITLES=['Matricola','Tirocinante','Studente di fisio','Terapista junior','Terapista esperto','Maestro di anatomia'];

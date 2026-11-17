@@ -80,3 +80,10 @@ button.btn.alt{background:var(--bg);color:var(--ink);border:1px solid var(--line
 .dots{letter-spacing:2px;color:#f0c75e}
 .leg{font-size:12px;color:var(--mut);margin-top:8px}
 #toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:10;max-width:calc(100% - 32px);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;box-shadow:0 2px 10px #0004}
+/* sezione Account in Progressi */
+.acc{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.acc form{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.acc input{flex:1 1 180px;font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.acc form .btn{margin:0}
+.acc .err{color:var(--bad)}.acc .okm{color:var(--ok)}
+.acc .note{color:var(--mut);font-size:12px}

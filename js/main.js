@@ -4,6 +4,8 @@ import {app,head} from './state.js';
 import {loadContent} from './content.js';
 import {useMod} from './ui.js';
 import {isStandalone,offlineReady,refreshOfflineBadge} from './install.js';
+import {initAccount,setAccountListener,wireAccount} from './account.js';
+import {renderProg} from './progress.js';
 
 /* ---------- sfondo chiaro o scuro ---------- */
 // Senza scelta segue il sistema; il pulsante salva la scelta (anche l'atlante 3D la legge, vedi atlante.js).
@@ -49,6 +51,9 @@ try{
  const c=await loadContent();
  app.MODS=c.MODS;app.NC=c.NC;
  useMod('corpo');head();
+ // account facoltativo: si ridisegna la scheda Progressi quando cambia lo stato (accesso, invio…)
+ // i campi già scritti (email, nome…) sopravvivono al ridisegno
+ wireAccount($('panel'));setAccountListener(()=>{if(app.tab!=='prog')return;const v={};$('panel').querySelectorAll('input[name]').forEach(i=>v[i.name]=i.value);renderProg();$('panel').querySelectorAll('input[name]').forEach(i=>{if(v[i.name])i.value=v[i.name];});});initAccount();
 }catch(e){
  console.error(e);
  $('panel').innerHTML='<div class="h">Contenuti non disponibili</div><p class="mut">Non riesco a caricare i file in content/. Se hai aperto index.html con doppio clic, avvia un server locale (per esempio <code>npx serve .</code>) e apri l\'indirizzo che ti indica. Al primo avvio serve la connessione.</p>';

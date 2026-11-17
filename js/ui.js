@@ -1,6 +1,6 @@
 /* Cambio di modulo e di tab, gestione dei clic su figura, pannello e barra in basso. */
 import {$} from './util.js';
-import {app,S,save,head,touchStreak,bump} from './state.js';
+import {app,S,save,head,touchStreak,bump,queue} from './state.js';
 import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
@@ -30,7 +30,7 @@ window.addEventListener('message',e=>{
  const d=e.data;if(e.origin!==location.origin||!d||!d.bm||e.source!==atlasWin())return;
  if(d.type==='ready'){atlasReady=true;if(pending3d){atlasWin().postMessage({bm:1,type:'game',set:pending3d},location.origin);pending3d=null;}}
  else if(d.type==='res'){touchStreak();if(d.ok){S.xp+=10;S.ok++;bump(d.key,1);}else{S.ko++;bump(d.key,-1);}save();head();}
- else if(d.type==='end'){if(d.done)S.xp+=20;save();head();}
+ else if(d.type==='end'){if(d.done)S.xp+=20;queue.add({module:'3d',mode:d.set,score:d.score|0,total:d.total|0,xp:d.gain|0});save();head();}
  else if(d.type==='menu')setTab('play');
 });
 function setTab(t){

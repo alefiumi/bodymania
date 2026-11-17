@@ -7,7 +7,7 @@
      stanno in una cache a parte (MODEL_CACHE), che non si riscarica a ogni nuova versione dell'app: all'installazione
      si salva la base (motore e scheletro), ogni altro strato la prima volta che viene richiesto con la rete.
      Quando cambi un file in atlante/vendor/ o un .glb, aumenta MODEL_VERSION. */
-const APP_VERSION = '17';
+const APP_VERSION = '22';
 const APP_CACHE = 'bodymania-app-' + APP_VERSION;
 const CONTENT_PREFIX = 'bodymania-content-';
 const MODEL_VERSION = '1';
@@ -16,6 +16,7 @@ const APP_FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/main.js', 'js/util.js', 'js/state.js', 'js/content.js', 'js/shapes.js', 'js/figure.js',
   'js/explore.js', 'js/game.js', 'js/puzzle.js', 'js/progress.js', 'js/ui.js', 'js/install.js',
+  'js/config.js', 'js/account.js', 'vendor/supabase.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
   'atlante/index.html', 'atlante/atlante.js', 'atlante/dati.json'
 ];
