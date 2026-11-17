@@ -16,8 +16,8 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 52, contenuti
-  `version` 8 (`corpo` 10, `cervello` 1); sul branch di sviluppo app 53, contenuti 9 (`corpo` 11, `cervello` 2). Usata dall'autore e da circa 40 amici.
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 53, contenuti
+  `version` 9 (`corpo` 11, `cervello` 2). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
   Chiedere sempre prima di commit e push. A ogni file dell'app cambiato aumenta `APP_VERSION`; a ogni contenuto cambiato le `version`.
