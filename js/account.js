@@ -128,7 +128,7 @@ export async function myData(){
  const out={app:'BodyMania',creato_il:new Date().toISOString(),dispositivo:{progressi:S,partite_da_inviare:queue.all()}};
  if(A.user&&A.sb&&navigator.onLine){
   const sb=A.sb,uid=A.user.id;
-  const [p,g,m,b,f]=await Promise.all([sb.from('profiles').select('*').eq('id',uid).single(),sb.from('game_results').select('*').eq('user_id',uid).order('played_at'),
+  const [p,g,m,b,f]=await Promise.all([ownProfile(sb,uid),sb.from('game_results').select('*').eq('user_id',uid).order('played_at'),
    sb.from('mastery').select('item_id,level,updated_at'),sb.from('badge_assertions').select('badge_id,issued_at').eq('user_id',uid),
    sb.from('friendships').select('user_id,friend_id,status,created_at')]);
   out.account={email:A.user.email,registrato_il:A.user.created_at,ultimo_accesso:A.user.last_sign_in_at,consenso_privacy:A.user.user_metadata||{},
@@ -171,6 +171,13 @@ async function pushProfile(){
 }
 
 /* ---------- sincronizzazione ---------- */
+// Il proprio profilo completo: con la funzione my_profile() (degli altri profili si leggono solo alcune colonne, file
+// 20261120090000_viste_senza_definer.sql); se sul server non c'è ancora, come prima dalla tabella.
+async function ownProfile(sb,uid){
+ const r=await sb.rpc('my_profile').maybeSingle();
+ if(r.error&&/my_profile|function|schema cache/i.test(r.error.message||''))return sb.from('profiles').select('*').eq('id',uid).single();
+ return r;
+}
 let timer=null;
 export function syncSoon(ms=3000){if(!A.user)return;clearTimeout(timer);timer=setTimeout(()=>sync(false),ms);}
 const ymdIso=s=>{if(!s)return null;const [y,m,d]=s.split('-').map(Number);return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;};
@@ -191,7 +198,7 @@ export async function sync(full){
     if(A.choice==='fresh')resetLocal();
    }
    A.choice=null;A.conflict=null;A.prevDirty=false;
-   const [{data:p,error:e1},{data:ms,error:e2},{data:bs}]=await Promise.all([sb.from('profiles').select('*').eq('id',uid).single(),
+   const [{data:p,error:e1},{data:ms,error:e2},{data:bs}]=await Promise.all([ownProfile(sb,uid),
     sb.from('mastery').select('item_id,level'),sb.from('badge_assertions').select('badge_id,issued_at').eq('user_id',uid)]);
    if(e1)throw e1;if(e2)throw e2;
    A.profile=p;

@@ -270,9 +270,10 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
 - Viste: classifica globale e classifica amici.
 
 ## Privacy (GDPR) e sicurezza (19/11/2026)
-- Database (`20261119100000_privacy_sicurezza.sql`, da applicare): ognuno legge solo il proprio profilo; degli altri si vedono
-  nome utente, foto, XP e serie solo dalle viste `leaderboard`, `leaderboard_friends`, `public_profiles` (security definer, solo
-  quelle colonne, solo per chi ha una sessione). Email solo in `auth.users` (mai leggibile dall'app: la vedono gli amministratori
+- Database: righe dei profili visibili agli iscritti solo se attivi (o il proprio), colonne leggibili solo id, nome utente, foto,
+  XP, serie, `last_day`, `deleted_at` (grant per colonna, `20261120090000_viste_senza_definer.sql`); le viste `leaderboard`,
+  `leaderboard_friends`, `public_profiles` sono `security_invoker` (niente avviso critico del Security Advisor); il proprio
+  profilo completo si legge con `my_profile()` (`ownProfile()` in `account.js`, con ripiego sulla tabella). Email solo in `auth.users` (mai leggibile dall'app: la vedono gli amministratori
   del progetto nel pannello di Supabase). Colonne modificabili del profilo elencate nel `grant update`; nelle amicizie si cambia
   solo `status` (prima chi riceveva una richiesta poteva cambiare `user_id`); badge visibili solo a chi li ha; limiti su lunghezze,
   XP e formato della foto (JPEG/PNG/WebP base64). Nessun ruolo di amministratore nelle tabelle.
