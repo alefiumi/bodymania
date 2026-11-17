@@ -32,7 +32,7 @@ export function renderProg(){
 
 // Privacy e dati: informativa, copia dei propri dati, cancellazione dal dispositivo e dell'account
 function privacyHtml(){
- return `<div class="acc"><div class="sub">Privacy e dati</div><p class="mut">Cosa raccogliamo, perché e i tuoi diritti: <a href="privacy.html" target="_blank" rel="noopener">informativa sulla privacy</a>.
+ return `<div class="acc"><div class="sub">Privacy e dati</div><p class="mut">Cosa raccogliamo, perché e i tuoi diritti: <a href="privacy.html" target="_blank" rel="noopener">informativa sulla privacy</a>. Regole d'uso: <a href="termini.html" target="_blank" rel="noopener">termini di servizio</a>.
   Gli altri iscritti vedono solo nome utente, foto, XP e serie; email, presentazione e ruolo restano privati.</p>
   <div class="chips"><button class="chip" data-pf="export">⬇️ Scarica i miei dati</button><button class="chip" data-pf="wipe">🧹 Cancella i dati da questo dispositivo</button>`+
   (A.user?`<button class="chip bad" data-pf="delacc"${navigator.onLine?'':' disabled'}>🗑️ Elimina l'account</button>`:'')+`</div></div>`;

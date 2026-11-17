@@ -72,10 +72,10 @@ const it=e=>ERR[e&&e.message]||(!navigator.onLine?'Serve la connessione.':/fetch
 async function run(f){A.busy=true;A.err='';A.msg='';onChange();try{await f();}catch(e){A.err=it(e);}A.busy=false;onChange();}
 export const signIn=(email,pw)=>run(async()=>{const {error}=await (await client()).auth.signInWithPassword({email,password:pw});if(error)throw error;A.view='';});
 // versione dell'informativa sulla privacy accettata alla registrazione (resta nei metadati dell'utente su Supabase)
-export const PRIVACY_V='2026-11-19';
+export const PRIVACY_V='2026-11-19',TERMS_V='2026-11-19'; // versioni di informativa e termini accettati
 export const signUp=(email,pw)=>run(async()=>{
  const {data,error}=await (await client()).auth.signUp({email,password:pw,options:{emailRedirectTo:location.origin+location.pathname,
-  data:{privacy_v:PRIVACY_V,privacy_at:new Date().toISOString()}}});if(error)throw error;
+  data:{privacy_v:PRIVACY_V,terms_v:TERMS_V,privacy_at:new Date().toISOString()}}});if(error)throw error;
  if(!data.session)A.msg='Ti abbiamo mandato un\'email: tocca il link per confermare, poi accedi qui.';A.view=data.session?'':'login';
 });
 // prompt=select_account: Google mostra sempre l'elenco degli account invece di rientrare da solo nell'ultimo usato

@@ -277,7 +277,9 @@ e legamenti, puzzle a strati, sfida a tempo, duello 1 contro 1, sfida del giorno
   `UUID` in `social.js`; tutto il testo degli utenti passa da `esc()`. Content-Security-Policy in `<meta>` di `index.html`,
   `atlante/index.html` e `privacy.html`: niente script in linea (tema in `js/tema.js`, pagina dell'atlante in `atlante/pagina.js`),
   solo la mappa degli import dell'atlante con l'impronta sha256 (se la cambi, ricalcola l'impronta), rete solo verso Supabase.
-- Informativa: `privacy.html` (titolare Alessandro Fiumicelli, dati su Supabase in UE, Parigi).
+- Informativa: `privacy.html` (titolare Alessandro Fiumicelli, dati su Supabase in UE, Parigi). Termini di servizio: `termini.html`
+  (uso solo per studio, contenuti dell'AI da verificare, regole di comportamento, licenze, responsabilità); accettati con la
+  stessa spunta della registrazione (`terms_v` nei metadati) e con l'avviso sotto "Accedi con Google".
   Registrazione con spunta obbligatoria (informativa letta, almeno 14 anni) e versione `PRIVACY_V` salvata nei metadati
   dell'utente; per Google un avviso sotto il pulsante. Profilo → "Privacy e dati": scarica i miei dati (JSON con dispositivo e
   server, `myData()`), cancella i dati da questo dispositivo, elimina l'account. Password di almeno 8 caratteri nell'app.
