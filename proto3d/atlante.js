@@ -320,10 +320,6 @@ const pickables=()=>meshes.filter(m=>m.visible&&!(m.userData.layer==='ossa'&&S.b
 /* ---------- pannello ---------- */
 const chip=(cls,attr,txt,small='')=>`<button class="chip ${cls}" ${attr}>${txt}${small?` <small>${small}</small>`:''}</button>`;
 const FONTE='<p class="note">Modello: Z-Anatomy (CC BY-SA 4.0), derivato da BodyParts3D © DBCLS. Nomi: Terminologia Anatomica 2.</p>';
-const FUN={'Abductor':'abduttori','Adductor':'adduttori','Extension':'estensori','Flexion':'flessori','External rotation':'extrarotatori','Internal rotator':'intrarotatori',
- 'Flexion fingers':'flessori delle dita','Extensor extremities':'estensori delle dita','Levator':'elevatori','Depressor':'depressori','Orbicularis/Constrictor':'orbicolari e costrittori',
- 'Biarticular':'biarticolari','Extension hand/foot':'estensori di mano e piede','Flexion hand/foot':'flessori di mano e piede','Ingestion':'deglutizione','Phonation':'fonazione',
- 'Masticator':'masticatori','Superficial':'superficiali','Trapezius':'trapezio','Diaphragm':'diaframma'};
 const TIPO={ossa:'Osso',muscoli:'Muscolo',fasce:'Fascia, tendine o borsa',legamenti:'Legamento o articolazione',inserzioni:'Area di inserzione',encefalo:'Encefalo',midollo:'Midollo spinale',
  nervi:'Nervo',meningi:'Meninge',sensi:'Organo di senso',vasi:'Vaso sanguigno',visceri:'Viscere'};
 const AI='<p class="note">Testo scritto dall\'AI: da verificare su un atlante.</p>';
@@ -344,7 +340,7 @@ function panel(){
    `<div class="chips"><button class="chip" data-side="${S.side==='r'?'l':'r'}">Lato ${S.side==='r'?'sinistro':'destro'}</button><button class="chip" data-go="home">Chiudi</button></div>`+AI;
  }else if(S.mus){
   const m=DATA.mus[S.mus],c=m.card,has=k=>m[k].some(n=>sideOf(n)===S.side);
-  h=`<div class="h">${m.n} <i>${sideName(S.side)}</i></div><div class="mut"><i>${m.la}</i>${FUN[m.mat]?' · gruppo: '+FUN[m.mat]:''}</div>`+
+  h=`<div class="h">${m.n} <i>${sideName(S.side)}</i></div><div class="mut"><i>${m.la}</i></div>`+
    (m.parts.length>1?`<div class="row"><b>Parti</b>: ${m.parts.map(itOf).join(' · ')}</div>`:'')+
    `<div class="row"><span class="tg o">ORIGINE</span> ${c?c.ot:has('o')?'area blu sul modello':'non indicata nella fonte'}</div>
     <div class="row"><span class="tg i">INSERZIONE</span> ${c?c.it:has('e')?'area arancione sul modello':'non indicata nella fonte'}</div>`+
