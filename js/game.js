@@ -17,7 +17,8 @@ export function renderMenu(){
   // giochi sul modello 3D: si giocano nella scheda Atlante 3D (vedi play3d in ui.js)
   '<div class="sub">Sul modello 3D</div>'+mb('3d-ossa','🦴 Trova l\'osso','Tocca l\'osso giusto sul modello 3D')+
   mb('3d-muscoli','💪 Trova il muscolo','Tocca il muscolo giusto tra quelli visibili')+
-  mb('3d-reperi','📍 Trova il repere','Tocca il repere osseo giusto (SIAS, epicondili…)');
+  mb('3d-reperi','📍 Trova il repere','Tocca il repere osseo giusto (SIAS, epicondili…)')+
+  mb('3d-oi','🎯 Origine e inserzione','Tocca sull\'osso il punto esatto dove il muscolo si attacca');
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){

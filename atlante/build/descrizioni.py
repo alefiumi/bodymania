@@ -885,6 +885,14 @@ def schede_muscoli(mus):
     for r, (ot, it, a, nv) in schede2.S.items():
         if r in mus and 'card' not in mus[r]: mus[r]['card'] = {'ot': ot, 'it': it, 'a': a, 'nv': nv}
 
+# refusi nella traduzione italiana della Terminologia Anatomica 2 (TA2.csv)
+REFUSI = {'quindo dito': 'quinto dito', 'Muscololi elevatore lunghi': 'Muscoli elevatori lunghi', 'elevatori breves': 'elevatori brevi',
+          'spinale dellla': 'spinale della', 'dei muscol ': 'dei muscoli ', 'del osso': "dell'osso"}
+def correggi_nomi(D):
+    fix = lambda t: next((t.replace(a, b) for a, b in REFUSI.items() if a in t), t) if isinstance(t, str) else t
+    for k, v in D['names'].items(): v[0] = fix(v[0])
+    for m in D['mus'].values(): m['n'] = fix(m['n'])
+
 def build(D):
     import collections
     B = lambda n: re.sub(r'\.(?:[oe]\d*[rl]|[rl]|[a-z])$', '', n)
@@ -905,6 +913,7 @@ def build(D):
 if __name__ == '__main__':
     D = json.load(open(sys.argv[1]))
     D['desc'] = build(D)
+    correggi_nomi(D)
     json.dump(D, open(sys.argv[1], 'w'), ensure_ascii=False, separators=(',', ':'))
     lay = {}
     B = lambda n: re.sub(r'\.(?:[oe]\d*[rl]|[rl]|[a-z])$', '', n)

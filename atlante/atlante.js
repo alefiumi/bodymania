@@ -297,7 +297,7 @@ function visible(m){
  const u=m.userData;if(u.hidden)return false;
  if(u.layer==='ossa')return S.bones!=='off';
  if(S.lev&&u.st>=0&&u.st<S.lev)return false;
- return V[u.layer]||(inFocus(m)&&S.mv!=='lines');
+ return V[u.layer]||(inFocus(m)&&S.mv!=='lines'&&!(S.mv==='areas'&&u.layer==='muscoli')); // areas: solo aree e linee, senza la forma (gioco)
 }
 function refresh(noPanel){
  const rs=roots();
@@ -555,13 +555,14 @@ renderer.domElement.addEventListener('pointerup',e=>{
 // ({bm:'end'}), così XP, serie e maestria restano nel salvataggio dell'app. Domande solo su nomi e forme della fonte,
 // e solo su strutture che si possono vedere dall'esterno ruotando il modello (vedi seenFrom).
 const M_OK=toon(0x22c55e),M_BAD=toon(0xef4444);
-const MKG={ok:new THREE.MeshBasicMaterial({color:0x22c55e}),bad:new THREE.MeshBasicMaterial({color:0xef4444})};
+const MKG={ok:new THREE.MeshBasicMaterial({color:0x22c55e}),bad:new THREE.MeshBasicMaterial({color:0xef4444}),tap:new THREE.MeshBasicMaterial({color:0x111827,depthTest:false})};
 for(const k in MKG)MKG[k].userData.outlineParameters={visible:false};
 const toApp=msg=>{if(window.parent!==window)window.parent.postMessage({bm:1,...msg},location.origin);};
 const SETS={
  ossa:{n:'Ossa',ask:'Tocca l\'osso'},
  muscoli:{n:'Muscoli',ask:'Tocca il muscolo'},
- reperi:{n:'Reperi ossei',ask:'Tocca il repere'}};
+ reperi:{n:'Reperi ossei',ask:'Tocca il repere'},
+ oi:{n:'Origine e inserzione',ask:''}};
 const TEETH=/(incisor|canine|molar|premolar)/i,BONE_SKIP=/(cartilage|cells of ethmoid|Sinus of)/i,KEEP_CART=/^(Costal cartilage|Thyroid cartilage|Cricoid cartilage)/;
 // famiglia di un nome (tutte le coste, tutte le falangi…): si sceglie prima la famiglia, così coste e falangi non dominano
 const famOf=b=>b.replace(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\b/gi,'#').replace(/\b[CTL]\d+\b/,'#').replace(/\b(Proximal|Middle|Distal)\b/,'#');
@@ -570,7 +571,7 @@ function seenFrom(cands,occl,W=200){
  const H=W*2,rt=new THREE.WebGLRenderTarget(W,H),buf=new Uint8Array(W*H*4),cam=new THREE.PerspectiveCamera(30,W/H,0.03,20);
  const black=new THREE.MeshBasicMaterial({color:0}),saved=[],ids=new Map();
  scene.traverse(o=>{if(o.isMesh){saved.push([o,o.visible,o.material]);o.visible=false;}});
- cands.forEach((m,i)=>{const c=new THREE.Color().setRGB(((i+1)&255)/255,((i+1)>>8)/255,0,THREE.LinearSRGBColorSpace);m.material=new THREE.MeshBasicMaterial({color:c});m.visible=true;ids.set(i+1,m);});
+ cands.forEach((m,i)=>{const c=new THREE.Color().setRGB(((i+1)&255)/255,((i+1)>>8)/255,0,THREE.LinearSRGBColorSpace);m.material=new THREE.MeshBasicMaterial({color:c,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-4});m.visible=true;ids.set(i+1,m);});
  occl.forEach(m=>{m.material=black;m.visible=true;});
  cands.forEach(m=>m.visible=true);
  const bg=scene.background,clip=renderer.clippingPlanes;scene.background=new THREE.Color(0);renderer.clippingPlanes=[];
@@ -591,7 +592,7 @@ const POOL={},LM_MIN=4; // pixel minimi (su 300×600) perché un repere conti co
 async function poolOf(set){
  if(POOL[set])return POOL[set];
  let items=[];  // {key, n, la, fam}
- const clean=t=>t.replace(/^\((.*)\)$/,'$1'),add=(key,b)=>items.push({key,n:clean(itOf(b)),la:clean(laOf(b)),fam:famOf(b)});
+ const add=(key,b)=>items.push({key,n:clean(itOf(b)),la:clean(laOf(b)),fam:famOf(b)});
  if(set==='ossa'){
   const bones=meshes.filter(m=>m.userData.layer==='ossa'&&!TEETH.test(m.userData.base)&&(!BONE_SKIP.test(m.userData.base)||KEEP_CART.test(m.userData.base)));
   const seen=seenFrom(bones,[]),ok=new Set();for(const [m,n] of seen)if(n>=4)ok.add(m.userData.base);
@@ -601,6 +602,14 @@ async function poolOf(set){
   const mus=meshes.filter(m=>m.userData.layer==='muscoli'),bones=meshes.filter(m=>m.userData.layer==='ossa');
   const seen=seenFrom(mus,bones),ok=new Set();for(const [m,n] of seen)if(n>=4&&DATA.mus[m.userData.root])ok.add(m.userData.root);
   [...ok].forEach(r=>items.push({key:r,n:clean(DATA.mus[r].n),la:clean(DATA.mus[r].la),fam:r}));
+ }else if(set==='oi'){
+  // una domanda per muscolo e tipo (origine o inserzione), se almeno un'area di quel tipo si vede sullo scheletro
+  await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
+  const bones=meshes.filter(m=>m.userData.layer==='ossa'),areas=meshes.filter(m=>m.userData.layer==='inserzioni');
+  const seen=seenFrom(areas,bones,400),vis=new Set();for(const [m,n] of seen)if(n>=4)vis.add(m.userData.name); // risoluzione doppia: le aree di mano e piede sono piccole
+  for(const [r,d] of Object.entries(DATA.mus))for(const k of ['o','e'])
+   if(d[k].some(n=>vis.has(n)))items.push({key:r+'|'+k,root:r,k,n:clean(d.n),la:clean(d.la),fam:r,uq:r+'|'+k});
+  return POOL[set]=items;
  }else{
   // reperi: pallini di 5 mm sulle ossa, contati come le ossa; esclusi i nomi che sono quelli di un osso intero
   const bones=meshes.filter(m=>m.userData.layer==='ossa'),boneNames=new Set(bones.map(m=>m.userData.base)),list=LMS.filter(l=>!boneNames.has(l.b)&&l.b!=='Vertebra');
@@ -628,18 +637,61 @@ async function startGame(set){
  GAME.pool=await poolOf(set);
  if(set==='muscoli')V.muscoli=true;
  if(set==='reperi')S.allLm=true;
+ if(set==='oi')await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
  S.loading=false;nextGameQ();
 }
-function clearGameMarks(){for(const [m,mat] of GAME.marks)m.material=mat;GAME.marks=[];}
+const gameDots=new THREE.Group();scene.add(gameDots);
+function gameDot(p,mat){const m=new THREE.Mesh(ball,mat);m.position.copy(p);m.scale.setScalar(0.006);m.renderOrder=12;gameDots.add(m);}
+// punto dell'osso sotto il dito
+function boneHit(x,y){const r=renderer.domElement.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
+ return ray.intersectObjects(meshes.filter(m=>m.visible&&m.userData.layer==='ossa'),false)[0]||null;}
+// distanza di un punto da un'area (triangoli nel mondo); prima scarta le aree lontane con il riquadro
+const triA=new THREE.Vector3(),triB=new THREE.Vector3(),triC=new THREE.Vector3(),tri=new THREE.Triangle(),cp=new THREE.Vector3(),abox=new THREE.Box3();
+function distToArea(m,p,max){
+ abox.setFromObject(m);if(abox.distanceToPoint(p)>max)return Infinity;
+ m.updateWorldMatrix(true,false);const a=m.geometry.attributes.position,ix=m.geometry.index;let best=Infinity;
+ const n=ix?ix.count:a.count;
+ for(let i=0;i<n;i+=3){const i0=ix?ix.getX(i):i,i1=ix?ix.getX(i+1):i+1,i2=ix?ix.getX(i+2):i+2;
+  triA.fromBufferAttribute(a,i0).applyMatrix4(m.matrixWorld);triB.fromBufferAttribute(a,i1).applyMatrix4(m.matrixWorld);triC.fromBufferAttribute(a,i2).applyMatrix4(m.matrixWorld);
+  tri.set(triA,triB,triC).closestPointToPoint(p,cp);const d=cp.distanceTo(p);if(d<best)best=d;}
+ return best;
+}
+const OI_TOL=0.012; // 1,2 cm: il dito non è preciso e i bordi delle aree della fonte sono approssimati
+function oiTap(x,y){
+ const G=GAME,h=boneHit(x,y);if(!h)return;
+ const d=DATA.mus[G.cur.root],names=d[G.cur.k],areas=names.map(n=>byName.get(n)).filter(Boolean);
+ let near=null,nd=Infinity;for(const m of areas){const dd=distToArea(m,h.point,OI_TOL*4);if(dd<nd){nd=dd;near=m;}}
+ const ok=nd<=OI_TOL;
+ // se sbagliato: cosa c'è nel punto toccato (l'area di un altro muscolo, se ce n'è una vicina)
+ let other=null;
+ if(!ok){let od=OI_TOL;for(const m of meshes){if(m.userData.layer!=='inserzioni')continue;const dd=distToArea(m,h.point,od);if(dd<od){od=dd;other=m;}}}
+ G.locked=true;G.hint='';G.q++;
+ if(ok){G.score++;G.gain+=10;}else G.hearts--;
+ toApp({type:'res',ok,key:'3d:oi:'+G.cur.key});
+ // risposta: il muscolo con le sue aree e la linea, sul lato toccato
+ const side=h.object.userData.side||(near&&near.userData.side)||S.side;
+ S.mus=G.cur.root;S.side=side;S.mv='areas';refresh(true);
+ gameDot(h.point,ok?MKG.ok:MKG.tap); // nero, non rosso: il rosso si confonderebbe con l'arancione dell'inserzione
+ // inquadra tutte le aree del muscolo (origine e inserzione) sul lato toccato, giusta o sbagliata che sia la risposta
+ const all=[...d.o,...d.e].map(n=>byName.get(n)).filter(m=>m&&(!m.userData.side||m.userData.side===side));
+ if(all.length)frameBox(boxOf(all),0.3);
+ const oth=other&&(()=>{const r=other.userData.root,dd=DATA.mus[r];if(!dd)return null;const k=dd.o.includes(other.userData.name)?'o':dd.e.includes(other.userData.name)?'e':other.userData.kind;
+  return (k==='o'?"l'origine":"l'inserzione")+' di: '+clean(dd.n);})();
+ G.res={ok,hit:ok?null:oth?'un punto dove c\'è '+oth:nd<Infinity?'a circa '+Math.max(2,Math.round(nd*100))+' cm dall\'area giusta':'lontano dall\'area giusta'};
+ panel();
+}
+const clean=t=>(t||'').replace(/^\((.*)\)$/,'$1');
+function clearGameMarks(){while(gameDots.children.length)gameDots.remove(gameDots.children[0]);for(const [m,mat] of GAME.marks)m.material=mat;GAME.marks=[];}
 function gameMark(list,mat){for(const m of list){GAME.marks.push([m,m.material]);m.material=mat;}}
 function nextGameQ(){
  const G=GAME;
  if(G.hearts<=0||G.q>=G.total)return endGame();
- G.locked=false;G.cur=pickQ();G.res=null;refresh();clearGameMarks();
+ G.locked=false;G.cur=pickQ();G.res=null;S.mus=null;refresh();clearGameMarks();
  flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
 }
 function gameTap(x,y){
  const G=GAME;if(!G||G.locked||!G.cur)return;
+ if(G.set==='oi')return oiTap(x,y);
  let ok,hit;
  if(G.set==='reperi'){
   const l=pickLandmark(x,y);if(!l)return;hit={n:itOf(l.b),l};ok=l.b===G.cur.key;
@@ -664,9 +716,17 @@ function gameTap(x,y){
 }
 function endGame(){
  const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
- toApp({type:'end',done});G.over=true;G.cur=null;clearGameMarks();panel();
+ toApp({type:'end',done});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
 }
-function quitGame(){if(GAME)clearGameMarks();GAME=null;document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+function quitGame(){if(GAME)clearGameMarks();GAME=null;S.mus=null;S.mv='both';document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+// risposta del gioco origine e inserzione: aree in blu (origine) e arancione (inserzione), testo della scheda
+function oiAnswer(G){
+ const d=DATA.mus[G.cur.root],c=d.card,t=G.cur.k==='o'?c&&c.ot:c&&c.it;
+ return (G.res.ok?'':`<p>Hai toccato ${G.res.hit}.</p>`)+
+  `<p><b>${G.cur.n}</b>: <span class="tg o">O</span> origine, <span class="tg i">I</span> inserzione; il pallino ${G.res.ok?'verde':'nero'} è dove hai toccato.</p>`+
+  (t?`<p>${G.cur.k==='o'?'Origine':'Inserzione'}: ${t}</p><p class="note">Testo scritto dall'AI: da verificare su un atlante. Le aree colorate vengono dalla fonte Z-Anatomy.</p>`:'')+
+  (d.fix?'<p class="note">Nella fonte origine e inserzione di questo muscolo erano scambiate: qui sono corrette.</p>':'');
+}
 function gamePanel(){
  const G=GAME,hearts=`<div class="gh"><span>${'❤️'.repeat(Math.max(0,G.hearts))}${'🖤'.repeat(3-Math.max(0,G.hearts))}</span><span>${SETS[G.set].n} · ${Math.min(G.q+(G.res?0:1),G.total)}/${G.total}</span></div>`;
  if(G.over){const st=G.score/G.q>=.9?3:G.score/G.q>=.6?2:1;
@@ -674,11 +734,12 @@ function gamePanel(){
    ${G.hearts<=0?'<p class="mut">Cuori finiti: ripassa esplorando il modello e riprova.</p>':''}
    <div class="chips" style="justify-content:center"><button class="chip on" data-g="again">Rigioca</button><button class="chip" data-g="menu">Cambia sfida</button><button class="chip" data-g="quit">Esplora il modello</button></div></div>`;}
  if(!G.cur)return `<p class="mut">${S.loading?(G.set==='muscoli'&&!FILES.muscoli?.loaded?'Carico i muscoli…':'Preparo le domande…'):''}</p>`;
- const q=`<div class="q">${SETS[G.set].ask}:<br><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</div>`;
+ const ask=G.set==='oi'?`Tocca sull'osso ${G.cur.k==='o'?"l'<b>origine</b>":"l'<b>inserzione</b>"} di`:SETS[G.set].ask;
+ const q=`<div class="q">${ask}:<br><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</div>`;
  if(!G.res)return hearts+q+`<p class="mut">${G.hint||'Ruota e ingrandisci il modello come vuoi: vale tutti e due i lati.'}</p><div class="chips"><button class="chip" data-g="quit">Esci</button></div>`;
  const last=G.hearts<=0||G.q>=G.total;
  return hearts+`<div class="h">${G.res.ok?'✅ Esatto! +10 XP':'❌ Non proprio'}</div>`+
-  (G.res.ok?`<p><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</p>`:`<p>Hai toccato: <b>${G.res.hit}</b>. In verde: <b>${G.cur.n}</b>.</p>`)+
+  (G.set==='oi'?oiAnswer(G):G.res.ok?`<p><b>${G.cur.n}</b> ${G.cur.la?`<i>${G.cur.la}</i>`:''}</p>`:`<p>Hai toccato: <b>${G.res.hit}</b>. In verde: <b>${G.cur.n}</b>.</p>`)+
   `<div class="chips"><button class="chip on" data-g="next">${last?'Vedi risultato':'Avanti'}</button></div>`;
 }
 window.addEventListener('message',e=>{
@@ -778,4 +839,4 @@ renderer.setAnimationLoop(now=>{
  frames++;
  if(now-last>=1000){$('fps').textContent=`${Math.round(frames*1000/(now-last))} fps · ${Math.round(renderer.info.render.triangles/1000)}k triangoli`;frames=0;last=now;}
 });
-window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts,startGame,gameTap,poolOf,get GAME(){return GAME;}};
+window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts,startGame,gameTap,poolOf,boneHit,distToArea,get GAME(){return GAME;}};

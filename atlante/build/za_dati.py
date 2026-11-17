@@ -84,6 +84,7 @@ out = {'version': 1, 'fonte': 'Z-Anatomy (CC BY-SA 4.0), derivato da BodyParts3D
 sys.path.insert(0, HERE); import descrizioni; out['desc'] = descrizioni.build(out)  # testi di ossa, reperi ed encefalo
 descrizioni.correggi_aree(mus)  # origine e inserzione scambiate nella fonte
 descrizioni.schede_muscoli(mus)  # testi dei muscoli che non sono in schede.json
+descrizioni.correggi_nomi(out)  # refusi della traduzione italiana di TA2
 json.dump(out, open(sys.argv[2], 'w'), ensure_ascii=False, separators=(',', ':'))
 lay = collections.Counter(v[0] for v in objs.values())
 print(dict(lay)); print(len(lm), 'reperi,', len(mus), 'muscoli,', sum(1 for m in mus.values() if m['o'] or m['e']), 'con aree,', sum(1 for m in mus.values() if 'card' in m), 'con scheda,', len(names), 'nomi,', sum(1 for v in names.values() if not v[1]), 'senza traduzione')
