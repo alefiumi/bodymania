@@ -136,9 +136,11 @@ Contenuto del gioco:
   Trova: con le singole si sceglie prima il gruppo, e per le ossa piccole la figura si ingrandisce sulla zona. Ricomponi: con le
   singole i pezzi sono le ossa di un gruppo (zona ingrandita), con i gruppi sono gruppi interi. Maestria: chiavi diverse per
   singole (`o.femur`, `b.precentral-gyrus`) e gruppi (gli id dei vecchi 22 gruppi: `femore`, `carpo`… e dei lobi).
-- Modalità: Ricomponi (puzzle con trascinamento), Componi (`build`: puzzle vero, i pezzi della zona spariscono senza sagoma e
-  si posano dove si pensa che vadano; giusto se il centro cade entro max(22 px, 18% della diagonale del pezzo) dal centro vero,
-  `freeDrop()` in `puzzle.js`; posti misurati prima di nasconderli, `G.box`; vicino ma fuori: "ci sei quasi" con la direzione), Tendine-ponte, Caso clinico (indizi progressivi),
+- Modalità: Ricomponi (puzzle con trascinamento), Componi (`build`: puzzle vero su schermo vuoto, `.view.bare`: si vedono solo i pezzi
+  già messi; il primo si sistema da solo al suo posto, gli altri sono giusti se il centro cade entro max(22 px, 18% della diagonale)
+  dal loro posto, cioè nella posizione giusta rispetto ai pezzi già messi; `freeDrop()` in `puzzle.js`, posti misurati prima di
+  nasconderli in `G.box`; vicino ma fuori: "ci sei quasi" con la direzione; 5 cuori; nel corpo zone intere di più gruppi,
+  `BUILD_ZONES`: mano, piede, cranio e mandibola, colonna, gabbia toracica, arto superiore e inferiore), Tendine-ponte, Caso clinico (indizi progressivi),
   Trova la struttura, Origine e inserzione, Funzione → struttura, Nervi cranici, Misto.
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.
 - Salvataggio locale: `localStorage`, chiave `bodymania-v1`. **L'account è facoltativo**: senza account si gioca e si

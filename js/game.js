@@ -11,7 +11,7 @@ export function renderMenu(){
  const what=M.grpn?(app.grp?'per <b>gruppi</b>':'sulle <b>strutture singole</b>'):app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
  $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto, dove scegli anche la vista.</p><div class="sub">Puzzle</div>`+
   mb('puzzle','🧩 Ricomponi','Rimetti al posto i pezzi mancanti (trascina o tocca)')+
-  mb('build','🧱 Componi','Puzzle vero: metti insieme i pezzi senza la sagoma del loro posto')+
+  mb('build','🧱 Componi','Puzzle vero su schermo vuoto: collega i pezzi tra loro, senza sagome')+
   (body?mb('bridge','🌉 Tendine-ponte',"Collega l'osso di origine a quello di inserzione"):'')+
   (M.CASES&&M.CASES.length?mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP'):'')+
   '<div class="sub">Quiz</div>'+mb('find','🎯 Trova la struttura','Tocca quella giusta sulla figura')+
@@ -29,13 +29,14 @@ export function renderMenu(){
   mb('3d-cuore','🫀 Cuore e grandi vasi','Tocca la camera, la coronaria o il grande vaso giusto')+
   mb('3d-polmoni','🫁 Polmoni','Tocca il lobo o il bronco giusto');
 }
-export const clearGhosts=()=>document.querySelectorAll('.bone.ghost,.bone.gone').forEach(g=>g.classList.remove('ghost','gone'));
+export const clearGhosts=()=>{document.querySelectorAll('.bone.ghost,.bone.gone,.bone.placed').forEach(g=>g.classList.remove('ghost','gone','placed'));
+ document.querySelectorAll('#fig .view.bare').forEach(v=>{v.classList.remove('bare');v.removeAttribute('transform');});};
 export function startGame(mode){
  baseView();app.G={mode,q:0,total:mode==='case'?6:8,hearts:3,score:0,gain:0,last:null,cur:null,locked:false,used:[],att:0,left:[]};
  if(mode==='puzzle'||mode==='build')return startPuzzle();
  nextQ();
 }
-export const gh=()=>{const G=app.G;return `<div class="gh"><span>${'❤️'.repeat(G.hearts)}${'🖤'.repeat(3-G.hearts)}</span><span>${Math.min(G.q+1,G.total)}/${G.total}</span></div>`;};
+export const gh=()=>{const G=app.G;return `<div class="gh"><span>${'❤️'.repeat(G.hearts)}${'🖤'.repeat((G.maxH||3)-G.hearts)}</span><span>${Math.min(G.q+1,G.total)}/${G.total}</span></div>`;};
 export function nextQ(){
  const G=app.G,{B,M,CASES,NC}=app;
  clearMarks();baseView();

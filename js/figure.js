@@ -95,7 +95,7 @@ export function zoomAt(k,cx,cy){
 }
 // Riquadro sui punti con le proporzioni del riquadro sullo schermo (non della figura intera, molto più alta): una zona
 // larga come le dita del piede riempie la larghezza invece di restare piccola in mezzo. minW: ingrandimento massimo.
-function focusPts(pts,pad,anim=true,minW=app.MOD.W/5){
+export function focusPts(pts,pad,anim=true,minW=app.MOD.W/5){
  const asp=scrAsp();
  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
  const w=Math.min(Math.max(x1-x0+2*pad,(y1-y0+2*pad)/asp,minW),maxW()),h=w*asp;
