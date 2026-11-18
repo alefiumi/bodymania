@@ -26,6 +26,9 @@ header{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-
 .vmenu button.on{background:var(--acc);color:#fff}
 .vsep{font-size:11px;color:var(--mut);padding:6px 12px 2px;text-transform:uppercase;letter-spacing:.04em}
 .mods.mm button{font-size:13px;padding:6px 10px}
+/* moduli: il pulsante aperto si accorcia con i puntini, gli altri su schermi stretti mostrano solo l'icona */
+.mods.mm{overflow:visible}.mods.mm button.on{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){.mods.mm .mn{display:none}}
 .mm .vn{font-weight:500}
 /* barra sopra la figura: moduli a sinistra, zoom a destra; non copre mai il disegno */
 .tbar{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 2px}

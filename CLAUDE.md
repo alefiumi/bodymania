@@ -16,8 +16,8 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 53 (54 sul branch di sviluppo), contenuti
-  `version` 9 (`corpo` 11, `cervello` 2). Usata dall'autore e da circa 40 amici.
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 53, contenuti
+  `version` 9 (`corpo` 11, `cervello` 2); sul branch di sviluppo app 55, contenuti 10 (nuovo modulo `torace` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
   Chiedere sempre prima di commit e push. A ogni file dell'app cambiato aumenta `APP_VERSION`; a ogni contenuto cambiato le `version`.
@@ -57,6 +57,8 @@ Prototipo diviso in:
   Il pezzo in mano vince se il suo posto è entro 8 px dal posto più vicino.
 - Menu della figura: un pulsante per modulo ("🦴 Corpo · Anteriore ▾", "🧠 Cervello ▾") apre l'elenco delle viste del modulo
   (`viewMenu()` in `figure.js`, `#vmenu`); la vista scelta per ogni modulo è in `app.bases`, salvata in `bodymania-2d` con `grp`.
+  Con tre moduli, su schermi stretti i pulsanti dei moduli non aperti mostrano solo l'icona (`.mn`); un modulo può dare nel suo
+  JSON i nomi di "singole/gruppi" (`grpn`) e il testo di Esplora (`expl`).
   Viste (`views` e nomi `vnames` nei contenuti): corpo `a` `p` `ld` `ls` `s` `i` (anteriore, posteriore, laterale destra e
   sinistra, superiore, inferiore); cervello `ls` `ld` (facce laterali), `m` (mediale: faccia mediale del destro), `f` anteriore, `p`
   posteriore, `s` superiore, `i` inferiore o basale. I nomi usano i termini dell'anatomia (`BODY_VIEWS`, `BRAIN_VIEWS`, `ZVIEWS` in
@@ -108,7 +110,9 @@ Prototipo diviso in:
   Android con Chrome, Firefox, Samsung Internet, Edge. Provati dall'AI solo Chrome desktop ed emulazione mobile.
 
 Contenuto del gioco:
-- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, sei viste; 208 muscoli) e `cervello` (106 strutture in sette viste; fino al
+- Moduli 2D: `corpo` (121 ossa singole in 26 gruppi, sei viste; 208 muscoli), `torace` ("🫀 Cuore e polmoni", 104 strutture in
+  11 gruppi, sette viste: anteriore, posteriore, laterali, cuore faccia anteriore e base, albero bronchiale e vasi polmonari; 7 casi
+  clinici) e `cervello` (106 strutture in sette viste; fino al
   18/11/2026 erano due moduli, `lat` e `sag`: gli id `b.*` e la maestria sono gli stessi), 12 nervi cranici.
 - Disegni 2D ricavati dal modello 3D (non più a mano): `node atlante/build/proietta_2d.mjs <tmp.json>` (gira anche nel cloud:
   legge solo i `.glb` del repository, pochi secondi) proietta ossa, viste di zona di mano e piede (assi principali delle loro ossa),
@@ -229,6 +233,18 @@ Funzioni dell'atlante (in `atlante.js`):
   durante il taglio il contorno è spento e le superfici sono a due facce) e scomposizione in 9 strati (`ST`), dalla
   dura madre ai ventricoli. Dura madre e aracnoide craniche non sono nella fonte: `makeShells()` le genera
   avvolgendo la corteccia, forma schematica dichiarata nel pannello.
+
+Cuore e polmoni (pulsante 🫀, `openThorax()`): carica `vasi` e `visceri` e mostra solo gli organi del torace, con otto strati da
+accendere (`ORG`: pleura trasparente, lobi, trachea e bronchi, vasi polmonari, grandi vasi, cuore, coronarie e vene, valvole e
+muscoli papillari), viste pronte (`ORG_PRESET`) e le stesse sezioni dell'encefalo sul riquadro del torace (`S.cutOn`).
+`organOf()` in `atlante.js`, `organo()` in `build/torace.py` e in `proietta_2d.mjs` usano le stesse regole: tenerle uguali.
+Colori: cuore destro blu e sinistro rosso; arterie polmonari blu e vene polmonari rosse (sangue venoso/ossigenato, come nei libri).
+Testi di cuore, vasi e polmoni in `build/torace.py` (scritti dall'AI, da verificare) con i nomi italiani corretti (`NOMI`: TA2
+diceva "valvola canina" per la tricuspide…); il modulo 2D usa i gruppi e i casi di `torace.py`. Gioco 3D **Cuore e polmoni**
+(serie `torace`): strutture visibili da fuori con lobi, bronchi principali, grandi vasi, cuore e coronarie (senza bronchi segmentari).
+Nella fonte mancano il pericardio e il lembo anteriore della mitrale (dichiarato nel pannello).
+Sistema linfatico: **non esportato**. È nella collezione 6 di `Startup.blend`, che `za_export.py` salta (`LAYERS`); per averlo
+serve rieseguire l'esportazione con Blender (non disponibile nel cloud) aggiungendo la collezione 6 come strato `linfatico`.
 
 Correzione all'esportazione: `Ciliary body-curve.l` in `sensi.glb` esce con una trasformazione sbagliata (anello di 2 m
 dietro lo scheletro); `atlante.js` lo sostituisce al caricamento con la copia speculare del destro (`MIRROR_FIX`).

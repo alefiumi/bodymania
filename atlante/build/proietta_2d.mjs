@@ -353,5 +353,43 @@ const brainP = project(enc, {
   f: {proj: VIEWS6.a, prim: 'l'}, p: {proj: VIEWS6.p, prim: 'l'}, s: {proj: VIEWS6.s, prim: 'l'}, i: {proj: VIEWS6.i, prim: 'l'}}, 5000, 4, 0.7, 'encefalo');
 const brain = brainP.out;
 
-fs.writeFileSync(OUT, JSON.stringify({body, brain}));
+/* ---------- cuore e polmoni: sette viste ---------- */
+// stesse regole di organo() in torace.py e organOf() in atlante.js. Esclusi dal 2D: pleura (coprirebbe i lobi) e valvole
+// (sono dentro il cuore); i vasi polmonari e i bronchi segmentari stanno nei lobi e si vedono solo nella vista dell'albero bronchiale.
+const DATI = JSON.parse(fs.readFileSync(path.join(DIR, 'dati.json')));
+const CUORE_G = new Set(['Heart', 'Right ventricle', 'Left ventricle', 'Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve', 'Arteries of heart', 'Left coronary artery', 'Right coronary artery', 'Anterior interventricular artery', 'Cardiac veins', 'Coronary sinus']);
+const GRANDI = new Set(['Ascending aorta', 'Aortic arch', 'Thoracic aorta', 'Brachiocephalic trunk', 'Left common carotid artery', 'Left subclavian artery', 'Superior vena cava', 'Inferior vena cava (thoracic part)', 'Left brachiocephalic vein', 'Right brachiocephalic vein', 'Azygos vein', 'Pulmonary trunk', 'Bifurcation of pulmonary trunk', 'Left pulmonary artery', 'Right pulmonary artery', 'Left superior pulmonary vein', 'Left inferior pulmonary vein', 'Right superior pulmonary vein', 'Right inferior pulmonary vein']);
+const VALV_G = new Set(['Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve']);
+function organo(b, layer, g) {
+  if (b.startsWith('?')) return null;
+  if (layer === 'vasi') {
+    if (VALV_G.has(g) || /papillary/.test(b)) return 'valvole';
+    if (g === 'Heart') return 'cuore';
+    if (CUORE_G.has(g) || /^(Coronary sinus|Left coronary artery|Right coronary artery)$/.test(b)) return 'coronarie';
+    if (GRANDI.has(b)) return 'grandi';
+    if (/of (left|right) lung|lobar artery/.test(b)) return 'vpolm';
+    return null;
+  }
+  if (layer === 'visceri') {
+    if (b === 'Pleura') return 'pleura';
+    if (g === 'Left lung' || g === 'Right lung') return 'polmoni';
+    if (b === 'Trachea' || /bronch/i.test(b)) return 'vie';
+  }
+  return null;
+}
+const thx = [...loadGlb('vasi.glb'), ...loadGlb('visceri.glb')].filter(p => {
+  const o = DATI.objs[p.name]; p.org = o && organo(base(p.name), o[0], o[2]); p.key = base(p.name); p.side = side(p.name);
+  return p.org && p.org !== 'pleura' && p.org !== 'valvole';
+});
+const outer = p => p.org !== 'vpolm';                                          // vista d'insieme: i vasi polmonari sono dentro i lobi
+const heart = p => ['cuore', 'coronarie', 'grandi'].includes(p.org);           // cuore e grandi vasi, senza polmoni
+const tree = p => p.org === 'vie' || p.org === 'vpolm' || /pulmonary/i.test(p.key) && p.org === 'grandi';
+const thxP = project(thx, {
+  a: {proj: VIEWS6.a, prim: 'r', keep: outer}, p: {proj: VIEWS6.p, prim: 'r', keep: outer},
+  ld: {proj: VIEWS6.ld, prim: 'r', keep: outer}, ls: {proj: VIEWS6.ls, prim: 'l', keep: outer},
+  ca: {proj: VIEWS6.a, prim: 'r', keep: heart}, cp: {proj: VIEWS6.p, prim: 'r', keep: heart},
+  b: {proj: VIEWS6.a, prim: 'r', keep: tree}}, 4000, 4, 0.7, 'torace');
+const torace = thxP.out;
+
+fs.writeFileSync(OUT, JSON.stringify({body, brain, torace}));
 console.log('scritto', OUT, (fs.statSync(OUT).size / 1e6).toFixed(2), 'MB');

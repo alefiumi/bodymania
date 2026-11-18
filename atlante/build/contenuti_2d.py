@@ -10,6 +10,7 @@ Ogni struttura singola appartiene a un gruppo (g); i gruppi elencano i membri (m
 aree che si sovrappongono ai lobi (Broca, Wernicke, giro precentrale…): la risposta è giusta se si tocca un membro.
 """
 import json, re, sys, os, unicodedata
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 P = json.load(open(sys.argv[1]))
@@ -262,4 +263,41 @@ def brain():
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
     print('cervello:', len(structures), 'strutture,', len(groups), 'gruppi')
 
-body(); brain()
+# ---------------------------------------------------------------- cuore e polmoni
+import torace as TX
+THX_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra',
+             'ca': 'Cuore · faccia anteriore (sternocostale)', 'cp': 'Cuore · faccia posteriore (base)', 'b': 'Albero bronchiale e vasi polmonari'}
+# colori come nell'atlante 3D: cuore destro blu, sinistro rosso, un colore per lobo
+THX_COL = {'Right atrium': '#7fa6e3', 'Right ventricle': '#9bbbeb', 'Left atrium': '#e58a82', 'Left ventricle': '#ec9f97',
+           'Superior lobe of right lung': '#f4b6c2', 'Middle lobe of right lung': '#f7d08a', 'Inferior lobe of right lung': '#b5d99c',
+           'Superior lobe of left lung': '#a9cdee', 'Inferior lobe of left lung': '#c9b3e6'}
+def thorax():
+    """cuore e polmoni: un modulo con sette viste (insieme, cuore da solo, albero bronchiale)"""
+    X = P['torace']; sid = lambda n: 't.' + slug(n)
+    names = sorted(set().union(*(X['views'][v] for v in THX_VIEWS)))
+    structures, members = [], {}
+    for n in names:
+        g = next((g for g, rx, _ in TX.GRUPPI2D if re.search(rx, n)), None)
+        if not g: raise SystemExit('struttura del torace senza gruppo: ' + n)
+        it, la = NAMES.get(n) or [n, n]; f = DESC.get(n) or TX.desc(n) or ''
+        if it == n: print('  nome non tradotto:', n)
+        if not f: print('  senza descrizione:', n)
+        gc = next(t for gg, _, t in TX.GRUPPI2D if gg == g)['col']
+        st = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': g, 'f': f, 'col': THX_COL.get(n, gc), 's': {}, 'c': {}}
+        for v in THX_VIEWS:
+            if n in X['views'][v]: put(st, v, X['views'][v][n])
+        structures.append(st); members.setdefault(g, []).append(sid(n))
+    groups = [{'id': g, **t, 'm': members[g]} for g, _, t in TX.GRUPPI2D if g in members]
+    ids = {x['id'] for x in structures} | {x['id'] for x in groups}
+    for c in TX.CASI:
+        if c['bid'] not in ids: raise SystemExit('caso con risposta che non c\'è: ' + c['bid'])
+    path = os.path.join(ROOT, 'content/torace.json')
+    out = {'version': bump_version(path), 'id': 'torace', 'label': '🫀 Cuore e polmoni', 'W': X['W'], 'H': X['H'], 'views': list(THX_VIEWS), 'vnames': THX_VIEWS,
+           'grpn': ['Strutture singole', 'Gruppi'],
+           'expl': {'h': 'Esplora cuore e polmoni', 't': 'Tocca una struttura per vedere nome e funzione. In alto scegli la vista: il torace da quattro lati, il cuore da solo (faccia anteriore e base) o l\'albero bronchiale con i vasi polmonari; e strutture singole o gruppi.'},
+           'fonte': 'Forme proiettate dal modello 3D Z-Anatomy (CC BY-SA 4.0), vedi atlante/CREDITI.md',
+           'structures': structures, 'groups': groups, 'cases': TX.CASI}
+    json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
+    print('torace:', len(structures), 'strutture,', len(groups), 'gruppi,', len(TX.CASI), 'casi')
+
+body(); brain(); thorax()

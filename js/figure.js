@@ -10,15 +10,17 @@ import {app,S,bone,members,itemOf,bonesName,saveGrp} from './state.js';
 export const vName=(v,M=app.MOD)=>M.vnames[v]||M.zviews[v]?.n||v;
 export const baseOf=()=>{const M=app.MOD,b=app.bases[M.id];return M.views.includes(b)?b:M.views[0];};
 export const hasView=v=>app.MOD.views.includes(v)||!!app.MOD.zviews[v];
-const mmLabel=k=>app.MODS[k].label+(k===app.MOD.id?` · <span class="vn">${vName(app.view)}</span>`:'')+' ▾';
+// pulsante di un modulo: quello aperto con nome e vista; gli altri solo con l'icona se lo spazio è poco (tre moduli su un telefono)
+const mmLabel=k=>{const L=app.MODS[k].label,i=L.indexOf(' ');
+ return k===app.MOD.id?`<span class="mi">${L}</span> · <span class="vn">${vName(app.view)}</span> ▾`:`${L.slice(0,i)}<span class="mn">${L.slice(i)}</span> ▾`;};
 export function buildFig(){
  const {B,MODS,MOD,VB}=app;
  app.view=baseOf();
  const vs=[...MOD.views,...Object.keys(MOD.zviews)].map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
   B.filter(b=>b.s[v]).map(b=>`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s[v]}</g></g>`).join('')+'</g>').join('');
- const mm=Object.keys(MODS).map(k=>`<button data-mm="${k}" class="${k===MOD.id?'on':''}" aria-haspopup="menu">${mmLabel(k)}</button>`).join('');
+ const mm=Object.keys(MODS).map(k=>`<button data-mm="${k}" class="${k===MOD.id?'on':''}" aria-haspopup="menu" title="${MODS[k].label.slice(MODS[k].label.indexOf(' ')+1)}">${mmLabel(k)}</button>`).join('');
  const body=MOD.id==='corpo';
- const grp=`<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
+ const grp=`<button data-fg="1" class="${app.grp?'on':''}" title="Singole strutture o gruppi">${MOD.grpn?MOD.grpn[app.grp?1:0]:app.grp?(body?'Gruppi':'Lobi e aree'):(body?'Ossa singole':'Giri e solchi')}</button>`;
  $('fig').innerHTML=`<div class="tbar"><div class="mods mm">${mm}</div></div><div class="tbar t2"><div class="mods">${grp}</div><div class="zc"><button data-z="in" aria-label="Ingrandisci">＋</button><button data-z="out" aria-label="Riduci">－</button><button data-z="reset" aria-label="Vista intera">⟲</button></div></div><div id="vmenu" class="vmenu" role="menu" hidden></div><svg viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" role="img" aria-label="Figura anatomica"><defs><marker id="ar" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7c3aed"/></marker></defs>${vs}<g id="ov" pointer-events="none"></g></svg>`;
 }
 // Menu delle viste di un modulo, sotto il suo pulsante; con una vista di zona aperta mostra anche le due viste della zona.

@@ -7,13 +7,14 @@ import {startPuzzle} from './puzzle.js';
 export function renderMenu(){
  app.G=null;clearGhosts();baseView();const body=app.MOD.id==='corpo';
  const mb=(m,t,x)=>`<button class="mode" data-mode="${m}"><b>${t}</b><small>${x}</small></button>`;
- const what=app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
+ const brain=app.MOD.id==='cervello',M=app.MOD;
+ const what=M.grpn?(app.grp?'per <b>gruppi</b>':'sulle <b>strutture singole</b>'):app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
  $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto, dove scegli anche la vista.</p><div class="sub">Puzzle</div>`+
   mb('puzzle','🧩 Ricomponi','Rimetti al posto i pezzi mancanti (trascina o tocca)')+
   (body?mb('bridge','🌉 Tendine-ponte',"Collega l'osso di origine a quello di inserzione"):'')+
-  mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP')+
+  (M.CASES&&M.CASES.length?mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP'):'')+
   '<div class="sub">Quiz</div>'+mb('find','🎯 Trova la struttura','Tocca quella giusta sulla figura')+
-  (body?mb('musc','💪 Origine e inserzione','Collega ogni muscolo al suo osso'):mb('func','🧠 Funzione → struttura','Quale struttura svolge questa funzione?')+mb('nc','🔢 Nervi cranici','Nome, numero e funzione dei 12 nervi'))+
+  (body?mb('musc','💪 Origine e inserzione','Collega ogni muscolo al suo osso'):mb('func',(brain?'🧠':'❤️')+' Funzione → struttura','Quale struttura svolge questa funzione?')+(brain?mb('nc','🔢 Nervi cranici','Nome, numero e funzione dei 12 nervi'):''))+
   mb('mix','🔀 Misto',"Un po' di tutto")+
   // giochi sul modello 3D: si giocano nella scheda Atlante 3D (vedi play3d in ui.js)
   '<div class="sub">Sul modello 3D</div>'+mb('3d-ossa','🦴 Trova l\'osso','Tocca l\'osso giusto sul modello 3D')+
@@ -23,7 +24,8 @@ export function renderMenu(){
   mb('3d-ricomponi','🧩 Ricomponi','Rimetti al loro posto le ossa di una zona (mano, piede, cranio…)')+
   mb('3d-ponte','🌉 Tendine-ponte',"Tocca l'osso di origine e poi quello di inserzione")+
   mb('3d-caso','🩺 Caso clinico','Leggi gli indizi e tocca il muscolo coinvolto')+
-  mb('3d-nervi','🔢 Nervi cranici','Tocca il nervo giusto alla base dell\'encefalo');
+  mb('3d-nervi','🔢 Nervi cranici','Tocca il nervo giusto alla base dell\'encefalo')+
+  mb('3d-torace','🫀 Cuore e polmoni','Tocca la struttura giusta: camere, coronarie, grandi vasi, lobi, bronchi');
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){
@@ -36,7 +38,7 @@ export function nextQ(){
  const G=app.G,{B,M,CASES,NC}=app;
  clearMarks();baseView();
  if(G.hearts<=0||G.q>=G.total)return endGame();
- const t=G.mode==='mix'?pick(app.MOD.id==='corpo'?['find','musc','bridge']:['find','func','nc']):G.mode;G.locked=false;resetZoom(true);
+ const t=G.mode==='mix'?pick(app.MOD.id==='corpo'?['find','musc','bridge']:app.MOD.id==='cervello'?['find','func','nc']:['find','func','case']):G.mode;G.locked=false;resetZoom(true);
  if(t==='find'){
   const b=pickItem(G);G.cur={t,id:b.id};
   $('panel').innerHTML=gh()+`<div class="q">Tocca sulla figura:<br><b>${b.n}</b> <i>${b.l}</i></div>`+(G.zoomed?'<p class="mut">La figura è ingrandita sulla zona giusta: le strutture sono piccole.</p>':'');

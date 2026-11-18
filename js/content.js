@@ -20,7 +20,7 @@ export async function loadContent(){
    s1:Object.fromEntries(Object.entries(x.s).map(([v,sh])=>[v,renderShape(sh.slice(0,1))])),
    sf:Object.fromEntries(Object.entries(x.sf||{}).map(([v,d])=>[v,renderShape([{poly:d}])])),sb:x.sb||{},vis:x.vis||{}}));
   const byId=Object.fromEntries([...B,...GR].map(x=>[x.id,x]));
-  MODS[m.id]={id:m.id,label:m.label,B,GR,byId,M:m.muscles||[],CASES:m.cases,W:m.W,H:m.H,views:m.views||['a'],vnames:m.vnames||{},zviews:m.zviews||{}};
+  MODS[m.id]={id:m.id,label:m.label,B,GR,byId,M:m.muscles||[],CASES:m.cases,W:m.W,H:m.H,views:m.views||['a'],vnames:m.vnames||{},zviews:m.zviews||{},grpn:m.grpn,expl:m.expl};
  }
  return {version:idx.version,MODS,NC:nc.items};
 }

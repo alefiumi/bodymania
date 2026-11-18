@@ -905,9 +905,10 @@ def schede_muscoli(mus):
 # refusi nella traduzione italiana della Terminologia Anatomica 2 (TA2.csv)
 REFUSI = {'quindo dito': 'quinto dito', 'Muscololi elevatore lunghi': 'Muscoli elevatori lunghi', 'elevatori breves': 'elevatori brevi',
           'spinale dellla': 'spinale della', 'dei muscol ': 'dei muscoli ', 'del osso': "dell'osso"}
+import torace  # cuore e polmoni: descrizioni e nomi corretti
 def correggi_nomi(D):
     fix = lambda t: next((t.replace(a, b) for a, b in REFUSI.items() if a in t), t) if isinstance(t, str) else t
-    for k, v in D['names'].items(): v[0] = fix(v[0])
+    for k, v in D['names'].items(): v[0] = torace.NOMI.get(k) or fix(v[0])
     for m in D['mus'].values(): m['n'] = fix(m['n'])
 
 def build(D):
@@ -921,6 +922,7 @@ def build(D):
         if v[0] == 'ossa': t = OSSA.get(b) or ossa_serie(b)
         elif v[0] in ('encefalo', 'midollo'): t = ENCEFALO.get(b) or GRUPPI.get(v[2])
         elif v[0] == 'meningi': t = MENINGI.get(b) or GRUPPI.get(v[2])
+        elif v[0] in ('vasi', 'visceri') and torace.organo(b, v[0], v[2]): t = torace.desc(b)
         if t: desc[b] = t
     for l in D['lm']:
         if l[0] in REPERI: desc[l[0]] = REPERI[l[0]]
