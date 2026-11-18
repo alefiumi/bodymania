@@ -101,7 +101,7 @@ function loadFile(file){
    const u={name,base,side:sideOf(name),layer:inf[0],mat:inf[1],g:inf[2],kind:kindOf(name),root:inf[0]==='muscoli'||inf[0]==='inserzioni'?rootOf(base):''};
    const L=LAYERS[u.layer]||LAYERS[file];
    u.own=u.layer==='inserzioni'?(u.kind==='e'?M_E:M_O):toon(u.mat==='Cartilage'&&u.layer!=='meningi'?FIX.Cartilage:L.c!==null?L.c:groupColor(u),u.layer==='nervi'||u.layer==='vasi');
-   u.org=organOf(u);if(u.org)u.own=u.base==='Pleura'?M_PLEURA:toon(groupColor(u),u.org==='vpolm'||u.org==='coronarie');
+   u.org=organOf(u);if(u.org)u.own=u.base==='Pleura'?M_PLEURA:toon(groupColor(u),u.layer==='vasi');
    u.st=stratumOf(u);o.userData=u;o.material=u.own;meshes.push(o);byName.set(name,o);
   });
   scene.add(g.scene);
@@ -209,11 +209,14 @@ const SYN={'sias':['Anterior superior iliac spine'],'asis':['Anterior superior i
  'dura madre':['~dura','Falx cerebri','Tentorium cerebelli'],'aracnoide':['~aracnoide'],'falce':['Falx cerebri'],'tentorio':['Tentorium cerebelli']};
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[’`´]/g,"'").trim();
 
-/* ---------- cuore e polmoni ---------- */
-// le stesse regole di organo() in build/torace.py (che fa il 2D): organo del torace di una parte, o null
+/* ---------- apparato cardiovascolare (cuore e vasi) e respiratorio (polmoni) ---------- */
+// le stesse regole di organo() in build/torace.py e in build/proietta_2d.mjs (che fanno il 2D): tenerle uguali
 const CUORE_G=new Set(['Heart','Right ventricle','Left ventricle','Aortic valve','Pulmonary valve','Right atrioventricular valve','Arteries of heart','Left coronary artery','Right coronary artery','Anterior interventricular artery','Cardiac veins','Coronary sinus']);
-const GRANDI=new Set(['Ascending aorta','Aortic arch','Thoracic aorta','Brachiocephalic trunk','Left common carotid artery','Left subclavian artery','Superior vena cava','Inferior vena cava (thoracic part)','Left brachiocephalic vein','Right brachiocephalic vein','Azygos vein','Pulmonary trunk','Bifurcation of pulmonary trunk','Left pulmonary artery','Right pulmonary artery','Left superior pulmonary vein','Left inferior pulmonary vein','Right superior pulmonary vein','Right inferior pulmonary vein']);
+const GRANDI=new Set(['Ascending aorta','Aortic arch','Thoracic aorta','Brachiocephalic trunk','Left common carotid artery','Left subclavian artery','Superior vena cava','Inferior vena cava (thoracic part)','Left brachiocephalic vein','Right brachiocephalic vein','Azygos vein']);
+const PGRANDI=new Set(['Pulmonary trunk','Bifurcation of pulmonary trunk','Left pulmonary artery','Right pulmonary artery','Left superior pulmonary vein','Left inferior pulmonary vein','Right superior pulmonary vein','Right inferior pulmonary vein']);
 const VALV_G=new Set(['Aortic valve','Pulmonary valve','Right atrioventricular valve']);
+const VENA=/vein|venous|vena|sinus|plexus/i;
+const isVein=u=>VENA.test(u.base+' '+u.g);
 function organOf(u){
  const b=u.base;if(b.startsWith('?'))return null;
  if(u.layer==='vasi'){
@@ -221,8 +224,9 @@ function organOf(u){
   if(u.g==='Heart')return 'cuore';
   if(CUORE_G.has(u.g)||/^(Coronary sinus|Left coronary artery|Right coronary artery)$/.test(b))return 'coronarie';
   if(GRANDI.has(b))return 'grandi';
+  if(PGRANDI.has(b))return 'pgrandi';
   if(/of (left|right) lung|lobar artery/.test(b))return 'vpolm';
-  return null;
+  return isVein(u)?'vene':'arterie';
  }
  if(u.layer==='visceri'){
   if(b==='Pleura')return 'pleura';
@@ -231,20 +235,33 @@ function organOf(u){
  }
  return null;
 }
-// sottosistemi da accendere e spegnere, dal più esterno al più interno
-const ORG={pleura:{n:'Pleura',t:'Sierosa che avvolge i polmoni (foglietto viscerale e parietale): qui trasparente.'},
- polmoni:{n:'Lobi dei polmoni',t:'Tre lobi a destra (superiore, medio, inferiore), due a sinistra (superiore con la lingula, inferiore).'},
- vie:{n:'Trachea e bronchi',t:'Trachea, bronchi principali, lobari e segmentari: l\'albero bronchiale.'},
- vpolm:{n:'Vasi polmonari',t:'Rami lobari e segmentari delle arterie polmonari (accanto ai bronchi) e vene polmonari (tra i segmenti).'},
- grandi:{n:'Grandi vasi',t:'Aorta e suoi rami, vene cave, tronco e arterie polmonari, vene polmonari, vena azygos.'},
- cuore:{n:'Cuore',t:'Atri e ventricoli: il destro in blu (sangue venoso), il sinistro in rosso (sangue ossigenato).'},
- coronarie:{n:'Coronarie e vene del cuore',t:'Arterie coronarie destra e sinistra con i loro rami; seno coronario e vene cardiache.'},
- valvole:{n:'Valvole e muscoli papillari',t:'Cuspidi delle valvole aortica e polmonare, lembi di tricuspide e mitrale, muscoli papillari. Si vedono spegnendo il cuore o con una sezione.'}};
-const ORG_PRESET={tutto:['polmoni','vie','grandi','cuore','coronarie'],cuore:['grandi','cuore','coronarie'],dentro:['grandi','coronarie','valvole'],
- polmoni:['pleura','polmoni','grandi','cuore'],bronchi:['vie','vpolm','grandi'],vie:['vie']};
-const ORG_PN={tutto:'Tutto',cuore:'Solo il cuore',dentro:'Dentro il cuore',polmoni:'Polmoni e pleura',bronchi:'Bronchi e vasi',vie:'Albero bronchiale'};
+// che cosa è una parte, nel pannello
+const ORGN={cuore:'Cuore',valvole:'Valvola o muscolo papillare',coronarie:'Vaso del cuore',grandi:'Grande vaso',pgrandi:'Vaso polmonare',vpolm:'Vaso polmonare',
+ arterie:'Arteria',vene:'Vena',polmoni:'Polmone',vie:'Vie aeree',pleura:'Pleura'};
+// i due apparati: strati (che parti mostrano), viste pronte, inquadratura. Strato = funzione della parte
+const SYS={
+ cuore:{n:'Cuore e vasi',ic:'🫀',fly:{tutto:'body',arterie:'body',vene:'body'},def:'tutto',
+  L:{arterie:{n:'Arterie',f:u=>u.org==='arterie'||(/grandi/.test(u.org)&&!isVein(u)),t:'Le arterie del corpo, con aorta, tronco polmonare e arterie polmonari (portano il sangue lontano dal cuore).'},
+   vene:{n:'Vene',f:u=>u.org==='vene'||(/grandi/.test(u.org)&&isVein(u)),t:'Le vene del corpo con vene cave, vene polmonari e seni venosi della dura madre (riportano il sangue al cuore).'},
+   grandi:{n:'Grandi vasi della base',f:u=>/grandi/.test(u.org),t:'Aorta e suoi tre rami, vene cave, vene brachiocefaliche, azygos, tronco e arterie polmonari, vene polmonari.'},
+   cuore:{n:'Cuore',f:u=>u.org==='cuore',t:'Atri e ventricoli: il destro in blu (sangue venoso), il sinistro in rosso (sangue ossigenato).'},
+   coronarie:{n:'Coronarie e vene del cuore',f:u=>u.org==='coronarie',t:'Arterie coronarie destra e sinistra con i loro rami; seno coronario e vene cardiache.'},
+   valvole:{n:'Valvole e muscoli papillari',f:u=>u.org==='valvole',t:'Cuspidi delle valvole aortica e polmonare, lembi di tricuspide e mitrale, muscoli papillari. Si vedono senza le camere o con una sezione.'}},
+  P:{tutto:['arterie','vene','cuore','coronarie'],arterie:['arterie','cuore','coronarie'],vene:['vene','cuore','coronarie'],base:['grandi','cuore','coronarie'],solo:['cuore','coronarie'],dentro:['coronarie','valvole']},
+  PN:{tutto:'Tutto il sistema',arterie:'Solo arterie',vene:'Solo vene',base:'Cuore e grandi vasi',solo:'Solo il cuore',dentro:'Dentro il cuore'},
+  box:u=>u.org==='cuore',note:'Forme dalla fonte (Z-Anatomy); il pericardio non c\'è e della valvola mitrale c\'è solo il lembo posteriore. Testi dei vasi principali scritti dall\'AI (da verificare); degli altri vasi, da dove nascono o dove sboccano secondo la fonte.'},
+ polmoni:{n:'Polmoni',ic:'🫁',fly:{},def:'tutto',
+  L:{pleura:{n:'Pleura',f:u=>u.org==='pleura',t:'Sierosa che avvolge i polmoni (foglietto viscerale e parietale): qui trasparente.'},
+   polmoni:{n:'Lobi',f:u=>u.org==='polmoni',t:'Tre lobi a destra (superiore, medio, inferiore), due a sinistra (superiore con la lingula, inferiore).'},
+   vie:{n:'Trachea e bronchi',f:u=>u.org==='vie',t:'Trachea, bronchi principali, lobari e segmentari: l\'albero bronchiale.'},
+   vasi:{n:'Vasi polmonari',f:u=>u.org==='vpolm'||u.org==='pgrandi',t:'Tronco e arterie polmonari con i rami lobari e segmentari (blu, accanto ai bronchi) e vene polmonari (rosse, tra i segmenti).'}},
+  P:{tutto:['polmoni','vie'],pleura:['pleura','polmoni','vie'],vasi:['vie','vasi'],vie:['vie']},
+  PN:{tutto:'Lobi e trachea',pleura:'Con la pleura',vasi:'Bronchi e vasi',vie:'Albero bronchiale'},
+  box:u=>u.org==='polmoni',note:'Forme dalla fonte (Z-Anatomy). Testi scritti dall\'AI: da verificare.'}};
+const sysOf=org=>['polmoni','vie','pleura','vpolm'].includes(org)?'polmoni':'cuore';
 const M_PLEURA=new THREE.MeshToonMaterial({color:0xdce8f3,gradientMap:ramp,transparent:true,opacity:0.35,depthWrite:false});M_PLEURA.userData.outlineParameters={visible:false};
-let thxBox=null;
+const sysBox={};
+const boxSys=k=>sysBox[k]||(sysBox[k]=boxOf(meshes.filter(m=>m.userData.org&&SYS[k].box(m.userData))));
 
 /* ---------- encefalo: strati dalla dura madre ai ventricoli ---------- */
 const ST=[
@@ -336,7 +353,7 @@ const boxOf=list=>{const b=new THREE.Box3();list.forEach(o=>b.expandByObject(o))
 // part = parte selezionata; lm = repere; mus = muscolo aperto (radice del nome) sul lato side; bones = on | ghost | off
 // combo = gruppo di muscoli aperto (zampa d'oca…); mv = vista del muscolo: both | shape | lines
 // cut = piano di sezione {ax, t}; lev = strati dell'encefalo tolti (0 = tutti presenti)
-const S={thx:false,org:Object.fromEntries(Object.keys(ORG).map(k=>[k,ORG_PRESET.tutto.includes(k)])),cutOn:'brain',part:null,lm:null,mus:null,combo:null,side:'r',bones:'on',allLm:false,list:null,q:'',mv:'both',cut:{ax:null,t:0.5},lev:0};
+const S={sys:null,lay:Object.fromEntries(Object.entries(SYS).map(([k,x])=>[k,Object.fromEntries(Object.keys(x.L).map(l=>[l,x.P[x.def].includes(l)]))])),cutOn:'brain',part:null,lm:null,mus:null,combo:null,side:'r',bones:'on',allLm:false,list:null,q:'',mv:'both',cut:{ax:null,t:0.5},lev:0};
 let GAME=null; // partita in corso (gioco Trova la struttura nel 3D)
 const musOf=m=>m&&m.userData.root&&DATA.mus[m.userData.root]?m.userData.root:null;
 const roots=()=>S.combo?COMBO[S.combo].mus:S.mus?[S.mus]:[];
@@ -350,7 +367,7 @@ function inFocus(m){
 function visible(m){
  const u=m.userData;if(u.hidden)return false;
  if(u.layer==='ossa')return S.bones!=='off';
- if(S.thx&&u.org)return !!S.org[u.org];
+ if(S.sys&&u.org){const X=SYS[S.sys],on=S.lay[S.sys];return Object.keys(X.L).some(l=>on[l]&&X.L[l].f(u));}
  if(S.lev&&u.st>=0&&u.st<S.lev)return false;
  return V[u.layer]||(inFocus(m)&&S.mv!=='lines'&&!(S.mv==='areas'&&u.layer==='muscoli')); // areas: solo aree e linee, senza la forma (gioco)
 }
@@ -375,7 +392,7 @@ function refresh(noPanel){
  if(!noPanel)panel();
 }
 function applyCut(){
- const box=S.cutOn==='thx'?thxBox:brainBox,ax=S.cut.ax&&box?AX[S.cut.ax]:null;
+ const box=SYS[S.cutOn]?boxSys(S.cutOn):brainBox,ax=S.cut.ax&&box?AX[S.cut.ax]:null;
  if(ax){const p=box.min.clone().lerp(box.max,S.cut.t),n=new THREE.Vector3(...ax.n);cutPlane.setFromNormalAndCoplanarPoint(n,p);renderer.clippingPlanes=[cutPlane];}
  else renderer.clippingPlanes=[];
  // con il taglio si vede anche l'interno delle superfici: la sezione sembra piena
@@ -427,10 +444,10 @@ function panel(){
  }else if(S.part){
   const u=S.part.userData,ls=u.layer==='ossa'?(lmByParent.get(u.name)||[]):[],t=descOf(u.base),brain=u.layer==='encefalo'||u.layer==='meningi';
   h=`<div class="h">${itOf(u.base)} <i>${sideName(u.side)}</i></div><div class="mut"><i>${laOf(u.base)}</i> · ${u.base}</div>
-   <div class="row">${u.org?ORG[u.org].n:TIPO[u.layer]||''}${u.g&&u.g!=='Cranial meninges'&&!u.org?' · '+itOf(u.g):''}${u.layer==='inserzioni'?' · '+(u.kind==='o'?'origine':'inserzione'):''}${brain&&u.st>=0?' · strato: '+ST[u.st].n.toLowerCase():''}</div>`+
+   <div class="row">${u.org?(u.org==='vene'&&/sinus/i.test(u.base)?'Seno venoso':ORGN[u.org]):TIPO[u.layer]||''}${u.g&&u.g!=='Cranial meninges'&&!u.org?' · '+itOf(u.g):''}${u.layer==='inserzioni'?' · '+(u.kind==='o'?'origine':'inserzione'):''}${brain&&u.st>=0?' · strato: '+ST[u.st].n.toLowerCase():''}</div>`+
    (t?`<p>${t}</p>`:'')+
    (ls.length?`<div class="sub">Reperi su questa parte (${ls.length})</div><div class="chips">${ls.map(l=>chip('',`data-lm="${l.id}"`,itOf(l.b))).join('')}</div>`:'')+
-   `<div class="chips">${musOf(S.part)?`<button class="chip on" data-mu="${musOf(S.part)}">Scheda del muscolo</button>`:''}${brain?'<button class="chip on" data-go="brain">🧠 Sezioni e strati</button>':''}${u.org?'<button class="chip on" data-go="thx">🫀 Cuore e polmoni</button>':''}<button class="chip" data-hide="1">Nascondi</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`+(t?AI:'')+FONTE;
+   `<div class="chips">${musOf(S.part)?`<button class="chip on" data-mu="${musOf(S.part)}">Scheda del muscolo</button>`:''}${brain?'<button class="chip on" data-go="brain">🧠 Sezioni e strati</button>':''}${u.org?`<button class="chip on" data-sys="${sysOf(u.org)}">${SYS[sysOf(u.org)].ic} ${SYS[sysOf(u.org)].n}</button>`:''}<button class="chip" data-hide="1">Nascondi</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`+(t?AI:'')+FONTE;
  }else if(S.list==='brain'){
   const on=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
   h=`<div class="h">Encefalo: sezioni e strati</div>${S.loading?'<p class="mut">Carico encefalo e meningi…</p>':''}
@@ -442,24 +459,24 @@ function panel(){
    <div class="chips">${ST.map((s,i)=>chip(i===S.lev?'on':'',`data-lev="${i}"`,`${i+1}. ${s.n}`)).join('')}</div>
    <p class="note">Dura madre e aracnoide craniche hanno una forma schematica generata dall'app (la fonte ha solo falce e tentorio). Testi scritti dall'AI: da verificare.</p>
    <div class="chips"><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
- }else if(S.list==='thx'){
-  const on=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
-  const cur=Object.entries(ORG_PRESET).find(([,l])=>Object.keys(ORG).every(k=>S.org[k]===l.includes(k)));
-  h=`<div class="h">Cuore e polmoni</div>${S.loading?'<p class="mut">Carico cuore, vasi e polmoni…</p>':''}
-   <div class="sub">Viste pronte</div><div class="chips">${Object.keys(ORG_PRESET).map(k=>on(cur&&cur[0]===k,`data-opre="${k}"`,ORG_PN[k])).join('')}</div>
-   <div class="sub">Strati: accendi e spegni</div><div class="chips">${Object.entries(ORG).map(([k,o])=>on(S.org[k],`data-org="${k}"`,o.n)).join('')}</div>
-   <div class="mut">${Object.entries(ORG).filter(([k])=>S.org[k]).map(([,o])=>`<b>${o.n}</b>: ${o.t}`).join('<br>')}</div>
-   <div class="sub">Sezione sui piani anatomici</div><div class="chips">${on(!S.cut.ax,'data-cut="none"','Nessuna')}${Object.entries(AX).map(([k,a])=>on(S.cut.ax===k,`data-cut="${k}"`,a.it)).join('')}</div>`+
-   (S.cut.ax?`<input type="range" id="cutr" min="0" max="1000" value="${Math.round(S.cut.t*1000)}" style="width:100%"><div class="mut">${S.cut.ax==='axial'?'Sposta il piano dal basso in alto':S.cut.ax==='coronal'?'Sposta il piano da dietro in avanti':'Sposta il piano da destra a sinistra'}. Con la sezione coronale si vedono le camere e le valvole.</div>`:'')+
-   `<p class="note">Forme dalla fonte (Z-Anatomy); il pericardio non c'è e della valvola mitrale c'è solo il lembo posteriore. Testi scritti dall'AI: da verificare.</p>
-   <div class="chips"><button class="chip" data-thxoff="1">Esci da cuore e polmoni</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
+ }else if(SYS[S.list]){
+  const X=SYS[S.list],on=S.lay[S.list],b=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
+  const cur=Object.entries(X.P).find(([,l])=>Object.keys(X.L).every(k=>on[k]===l.includes(k)));
+  h=`<div class="h">${X.ic} ${X.n}</div>${S.loading?'<p class="mut">Carico il modello…</p>':''}
+   <div class="sub">Viste pronte</div><div class="chips">${Object.keys(X.P).map(k=>b(cur&&cur[0]===k,`data-spre="${k}"`,X.PN[k])).join('')}</div>
+   <div class="sub">Strati: accendi e spegni</div><div class="chips">${Object.entries(X.L).map(([k,l])=>b(on[k],`data-slay="${k}"`,l.n)).join('')}</div>
+   <div class="mut">${Object.entries(X.L).filter(([k])=>on[k]).map(([,l])=>`<b>${l.n}</b>: ${l.t}`).join('<br>')}</div>
+   <div class="sub">Sezione sui piani anatomici</div><div class="chips">${b(!S.cut.ax,'data-cut="none"','Nessuna')}${Object.entries(AX).map(([k,a])=>b(S.cut.ax===k,`data-cut="${k}"`,a.it)).join('')}</div>`+
+   (S.cut.ax?`<input type="range" id="cutr" min="0" max="1000" value="${Math.round(S.cut.t*1000)}" style="width:100%"><div class="mut">${S.cut.ax==='axial'?'Sposta il piano dal basso in alto':S.cut.ax==='coronal'?'Sposta il piano da dietro in avanti':'Sposta il piano da destra a sinistra'}.${S.list==='cuore'?' Con la sezione coronale si vedono le camere e le valvole.':''}</div>`:'')+
+   `<p class="note">${X.note}</p>
+   <div class="chips"><button class="chip" data-sysoff="1">Esci da ${X.n.toLowerCase()}</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='layers'){
   const on=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`,lay=k=>on(V[k],`data-layer="${k}"`,LAYERS[k].n);
   h=`<div class="h">Strati</div>${S.loading?'<p class="mut">Carico lo strato…</p>':''}
    <div class="sub">Ossa</div><div class="chips">${on(S.bones==='on','data-bones="on"','Visibili')}${on(S.bones==='ghost','data-bones="ghost"','Trasparenti')}${on(S.bones==='off','data-bones="off"','Nascoste')}${on(S.allLm,'data-lmt="1"','Tutti i reperi')}</div>
    <div class="sub">Apparato locomotore</div><div class="chips">${lay('muscoli')}${lay('fasce')}${lay('legamenti')}${lay('inserzioni')}</div>
    <div class="sub">Sistema nervoso</div><div class="chips">${lay('encefalo')}${lay('midollo')}${lay('nervi')}${lay('meningi')}${lay('sensi')}<button class="chip" data-go="brain">🧠 Sezioni e strati</button></div>
-   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}<button class="chip${S.thx?' on':''}" data-go="thx">🫀 Cuore e polmoni</button></div>
+   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}${Object.entries(SYS).map(([k,x])=>`<button class="chip${S.sys===k?' on':''}" data-sys="${k}">${x.ic} ${x.n}</button>`).join('')}</div>
    ${offlineHtml()}
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='muscles'){
@@ -492,7 +509,7 @@ function panel(){
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else{
   h=`<div class="h">Atlante 3D</div><p class="mut">Tocca una parte per vederne il nome. Un dito ruota, due dita ingrandiscono e spostano, doppio tocco avvicina.</p>
-   <div class="chips"><button class="chip" data-go="layers">🧩 Strati</button><button class="chip" data-go="muscles">💪 Muscoli</button><button class="chip" data-go="brain">🧠 Encefalo</button><button class="chip" data-go="thx">🫀 Cuore e polmoni</button><button class="chip" data-go="search">🔎 Cerca</button></div>`+FONTE;
+   <div class="chips"><button class="chip" data-go="layers">🧩 Strati</button><button class="chip" data-go="muscles">💪 Muscoli</button><button class="chip" data-go="brain">🧠 Encefalo</button><button class="chip" data-sys="cuore">🫀 Cuore e vasi</button><button class="chip" data-sys="polmoni">🫁 Polmoni</button><button class="chip" data-go="search">🔎 Cerca</button></div>`+FONTE;
  }
  const keep=document.activeElement&&document.activeElement.id==='q';
  p.innerHTML=h;if(!keep)p.scrollTop=0;
@@ -554,19 +571,22 @@ async function openBrain(){
  refresh();
  if(first)flyBrain(S.cut.ax?AX[S.cut.ax].v:'right');
 }
-// cuore e polmoni: carica vasi e visceri, mostra solo gli organi del torace (strati scelti), ossa trasparenti, avvicina il torace
-async function openThorax(){
- S.mus=S.combo=S.lm=S.part=null;S.list='thx';
- if(S.cutOn!=='thx'){S.cut.ax=null;S.cutOn='thx';}
- if(!FILES.vasi||!FILES.vasi.loaded||!FILES.visceri||!FILES.visceri.loaded){S.loading=true;panel();await Promise.all([loadFile('vasi'),loadFile('visceri')]);S.loading=false;}
- if(!thxBox)thxBox=boxOf(meshes.filter(m=>m.userData.org==='polmoni'||m.userData.org==='cuore'));
- const first=!S.thx;S.thx=true;if(S.bones==='on')S.bones='ghost';
+// un apparato (cuore e vasi, polmoni): carica i suoi file, mostra solo le sue parti (strati scelti), ossa trasparenti
+async function openSys(k){
+ S.mus=S.combo=S.lm=S.part=null;S.list=k;
+ if(S.cutOn!==k){S.cut.ax=null;S.cutOn=k;}
+ const files=k==='cuore'?['vasi']:['vasi','visceri'];
+ if(files.some(f=>!FILES[f]||!FILES[f].loaded)){S.loading=true;panel();await Promise.all(files.map(loadFile));S.loading=false;}
+ const first=S.sys!==k;S.sys=k;if(S.bones==='on')S.bones='ghost';
  refresh();
- if(first)flyThx('front');
+ if(first)flySys();
 }
-function flyThx(v){
- const c=thxBox.getCenter(new THREE.Vector3()),r=thxBox.getSize(new THREE.Vector3()).length()/2;
- const dist=r*0.9/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
+// inquadra l'apparato: tutto il corpo per i vasi di tutto il corpo, altrimenti l'organo
+function flySys(v='front'){
+ const X=SYS[S.sys],cur=Object.entries(X.P).find(([,l])=>Object.keys(X.L).every(k=>S.lay[S.sys][k]===l.includes(k)));
+ if(cur&&X.fly[cur[0]]==='body'){setView(v);return;}
+ const box=boxSys(S.sys),c=box.getCenter(new THREE.Vector3()),r=box.getSize(new THREE.Vector3()).length()/2;
+ const dist=r*(S.sys==='cuore'?1.3:0.9)/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
  flyTo(c.clone().addScaledVector(new THREE.Vector3(...DIR[v]).normalize(),dist),c);
 }
 function flyBrain(v){
@@ -576,7 +596,7 @@ function flyBrain(v){
 }
 function setCut(ax){
  S.cut.ax=ax==='none'?null:ax;
- if(S.cut.ax&&S.cutOn==='thx'){S.cut.t=0.5;flyThx(AX[S.cut.ax].v);}
+ if(S.cut.ax&&SYS[S.cutOn]){S.cut.t=0.5;flySys(AX[S.cut.ax].v);}
  else if(S.cut.ax){S.cut.t=S.cut.ax==='axial'?0.6:S.cut.ax==='sagittal'?0.52:0.5;/* sagittale appena a lato della falce: si vede la faccia mediale */flyBrain(AX[S.cut.ax].v);}
  refresh();
 }
@@ -650,7 +670,8 @@ const SETS={
  ponte:{n:'Tendine-ponte',ask:''},
  caso:{n:'Caso clinico',ask:'Tocca il muscolo'},
  nervi:{n:'Nervi cranici',ask:'Tocca il nervo'},
- torace:{n:'Cuore e polmoni',ask:'Tocca'}};
+ cuore:{n:'Cuore',ask:'Tocca'},
+ polmoni:{n:'Polmoni',ask:'Tocca'}};
 // casi clinici e nervi cranici arrivano dall'app con il messaggio del gioco (stanno nei contenuti dell'app)
 const EXTRA={cases:[],nc:[]};
 // zone del gioco Ricomponi, dai gruppi della fonte (Terminologia Anatomica)
@@ -722,12 +743,13 @@ async function poolOf(set){
   const bonesOf=names=>[...new Set(names.filter(n=>sideOf(n)!=='l').map(n=>byName.get(n)).filter(Boolean).map(m=>nearestBone(m)).filter(Boolean).map(b=>b.userData.base))];
   for(const [r,d] of Object.entries(DATA.mus)){const ob=bonesOf(d.o),eb=bonesOf(d.e);if(ob.length&&eb.length)items.push({key:r,n:clean(d.n),la:clean(d.la),fam:d.g||r,ob,eb});}
   return POOL[set]=items;
- }else if(set==='torace'){
-  // strutture del torace che si vedono da fuori con lobi, vie aeree, grandi vasi, cuore e coronarie (senza pleura e valvole)
-  await Promise.all([loadFile('vasi'),loadFile('visceri')]);
-  const parts=meshes.filter(m=>m.userData.org&&ORG_PRESET.tutto.includes(m.userData.org));
-  // i bronchi segmentari stanno dentro i lobi: si vedono solo dalle fessure tra le superfici della fonte
-  const seen=seenFrom(parts,[],400),ok=new Set();for(const [m,n] of seen)if(n>=8&&!/segmental/.test(m.userData.base))ok.add(m.userData.base);
+ }else if(set==='cuore'||set==='polmoni'){
+  // parti che si vedono da fuori: cuore con grandi vasi e coronarie; polmoni con trachea e bronchi principali
+  // (gli altri bronchi stanno dentro i lobi: si vedrebbero solo dalle fessure tra le superfici della fonte)
+  await Promise.all(set==='cuore'?[loadFile('vasi')]:[loadFile('vasi'),loadFile('visceri')]);
+  const orgs=set==='cuore'?['cuore','coronarie','grandi','pgrandi']:['polmoni','vie'];
+  const parts=meshes.filter(m=>orgs.includes(m.userData.org));
+  const seen=seenFrom(parts,[],400),ok=new Set();for(const [m,n] of seen)if(n>=8&&(m.userData.org!=='vie'||/^(Trachea|Right main bronchus|Left main bronchus)$/.test(m.userData.base)))ok.add(m.userData.base);
   [...ok].forEach(b=>add(b,b));
  }else if(set==='caso'){
   // solo i casi il cui muscolo si vede da fuori (si risponde toccandolo)
@@ -766,13 +788,13 @@ async function startGame(set,extra){
  GAME={set,q:0,total:8,hearts:3,score:0,gain:0,cur:null,locked:false,used:new Set(),last:null,pool:null,marks:[]};
  document.body.classList.add('game');
  S.mus=S.combo=S.lm=S.part=null;S.list=null;S.cut.ax=null;S.lev=0;S.mv='both';
- for(const k in V)V[k]=false;S.bones='on';S.allLm=false;S.thx=false;meshes.forEach(m=>m.userData.hidden=false);
+ for(const k in V)V[k]=false;S.bones='on';S.allLm=false;S.sys=null;meshes.forEach(m=>m.userData.hidden=false);
  S.loading=true;refresh();
  GAME.pool=await poolOf(set);
  if(set==='muscoli')V.muscoli=true;
  if(set==='reperi')S.allLm=true;
  if(set==='caso')V.muscoli=true;
- if(set==='torace'){S.thx=true;for(const k in ORG)S.org[k]=ORG_PRESET.tutto.includes(k);S.bones='ghost';S.cut.ax=null;if(!thxBox)thxBox=boxOf(meshes.filter(m=>m.userData.org==='polmoni'||m.userData.org==='cuore'));}
+ if(set==='cuore'||set==='polmoni'){S.sys=set;const X=SYS[set];for(const k in X.L)S.lay[set][k]=X.P[set==='cuore'?'base':'tutto'].includes(k);S.bones='ghost';S.cut.ax=null;}
  if(set==='oi'||set==='ponte')await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
  if(set==='nervi'){await loadFile('encefalo');V.nervi=true;V.encefalo=true;S.bones='ghost';
   meshes.forEach(m=>{if(m.userData.layer==='nervi'&&!crNum(m.userData))m.userData.hidden=true;}); // solo i 12 nervi cranici
@@ -876,7 +898,7 @@ function nextGameQ(){
  if(G.set==='nervi'){ // la base dell'encefalo vista da davanti e un po' dal basso, dove escono i nervi
   const c=brainBox.getCenter(new THREE.Vector3()),r=brainBox.getSize(new THREE.Vector3()).length()/2,dist=r*1.1/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
   flyTo(c.clone().addScaledVector(new THREE.Vector3(0,-0.55,1).normalize(),dist),c);
- }else if(G.set==='torace')flyThx('front');
+ }else if(G.set==='cuore'||G.set==='polmoni')flySys('front');
  else flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
 }
 function gameTap(x,y){
@@ -918,7 +940,7 @@ function endGame(){
  const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
  toApp({type:'end',done,set:G.set,score:G.score,total:G.q,gain:G.gain});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
 }
-function quitGame(){if(GAME){clearGameMarks();if(GAME.set==='torace')S.thx=false;}GAME=null;S.mus=null;S.mv='both';S.bones='on';meshes.forEach(m=>m.userData.hidden=false);document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+function quitGame(){if(GAME){clearGameMarks();if(SYS[GAME.set])S.sys=null;}GAME=null;S.mus=null;S.mv='both';S.bones='on';meshes.forEach(m=>m.userData.hidden=false);document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
 // risposta del gioco origine e inserzione: aree in blu (origine) e arancione (inserzione), testo della scheda
 function oiAnswer(G){
  const d=DATA.mus[G.cur.root],c=d.card,t=G.cur.k==='o'?c&&c.ot:c&&c.it;
@@ -1010,6 +1032,7 @@ $('bar').addEventListener('click',e=>{
  else if(b.id==='outline'){outline=!outline;b.classList.toggle('on',outline);}
  else if(b.id==='layers'){S.mus=S.combo=S.lm=S.part=null;S.list='layers';refresh();offlineCheck();}
  else if(b.id==='brain')openBrain();
+ else if(b.dataset.sys)openSys(b.dataset.sys);
 });
 $('panel').addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
@@ -1029,10 +1052,10 @@ $('panel').addEventListener('click',e=>{
  else if(d.lev!==undefined)setLevel(+d.lev);
  else if(d.levd)setLevel(Math.max(0,Math.min(ST.length-1,S.lev+ +d.levd)));
  else if(d.go==='brain')openBrain();
- else if(d.go==='thx')openThorax();
- else if(d.org){S.org[d.org]=!S.org[d.org];refresh();}
- else if(d.opre){for(const k in ORG)S.org[k]=ORG_PRESET[d.opre].includes(k);refresh();}
- else if(d.thxoff){S.thx=false;if(S.cutOn==='thx')S.cut.ax=null;S.list='layers';refresh();}
+ else if(d.sys)openSys(d.sys);
+ else if(d.slay){S.lay[S.sys][d.slay]=!S.lay[S.sys][d.slay];refresh();}
+ else if(d.spre){const X=SYS[S.sys];for(const k in X.L)S.lay[S.sys][k]=X.P[d.spre].includes(k);refresh();flySys();}
+ else if(d.sysoff){S.sys=null;if(SYS[S.cutOn])S.cut.ax=null;S.list='layers';refresh();}
  else if(d.go){S.mus=S.combo=S.lm=S.part=null;S.q='';S.list=d.go==='home'?null:d.go;refresh();if(d.go==='layers')offlineCheck();}
  else if(d.hide){if(S.part)S.part.userData.hidden=true;S.part=null;refresh();}
  else if(d.bones){S.bones=d.bones;refresh();}

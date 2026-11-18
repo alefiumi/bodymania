@@ -353,13 +353,15 @@ const brainP = project(enc, {
   f: {proj: VIEWS6.a, prim: 'l'}, p: {proj: VIEWS6.p, prim: 'l'}, s: {proj: VIEWS6.s, prim: 'l'}, i: {proj: VIEWS6.i, prim: 'l'}}, 5000, 4, 0.7, 'encefalo');
 const brain = brainP.out;
 
-/* ---------- cuore e polmoni: sette viste ---------- */
+/* ---------- apparato cardiovascolare e respiratorio: due moduli ---------- */
 // stesse regole di organo() in torace.py e organOf() in atlante.js. Esclusi dal 2D: pleura (coprirebbe i lobi) e valvole
-// (sono dentro il cuore); i vasi polmonari e i bronchi segmentari stanno nei lobi e si vedono solo nella vista dell'albero bronchiale.
+// (sono dentro il cuore); i vasi polmonari e i bronchi segmentari stanno nei lobi e si vedono nelle viste dell'albero bronchiale.
 const DATI = JSON.parse(fs.readFileSync(path.join(DIR, 'dati.json')));
 const CUORE_G = new Set(['Heart', 'Right ventricle', 'Left ventricle', 'Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve', 'Arteries of heart', 'Left coronary artery', 'Right coronary artery', 'Anterior interventricular artery', 'Cardiac veins', 'Coronary sinus']);
-const GRANDI = new Set(['Ascending aorta', 'Aortic arch', 'Thoracic aorta', 'Brachiocephalic trunk', 'Left common carotid artery', 'Left subclavian artery', 'Superior vena cava', 'Inferior vena cava (thoracic part)', 'Left brachiocephalic vein', 'Right brachiocephalic vein', 'Azygos vein', 'Pulmonary trunk', 'Bifurcation of pulmonary trunk', 'Left pulmonary artery', 'Right pulmonary artery', 'Left superior pulmonary vein', 'Left inferior pulmonary vein', 'Right superior pulmonary vein', 'Right inferior pulmonary vein']);
+const GRANDI = new Set(['Ascending aorta', 'Aortic arch', 'Thoracic aorta', 'Brachiocephalic trunk', 'Left common carotid artery', 'Left subclavian artery', 'Superior vena cava', 'Inferior vena cava (thoracic part)', 'Left brachiocephalic vein', 'Right brachiocephalic vein', 'Azygos vein']);
+const PGRANDI = new Set(['Pulmonary trunk', 'Bifurcation of pulmonary trunk', 'Left pulmonary artery', 'Right pulmonary artery', 'Left superior pulmonary vein', 'Left inferior pulmonary vein', 'Right superior pulmonary vein', 'Right inferior pulmonary vein']);
 const VALV_G = new Set(['Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve']);
+const VENA = /vein|venous|vena|sinus|plexus/i;
 function organo(b, layer, g) {
   if (b.startsWith('?')) return null;
   if (layer === 'vasi') {
@@ -367,8 +369,9 @@ function organo(b, layer, g) {
     if (g === 'Heart') return 'cuore';
     if (CUORE_G.has(g) || /^(Coronary sinus|Left coronary artery|Right coronary artery)$/.test(b)) return 'coronarie';
     if (GRANDI.has(b)) return 'grandi';
+    if (PGRANDI.has(b)) return 'pgrandi';
     if (/of (left|right) lung|lobar artery/.test(b)) return 'vpolm';
-    return null;
+    return VENA.test(b + ' ' + g) ? 'vene' : 'arterie';
   }
   if (layer === 'visceri') {
     if (b === 'Pleura') return 'pleura';
@@ -377,19 +380,39 @@ function organo(b, layer, g) {
   }
   return null;
 }
-const thx = [...loadGlb('vasi.glb'), ...loadGlb('visceri.glb')].filter(p => {
-  const o = DATI.objs[p.name]; p.org = o && organo(base(p.name), o[0], o[2]); p.key = base(p.name); p.side = side(p.name);
+const parts2 = [...loadGlb('vasi.glb'), ...loadGlb('visceri.glb')].filter(p => {
+  const o = DATI.objs[p.name]; p.key = base(p.name); p.side = side(p.name);
+  p.org = o && organo(p.key, o[0], o[2]); p.vena = o && VENA.test(p.key + ' ' + o[2]);
   return p.org && p.org !== 'pleura' && p.org !== 'valvole';
 });
-const outer = p => p.org !== 'vpolm';                                          // vista d'insieme: i vasi polmonari sono dentro i lobi
-const heart = p => ['cuore', 'coronarie', 'grandi'].includes(p.org);           // cuore e grandi vasi, senza polmoni
-const tree = p => p.org === 'vie' || p.org === 'vpolm' || /pulmonary/i.test(p.key) && p.org === 'grandi';
-const thxP = project(thx, {
+// regione del corpo di un vaso (gruppi del modulo 2D): dal centro della parte rispetto a sterno, omero e femore
+const bbox = rx => { const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; for (const p of ossa) if (rx.test(p.name)) for (let k = 0; k < p.tris.length; k += 3) for (let a = 0; a < 3; a++) { b[a] = Math.min(b[a], p.tris[k + a]); b[a + 3] = Math.max(b[a + 3], p.tris[k + a]); } return b; };
+const neckY = bbox(/^Manubrium of sternum/)[4], shX = Math.abs(bbox(/^Humerus\.r$/)[3]) - 0.03, hipY = bbox(/^Femur/)[4];
+// sotto l'anca le mani stanno più in fuori delle gambe
+const legX = Math.max(...['Femur', 'Tibia', 'Fibula', 'Calcaneus'].map(n => { const b = bbox(new RegExp('^' + n + '\\.r$')); return Math.max(Math.abs(b[0]), Math.abs(b[3])); }));
+const region = {};
+for (const p of parts2) {
+  let x = 0, y = 0, n = 0; for (let k = 0; k < p.tris.length; k += 3) { x += p.tris[k]; y += p.tris[k + 1]; n++; } x = Math.abs(x / n); y /= n;
+  const r = y > neckY && x < shX ? 'testa' : x >= shX && y > hipY ? 'arto-sup' : y < hipY && x > legX + 0.02 ? 'arto-sup' : y < hipY - 0.04 ? 'arto-inf' : 'tronco';
+  region[p.key] ??= /axillary|subclavian/i.test(p.key) ? 'arto-sup' : r; // ascellari e succlavie: vasi dell'arto superiore
+}
+const heartP = p => ['cuore', 'coronarie', 'grandi', 'pgrandi'].includes(p.org);
+const onlyHeart = p => ['cuore', 'coronarie'].includes(p.org);
+const arter = p => p.org === 'cuore' || p.org === 'arterie' || (/grandi/.test(p.org) && !p.vena);
+const venae = p => p.org === 'cuore' || p.org === 'vene' || (/grandi/.test(p.org) && p.vena);
+const cuoreP = project(parts2.filter(p => p.org !== 'polmoni' && p.org !== 'vie' && p.org !== 'vpolm'), {
+  a: {proj: VIEWS6.a, prim: 'r', keep: heartP}, p: {proj: VIEWS6.p, prim: 'r', keep: heartP},
+  ld: {proj: VIEWS6.ld, prim: 'r', keep: heartP}, ls: {proj: VIEWS6.ls, prim: 'l', keep: heartP},
+  c: {proj: VIEWS6.a, prim: 'r', keep: onlyHeart}, cp: {proj: VIEWS6.p, prim: 'r', keep: onlyHeart},
+  ar: {proj: VIEWS6.a, prim: 'r', keep: arter}, ve: {proj: VIEWS6.a, prim: 'r', keep: venae}}, 6000, 3, 0.7, 'cuore');
+const cuore = {...cuoreP.out, region};
+const outer = p => p.org === 'polmoni' || p.org === 'vie';
+const tree = p => p.org === 'vie' || p.org === 'vpolm' || p.org === 'pgrandi';
+const polmP = project(parts2.filter(p => ['polmoni', 'vie', 'vpolm', 'pgrandi'].includes(p.org)), {
   a: {proj: VIEWS6.a, prim: 'r', keep: outer}, p: {proj: VIEWS6.p, prim: 'r', keep: outer},
   ld: {proj: VIEWS6.ld, prim: 'r', keep: outer}, ls: {proj: VIEWS6.ls, prim: 'l', keep: outer},
-  ca: {proj: VIEWS6.a, prim: 'r', keep: heart}, cp: {proj: VIEWS6.p, prim: 'r', keep: heart},
-  b: {proj: VIEWS6.a, prim: 'r', keep: tree}}, 4000, 4, 0.7, 'torace');
-const torace = thxP.out;
+  b: {proj: VIEWS6.a, prim: 'r', keep: tree}, bt: {proj: VIEWS6.a, prim: 'r', keep: p => p.org === 'vie'}}, 4000, 4, 0.7, 'polmoni');
+const polmoni = polmP.out;
 
-fs.writeFileSync(OUT, JSON.stringify({body, brain, torace}));
+fs.writeFileSync(OUT, JSON.stringify({body, brain, cuore, polmoni}));
 console.log('scritto', OUT, (fs.statSync(OUT).size / 1e6).toFixed(2), 'MB');

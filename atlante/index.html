@@ -50,7 +50,7 @@ button.chip.on small{color:#ffffffcc}
 /* dentro la scheda "Atlante 3D" dell'app: niente intestazione, la barra di navigazione dell'app sta sotto */
 .emb header{display:none}.emb #theme{display:none} /* nell'app il pulsante sta nell'intestazione dell'app */
 /* durante una partita: niente strati ed encefalo, la vista resta quella del gioco */
-.game #layers,.game #brain{display:none}
+.game #layers,.game #brain,.game #bar [data-sys]{display:none}
 .gh{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
 .q{font-size:18px;margin-bottom:8px}.q i{font-weight:400;color:var(--mut);font-size:14px}
 .res{text-align:center}.big{font-size:32px}.emb #panel{padding-bottom:10px}
@@ -67,7 +67,7 @@ header{grid-area:h}#bar{grid-area:b}#view{grid-area:v}#pw{grid-area:p;max-height
 <script src="pagina.js"></script>
 <header><b>Atlante 3D</b><span id="fps"></span></header>
 <div id="bar">
- <button id="home" title="Vista iniziale: tutto il corpo da davanti" aria-label="Vista iniziale">⟲</button><button id="layers">🧩 Strati</button><button id="brain">🧠 Encefalo</button><button data-v="front">Davanti</button><button data-v="back">Dietro</button><button data-v="right">Lato destro</button><button data-v="left">Lato sinistro</button><button data-v="top">Dall'alto</button>
+ <button id="home" title="Vista iniziale: tutto il corpo da davanti" aria-label="Vista iniziale">⟲</button><button id="layers">🧩 Strati</button><button id="brain">🧠 Encefalo</button><button data-sys="cuore">🫀 Cuore e vasi</button><button data-sys="polmoni">🫁 Polmoni</button><button data-v="front">Davanti</button><button data-v="back">Dietro</button><button data-v="right">Lato destro</button><button data-v="left">Lato sinistro</button><button data-v="top">Dall'alto</button>
  <button id="outline" class="on">Contorno</button><button id="theme">🌙</button>
 </div>
 <div id="view"><div id="msg">Caricamento del modello…</div></div>

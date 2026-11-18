@@ -25,7 +25,8 @@ export function renderMenu(){
   mb('3d-ponte','🌉 Tendine-ponte',"Tocca l'osso di origine e poi quello di inserzione")+
   mb('3d-caso','🩺 Caso clinico','Leggi gli indizi e tocca il muscolo coinvolto')+
   mb('3d-nervi','🔢 Nervi cranici','Tocca il nervo giusto alla base dell\'encefalo')+
-  mb('3d-torace','🫀 Cuore e polmoni','Tocca la struttura giusta: camere, coronarie, grandi vasi, lobi, bronchi');
+  mb('3d-cuore','🫀 Cuore e grandi vasi','Tocca la camera, la coronaria o il grande vaso giusto')+
+  mb('3d-polmoni','🫁 Polmoni','Tocca il lobo o il bronco giusto');
 }
 export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
 export function startGame(mode){

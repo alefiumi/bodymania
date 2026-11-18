@@ -263,41 +263,53 @@ def brain():
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
     print('cervello:', len(structures), 'strutture,', len(groups), 'gruppi')
 
-# ---------------------------------------------------------------- cuore e polmoni
+# ---------------------------------------------------------------- cuore e vasi, polmoni
 import torace as TX
-THX_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra',
-             'ca': 'Cuore · faccia anteriore (sternocostale)', 'cp': 'Cuore · faccia posteriore (base)', 'b': 'Albero bronchiale e vasi polmonari'}
+CUORE_VIEWS = {'a': 'Cuore e grandi vasi · anteriore', 'p': 'Cuore e grandi vasi · posteriore', 'ld': 'Cuore e grandi vasi · laterale destra',
+               'ls': 'Cuore e grandi vasi · laterale sinistra', 'c': 'Solo il cuore · faccia anteriore (sternocostale)', 'cp': 'Solo il cuore · faccia posteriore (base)',
+               'ar': 'Arterie di tutto il corpo', 've': 'Vene di tutto il corpo'}
+POLM_VIEWS = {'a': 'Anteriore', 'p': 'Posteriore', 'ld': 'Laterale destra', 'ls': 'Laterale sinistra',
+              'b': 'Bronchi e vasi polmonari', 'bt': 'Albero bronchiale'}
 # colori come nell'atlante 3D: cuore destro blu, sinistro rosso, un colore per lobo
-THX_COL = {'Right atrium': '#7fa6e3', 'Right ventricle': '#9bbbeb', 'Left atrium': '#e58a82', 'Left ventricle': '#ec9f97',
-           'Superior lobe of right lung': '#f4b6c2', 'Middle lobe of right lung': '#f7d08a', 'Inferior lobe of right lung': '#b5d99c',
-           'Superior lobe of left lung': '#a9cdee', 'Inferior lobe of left lung': '#c9b3e6'}
-def thorax():
-    """cuore e polmoni: un modulo con sette viste (insieme, cuore da solo, albero bronchiale)"""
-    X = P['torace']; sid = lambda n: 't.' + slug(n)
-    names = sorted(set().union(*(X['views'][v] for v in THX_VIEWS)))
+COL2 = {'Right atrium': '#7fa6e3', 'Right ventricle': '#9bbbeb', 'Left atrium': '#e58a82', 'Left ventricle': '#ec9f97',
+        'Superior lobe of right lung': '#f4b6c2', 'Middle lobe of right lung': '#f7d08a', 'Inferior lobe of right lung': '#b5d99c',
+        'Superior lobe of left lung': '#a9cdee', 'Inferior lobe of left lung': '#c9b3e6'}
+VENA = re.compile(r'vein|venous|vena|sinus|plexus', re.I)
+def module2(mid, label, X, VIEWS, GRUPPI, CASI, pref, extra, groupof=None):
+    """modulo 2D di un apparato: strutture dalle proiezioni, gruppi da torace.py (regex sul nome o groupof), casi clinici"""
+    sid = lambda n: pref + slug(n)
+    names = sorted(set().union(*(X['views'][v] for v in VIEWS)))
     structures, members = [], {}
     for n in names:
-        g = next((g for g, rx, _ in TX.GRUPPI2D if re.search(rx, n)), None)
-        if not g: raise SystemExit('struttura del torace senza gruppo: ' + n)
+        g = next((g for g, rx, _ in GRUPPI if rx and re.search(rx, n)), None) or (groupof and groupof(n))
+        if not g: raise SystemExit(mid + ': struttura senza gruppo: ' + n)
         it, la = NAMES.get(n) or [n, n]; f = DESC.get(n) or TX.desc(n) or ''
-        if it == n: print('  nome non tradotto:', n)
         if not f: print('  senza descrizione:', n)
-        gc = next(t for gg, _, t in TX.GRUPPI2D if gg == g)['col']
-        st = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': g, 'f': f, 'col': THX_COL.get(n, gc), 's': {}, 'c': {}}
-        for v in THX_VIEWS:
+        gc = next(t for gg, _, t in GRUPPI if gg == g)['col']
+        st = {'id': sid(n), 'n': it[:1].upper() + it[1:], 'l': la, 'g': g, 'f': f, 'col': COL2.get(n, gc), 's': {}, 'c': {}}
+        for v in VIEWS:
             if n in X['views'][v]: put(st, v, X['views'][v][n])
         structures.append(st); members.setdefault(g, []).append(sid(n))
-    groups = [{'id': g, **t, 'm': members[g]} for g, _, t in TX.GRUPPI2D if g in members]
+    groups = [{'id': g, **t, 'm': members[g]} for g, _, t in GRUPPI if g in members]
     ids = {x['id'] for x in structures} | {x['id'] for x in groups}
-    for c in TX.CASI:
-        if c['bid'] not in ids: raise SystemExit('caso con risposta che non c\'è: ' + c['bid'])
-    path = os.path.join(ROOT, 'content/torace.json')
-    out = {'version': bump_version(path), 'id': 'torace', 'label': '🫀 Cuore e polmoni', 'W': X['W'], 'H': X['H'], 'views': list(THX_VIEWS), 'vnames': THX_VIEWS,
-           'grpn': ['Strutture singole', 'Gruppi'],
-           'expl': {'h': 'Esplora cuore e polmoni', 't': 'Tocca una struttura per vedere nome e funzione. In alto scegli la vista: il torace da quattro lati, il cuore da solo (faccia anteriore e base) o l\'albero bronchiale con i vasi polmonari; e strutture singole o gruppi.'},
+    for c in CASI:
+        if c['bid'] not in ids: raise SystemExit(mid + ': caso con risposta che non c\'è: ' + c['bid'])
+    path = os.path.join(ROOT, f'content/{mid}.json')
+    out = {'version': bump_version(path), 'id': mid, 'label': label, 'W': X['W'], 'H': X['H'], 'views': list(VIEWS), 'vnames': VIEWS,
+           'grpn': ['Strutture singole', 'Gruppi'], **extra,
            'fonte': 'Forme proiettate dal modello 3D Z-Anatomy (CC BY-SA 4.0), vedi atlante/CREDITI.md',
-           'structures': structures, 'groups': groups, 'cases': TX.CASI}
+           'structures': structures, 'groups': groups, 'cases': CASI}
     json.dump(out, open(path, 'w'), ensure_ascii=False, separators=(',', ':'))
-    print('torace:', len(structures), 'strutture,', len(groups), 'gruppi,', len(TX.CASI), 'casi')
+    print(f'{mid}:', len(structures), 'strutture,', len(groups), 'gruppi,', len(CASI), 'casi')
 
-body(); brain(); thorax()
+def heart():
+    X = P['cuore']; reg = X['region']
+    module2('cuore', '🫀 Cuore e vasi', X, CUORE_VIEWS, TX.GRUPPI_CUORE, TX.CASI_CUORE, 'c.',
+            {'thin': ['ar', 've'], 'expl': {'h': 'Esplora cuore e vasi', 't': "Tocca una struttura per vedere nome e funzione. In alto scegli la vista: cuore e grandi vasi da quattro lati, solo il cuore (faccia anteriore e base) o le arterie e le vene di tutto il corpo; e strutture singole o gruppi."}},
+            groupof=lambda n: ('vene-' if VENA.search(n + ' ' + (next((v[2] for k, v in D['objs'].items() if re.sub(r'\.[rl]$', '', k) == n), ''))) else 'arterie-') + reg.get(n, 'tronco'))
+
+def lungs():
+    module2('polmoni', '🫁 Polmoni', P['polmoni'], POLM_VIEWS, TX.GRUPPI_POLMONI, TX.CASI_POLMONI, 'p.',
+            {'expl': {'h': 'Esplora i polmoni', 't': "Tocca una struttura per vedere nome e funzione. In alto scegli la vista: i polmoni da quattro lati, i bronchi con i vasi polmonari o l'albero bronchiale da solo; e strutture singole o gruppi."}})
+
+body(); brain(); heart(); lungs()

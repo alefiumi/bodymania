@@ -922,7 +922,9 @@ def build(D):
         if v[0] == 'ossa': t = OSSA.get(b) or ossa_serie(b)
         elif v[0] in ('encefalo', 'midollo'): t = ENCEFALO.get(b) or GRUPPI.get(v[2])
         elif v[0] == 'meningi': t = MENINGI.get(b) or GRUPPI.get(v[2])
-        elif v[0] in ('vasi', 'visceri') and torace.organo(b, v[0], v[2]): t = torace.desc(b)
+        elif v[0] in ('vasi', 'visceri') and torace.organo(b, v[0], v[2]):
+            o = torace.organo(b, v[0], v[2])
+            t = torace.desc(b) or (o in ('arterie', 'vene') and torace.vaso(b, v[2], lambda n: (D['names'].get(n) or [n])[0], o == 'vene'))
         if t: desc[b] = t
     for l in D['lm']:
         if l[0] in REPERI: desc[l[0]] = REPERI[l[0]]
@@ -931,8 +933,8 @@ def build(D):
 
 if __name__ == '__main__':
     D = json.load(open(sys.argv[1]))
-    D['desc'] = build(D)
     correggi_nomi(D)
+    D['desc'] = build(D)
     sposta_aree(D['mus'])
     json.dump(D, open(sys.argv[1], 'w'), ensure_ascii=False, separators=(',', ':'))
     lay = {}

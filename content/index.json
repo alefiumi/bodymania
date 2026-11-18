@@ -3,7 +3,8 @@
  "modules": [
   "corpo",
   "cervello",
-  "torace"
+  "cuore",
+  "polmoni"
  ],
  "nc": "nervi-cranici.json",
  "files": [

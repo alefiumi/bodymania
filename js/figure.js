@@ -16,7 +16,7 @@ const mmLabel=k=>{const L=app.MODS[k].label,i=L.indexOf(' ');
 export function buildFig(){
  const {B,MODS,MOD,VB}=app;
  app.view=baseOf();
- const vs=[...MOD.views,...Object.keys(MOD.zviews)].map(v=>`<g class="view" data-v="${v}"${v===app.view?'':' display="none"'}>`+
+ const vs=[...MOD.views,...Object.keys(MOD.zviews)].map(v=>`<g class="view${(MOD.thin||[]).includes(v)?' thin':''}" data-v="${v}"${v===app.view?'':' display="none"'}>`+
   B.filter(b=>b.s[v]).map(b=>`<g class="bone m0" data-id="${b.id}"${b.col?` style="--b:${b.col}"`:''}><g>${b.s[v]}</g></g>`).join('')+'</g>').join('');
  const mm=Object.keys(MODS).map(k=>`<button data-mm="${k}" class="${k===MOD.id?'on':''}" aria-haspopup="menu" title="${MODS[k].label.slice(MODS[k].label.indexOf(' ')+1)}">${mmLabel(k)}</button>`).join('');
  const body=MOD.id==='corpo';

@@ -1,36 +1,44 @@
-# Cuore, grandi vasi, polmoni e vie aeree: descrizioni (scritte dall'AI, da verificare su un atlante) e nomi italiani corretti.
-# Le usa descrizioni.py (chiave desc di dati.json) e, per il 2D, contenuti_2d.py.
+# Apparato cardiovascolare (cuore e vasi sanguigni) e apparato respiratorio (polmoni e vie aeree): descrizioni (scritte dall'AI,
+# da verificare su un atlante) e nomi italiani corretti. Le usa descrizioni.py (chiave desc di dati.json) e, per il 2D,
+# contenuti_2d.py (moduli cuore e polmoni). Le stesse regole di organo() stanno in atlante.js (organOf) e in proietta_2d.mjs.
 import re
 
-# parti del torace mostrate dall'atlante (modalità Cuore e polmoni) e dal modulo 2D: organo -> come riconoscerle
-# (gruppo della fonte o nome della parte)
 CUORE_G = {'Heart', 'Right ventricle', 'Left ventricle', 'Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve',
            'Arteries of heart', 'Left coronary artery', 'Right coronary artery', 'Anterior interventricular artery', 'Cardiac veins', 'Coronary sinus'}
 GRANDI = {'Ascending aorta', 'Aortic arch', 'Thoracic aorta', 'Brachiocephalic trunk', 'Left common carotid artery', 'Left subclavian artery',
-          'Superior vena cava', 'Inferior vena cava (thoracic part)', 'Left brachiocephalic vein', 'Right brachiocephalic vein', 'Azygos vein',
-          'Pulmonary trunk', 'Bifurcation of pulmonary trunk', 'Left pulmonary artery', 'Right pulmonary artery',
-          'Left superior pulmonary vein', 'Left inferior pulmonary vein', 'Right superior pulmonary vein', 'Right inferior pulmonary vein'}
+          'Superior vena cava', 'Inferior vena cava (thoracic part)', 'Left brachiocephalic vein', 'Right brachiocephalic vein', 'Azygos vein'}
+PGRANDI = {'Pulmonary trunk', 'Bifurcation of pulmonary trunk', 'Left pulmonary artery', 'Right pulmonary artery',
+           'Left superior pulmonary vein', 'Left inferior pulmonary vein', 'Right superior pulmonary vein', 'Right inferior pulmonary vein'}
 VALVOLE_G = {'Aortic valve', 'Pulmonary valve', 'Right atrioventricular valve'}
+VENA = re.compile(r'vein|venous|vena|sinus|plexus', re.I)
 
 def organo(base, layer, g):
-    """organo del torace a cui appartiene una parte: cuore, valvole, coronarie, grandi, vpolm (vasi polmonari nei polmoni),
-    polmoni, vie, pleura; None se non è del torace"""
+    """parte di uno dei due apparati: cuore, valvole, coronarie, grandi (vasi della base del cuore), pgrandi (tronco, arterie e vene
+    polmonari principali), vpolm (loro rami nei polmoni), arterie e vene (del resto del corpo), polmoni, vie, pleura; altrimenti None"""
     if base.startswith('?'): return None
     if layer == 'vasi':
         if g in VALVOLE_G or 'papillary' in base: return 'valvole'
         if g == 'Heart': return 'cuore'
         if g in CUORE_G or base in ('Coronary sinus', 'Left coronary artery', 'Right coronary artery'): return 'coronarie'
         if base in GRANDI: return 'grandi'
+        if base in PGRANDI: return 'pgrandi'
         if re.search(r'of (left|right) lung|lobar artery', base): return 'vpolm'
-        return None
+        return 'vene' if VENA.search(base + ' ' + g) else 'arterie'
     if layer == 'visceri':
         if base == 'Pleura': return 'pleura'
         if g in ('Left lung', 'Right lung'): return 'polmoni'
         if base == 'Trachea' or 'bronch' in base.lower(): return 'vie'
     return None
 
-ORGANI = {'pleura': 'Pleura', 'polmoni': 'Polmoni', 'vie': 'Trachea e bronchi', 'vpolm': 'Vasi polmonari', 'grandi': 'Grandi vasi',
-          'cuore': 'Cuore', 'coronarie': 'Coronarie e vene del cuore', 'valvole': 'Valvole e muscoli papillari'}
+# testo dei vasi del corpo che non ne hanno uno scritto: da dove nasce l'arteria o dove sbocca la vena, secondo la gerarchia della
+# fonte (Z-Anatomy/TA2), non scritto dall'AI
+NON_VASO = {'Systemic arteries', 'Systemic veins', 'Pulmonary arteries', 'Pulmonary veins', 'Arteries of heart', 'Cardiac veins', 'Heart',
+            'Cerebral arterial circle', 'Dural venous sinuses', 'Tributaries of hepatic portal vein', 'Orbital veins', 'Basilar venous plexus'}
+def vaso(base, g, it, vena):
+    if not g or g in NON_VASO or not re.search(r'arter|aorta|trunk|arch|vein|venous|vena|sinus|plexus|network|anastomosis', g, re.I): return None
+    n = it(g); n = n[:1].lower() + n[1:]
+    kind = 'Seno venoso della dura madre, sbocca in' if re.search(r'sinus', base, re.I) else 'Vena, affluente di' if vena else 'Arteria, ramo di'
+    return f"{kind}: {n}." + ' Dalla gerarchia dei vasi della fonte (Terminologia Anatomica).'
 
 # nomi italiani: la traduzione di TA2 ha alcuni errori proprio qui
 NOMI = {
@@ -154,12 +162,67 @@ SEG = {'apical': 'apicale', 'posterior': 'posteriore', 'anterior': 'anteriore', 
        'lateral basal segmental': 'basale laterale', 'medial basal segmental': 'basale mediale', 'posterior basal segmental': 'basale posteriore',
        'superior lingular artery': 'lingulare superiore', 'inferior lingular artery': 'lingulare inferiore', 'superior lingular': 'lingulare superiore'}
 
+# vasi principali del corpo (testi dell'AI, da verificare)
+D.update({
+ 'Abdominal aorta': "Continua l'aorta toracica dallo iato aortico del diaframma (T12) fino alla biforcazione in arterie iliache comuni (L4, all'altezza dell'ombelico). Rami: tripode celiaco, mesenteriche superiore e inferiore, renali, gonadiche, lombari, frenica inferiore.",
+ 'Coeliac trunk': "Tripode celiaco: primo ramo anteriore dell'aorta addominale (T12). Si divide in arteria gastrica sinistra, splenica ed epatica comune: irrora stomaco, fegato, milza, pancreas e duodeno prossimale.",
+ 'Superior mesenteric artery': "Nasce dall'aorta addominale sotto il tripode celiaco (L1) e irrora intestino tenue, colon ascendente e due terzi del trasverso. La sua occlusione dà l'ischemia mesenterica acuta.",
+ 'Inferior mesenteric artery': "Nasce dall'aorta addominale (L3) e irrora l'ultimo terzo del colon trasverso, il discendente, il sigma e il retto superiore.",
+ 'Right renal artery': "Nasce dall'aorta all'altezza di L1-L2 e passa dietro la vena cava inferiore fino all'ilo del rene destro.",
+ 'Left renal artery': "Nasce dall'aorta all'altezza di L1-L2 e raggiunge l'ilo del rene sinistro; è più corta della destra.",
+ 'Right common carotid artery': "Nasce dal tronco brachiocefalico e sale nel collo, nella guaina carotidea con la vena giugulare interna e il nervo vago, fino al margine superiore della cartilagine tiroidea (C4), dove si divide.",
+ 'Internal carotid artery': "Dalla biforcazione carotidea sale senza rami nel collo ed entra nel cranio dal canale carotideo: dà l'arteria oftalmica, la cerebrale anteriore e la media. Il bulbo carotideo, all'origine, contiene i barocettori.",
+ 'External carotid artery': "Dalla biforcazione carotidea irrora collo, faccia e cuoio capelluto: tiroidea superiore, linguale, faciale, occipitale, auricolare posteriore, faringea ascendente, mascellare e temporale superficiale.",
+ 'Right subclavian artery': "Nasce dal tronco brachiocefalico, passa sopra la prima costa tra scaleno anteriore e medio e al margine esterno della prima costa diventa ascellare. Dà vertebrale, toracica interna, tronco tireocervicale e costocervicale.",
+ 'Vertebral artery': "Primo ramo della succlavia: sale nei forami trasversari da C6 a C1, entra nel cranio dal forame magno e si unisce alla controlaterale nell'arteria basilare.",
+ 'Basilar artery': "Nasce dall'unione delle due vertebrali sul davanti del ponte; dà le cerebellari e le arterie del ponte e si divide nelle due cerebrali posteriori. Partecipa al poligono di Willis.",
+ 'Axillary artery': "Continua la succlavia dal margine esterno della prima costa al margine inferiore del grande rotondo, dove diventa brachiale. Il piccolo pettorale la divide in tre parti.",
+ 'Brachial artery': "Continua l'ascellare nel braccio, lungo il margine mediale del bicipite con il nervo mediano; nella fossa cubitale si divide in radiale e ulnare. Qui si misura la pressione arteriosa.",
+ 'Radial artery': "Scende nel lato laterale dell'avambraccio; al polso si palpa tra il tendine del flessore radiale del carpo e il radio (polso radiale). Passa nella tabacchiera anatomica e forma l'arcata palmare profonda.",
+ 'Ulnar artery': "Scende nel lato mediale dell'avambraccio sotto i flessori e al polso passa nel canale di Guyon con il nervo ulnare; forma soprattutto l'arcata palmare superficiale (test di Allen).",
+ 'Common iliac artery': "Nasce dalla biforcazione dell'aorta (L4) e davanti all'articolazione sacroiliaca si divide in iliaca esterna e interna.",
+ 'External iliac artery': "Continua l'iliaca comune lungo il margine del grande psoas e passa sotto il legamento inguinale diventando arteria femorale.",
+ 'Internal iliac artery': "Scende nella pelvi e irrora visceri pelvici, perineo, glutei (arterie glutee superiore e inferiore) e la regione mediale della coscia (otturatoria).",
+ 'Femoral artery': "Continua l'iliaca esterna sotto il legamento inguinale, a metà tra spina iliaca anteriore superiore e sinfisi pubica (polso femorale), nel triangolo femorale con la vena (mediale) e il nervo (laterale). Passa nel canale degli adduttori e diventa poplitea.",
+ 'Deep femoral artery': "Il ramo principale della femorale per la coscia: dà le circonflesse femorali mediale e laterale (vascolarizzazione della testa del femore) e le perforanti.",
+ 'Popliteal artery': "Continua la femorale dallo iato degli adduttori nella fossa poplitea, l'elemento più profondo, appoggiata al femore e alla capsula del ginocchio; sotto il popliteo si divide in tibiale anteriore e posteriore.",
+ 'Anterior tibial artery': "Passa sopra la membrana interossea nella loggia anteriore della gamba con il nervo peroneo profondo e alla caviglia continua come arteria dorsale del piede.",
+ 'Posterior tibial artery': "Scende nella loggia posteriore profonda della gamba; dietro il malleolo mediale (polso tibiale posteriore) entra nel tunnel tarsale e si divide nelle plantari mediale e laterale.",
+ 'Dorsalis pedis artery': "Continua la tibiale anteriore sul dorso del piede, lateralmente al tendine dell'estensore lungo dell'alluce, dove si palpa il polso pedidio.",
+ 'Fibular artery': "Ramo della tibiale posteriore che scende vicino alla fibula, nella loggia posteriore profonda; irrora i muscoli peronieri e la fibula.",
+ 'Internal jugular vein': "Raccoglie il sangue dell'encefalo (continua il seno sigmoideo al forame giugulare) e di faccia e collo; scende nella guaina carotidea e si unisce alla succlavia nella vena brachiocefalica. Si usa per i cateteri venosi centrali.",
+ 'External jugular vein': "Vena superficiale del collo che scende sopra lo sternocleidomastoideo e sbocca nella succlavia; si vede turgida nello scompenso destro.",
+ 'Right subclavian vein': "Continua la vena ascellare sopra la prima costa, davanti allo scaleno anteriore, e si unisce alla giugulare interna nella vena brachiocefalica.",
+ 'Left subclavian vein': "Continua la vena ascellare sopra la prima costa, davanti allo scaleno anteriore; alla confluenza con la giugulare interna sinistra sbocca il dotto toracico.",
+ 'Cephalic vein': "Vena superficiale del lato laterale dell'arto superiore: sale nel solco deltoideo-pettorale e sbocca nella vena ascellare.",
+ 'Basilic vein': "Vena superficiale del lato mediale dell'arto superiore: a metà braccio diventa profonda e con le vene brachiali forma la vena ascellare.",
+ 'Median cubital vein': "Collega cefalica e basilica davanti al gomito: è la vena più usata per i prelievi.",
+ 'Great saphenous vein': "La vena più lunga del corpo: dal davanti del malleolo mediale sale lungo il lato mediale di gamba e coscia e sbocca nella femorale (crosse safeno-femorale) sotto il legamento inguinale. Si usa per i bypass coronarici; le sue valvole insufficienti danno le varici.",
+ 'Small saphenous vein': "Dietro il malleolo laterale sale lungo il polpaccio e sbocca nella vena poplitea.",
+ 'Femoral vein': "Accompagna l'arteria femorale (le sta medialmente nel triangolo femorale) e sotto il legamento inguinale diventa iliaca esterna. Sede frequente di trombosi venosa profonda.",
+ 'Popliteal vein': "Nella fossa poplitea, tra l'arteria (profonda) e il nervo tibiale (superficiale); riceve la piccola safena.",
+ 'Inferior vena cava (abdominal part)': "Nasce dall'unione delle iliache comuni (L5) e sale a destra dell'aorta raccogliendo vene lombari, renali, gonadica destra ed epatiche, fino al diaframma.",
+ 'Hepatic portal vein': "Nasce dietro il collo del pancreas dall'unione della mesenterica superiore e della splenica e porta al fegato il sangue di intestino, stomaco, milza e pancreas. Nella cirrosi la sua pressione sale (ipertensione portale, varici esofagee).",
+ 'Anterior communicating artery': "Breve arteria che unisce le due cerebrali anteriori davanti al chiasma ottico, chiudendo in avanti il poligono di Willis. È la sede più frequente degli aneurismi cerebrali.",
+ 'Branch to angular gyrus': "Ramo terminale della cerebrale media per il giro angolare del lobo parietale (lettura e scrittura nell'emisfero dominante).",
+ 'Median sacral artery': "Piccola arteria impari che nasce dalla biforcazione dell'aorta e scende sulla faccia anteriore del sacro e del coccige.",
+ 'Sigmoid sinus': "Seno venoso della dura madre a forma di S: continua il seno trasverso, scava un solco sulla rocca del temporale e al forame giugulare diventa vena giugulare interna.",
+ 'Inferior petrosal sinus': "Seno venoso della dura madre lungo la sutura tra rocca petrosa e osso occipitale: porta il sangue del seno cavernoso alla vena giugulare interna.",
+ 'Anterior intercavernous sinus': "Seno che unisce davanti all'ipofisi i due seni cavernosi.",
+ 'Posterior intercavernous sinus': "Seno che unisce dietro l'ipofisi i due seni cavernosi.",
+ 'Superior ophthalmic vein': "Raccoglie il sangue dell'orbita e sbocca nel seno cavernoso attraverso la fessura orbitaria superiore; comunica con la vena angolare della faccia.",
+ 'Inferior ophthalmic vein': "Vena del pavimento dell'orbita: sbocca nella vena oftalmica superiore o nel seno cavernoso e comunica con il plesso pterigoideo.",
+ 'Splenic vein': "Esce dall'ilo della milza, corre dietro il pancreas e dietro il collo del pancreas si unisce alla mesenterica superiore formando la vena porta; riceve la mesenterica inferiore.",
+ 'Superior mesenteric vein': "Raccoglie il sangue di intestino tenue, colon destro e trasverso; dietro il collo del pancreas si unisce alla vena splenica nella vena porta.",
+ 'Common iliac vein': "Unione delle vene iliache esterna e interna; le due iliache comuni formano la vena cava inferiore a L5. La sinistra passa sotto l'arteria iliaca comune destra.",
+})
+
 def desc(b):
     return D.get(b) or serie(b)
 
 # ---------------------------------------------------------------- modulo 2D "Cuore e polmoni"
 # gruppi (id, membri come regex sul nome inglese, testi). q = funzione per il gioco Funzione → struttura. Testi dell'AI: da verificare.
-GRUPPI2D = [
+GRUPPI_CUORE = [
  ('cuore-destro', r'^Right (atrium|ventricle)$', {'n': 'Cuore destro', 'l': 'Cor dextrum', 'r': 'Cuore', 'col': '#9bbbeb',
    'q': 'Riceve il sangue venoso dal corpo e lo spinge verso i polmoni',
    'f': "Atrio e ventricolo destro: ricevono il sangue venoso dalle vene cave e dal seno coronario e lo spingono nel tronco polmonare (piccola circolazione).",
@@ -184,14 +247,36 @@ GRUPPI2D = [
    'q': 'Riportano il sangue venoso del corpo all\'atrio destro',
    'f': "Vena cava superiore (dalle vene brachiocefaliche, con la vena azygos) e vena cava inferiore: portano all'atrio destro il sangue venoso di tutto il corpo.",
    'k': "Un tumore del polmone o del mediastino può comprimere la cava superiore: gonfiore di viso e braccia, vene del collo turgide."}),
- ('arterie-polmonari', r'Pulmonary trunk|pulmonary trunk|pulmonary artery|lobar artery|artery of (left|right) lung', {'n': 'Arterie polmonari', 'l': 'Arteriae pulmonales', 'r': 'Piccola circolazione', 'col': '#4a7fd4',
+ ('arterie-polmonari', r'Pulmonary trunk|pulmonary trunk|^(Left|Right) pulmonary artery$', {'n': 'Arterie polmonari', 'l': 'Arteriae pulmonales', 'r': 'Piccola circolazione', 'col': '#4a7fd4',
    'q': 'Portano ai polmoni il sangue povero di ossigeno',
-   'f': "Tronco polmonare, arterie polmonari destra e sinistra e i loro rami lobari e segmentari, che accompagnano i bronchi: portano il sangue venoso agli alveoli.",
+   'f': "Tronco polmonare e arterie polmonari destra e sinistra: portano il sangue venoso del ventricolo destro ai polmoni (i loro rami sono nel modulo Polmoni).",
    'k': "L'embolia polmonare è l'ostruzione di queste arterie, di solito da un trombo partito dalle vene delle gambe."}),
- ('vene-polmonari', r'pulmonary vein|vein of (left|right) lung', {'n': 'Vene polmonari', 'l': 'Venae pulmonales', 'r': 'Piccola circolazione', 'col': '#d9483b',
+ ('vene-polmonari', r'^(Left|Right) (superior|inferior) pulmonary vein$', {'n': 'Vene polmonari', 'l': 'Venae pulmonales', 'r': 'Piccola circolazione', 'col': '#d9483b',
    'q': 'Portano all\'atrio sinistro il sangue ossigenato',
    'f': "Quattro vene polmonari (due per lato) che raccolgono il sangue ossigenato dei polmoni e lo portano all'atrio sinistro.",
    'k': "Lo sbocco delle vene polmonari nell'atrio sinistro è il punto da cui partono gli impulsi della fibrillazione atriale: lì si fa l'ablazione."}),
+]
+
+# vasi del resto del corpo, per regione (la regione viene dalla posizione: proietta_2d.mjs)
+REGIONI = {'testa': ('testa e collo', 'Capitis et colli'), 'arto-sup': ('arto superiore', 'Membri superioris'),
+           'tronco': ('torace, addome e pelvi', 'Trunci'), 'arto-inf': ('arto inferiore', 'Membri inferioris')}
+TESTI_REG = {
+ 'arterie-testa': ("Portano il sangue all'encefalo, alla faccia e al collo", "Carotidi comuni, interne ed esterne con i loro rami, arterie vertebrali e basilare, poligono di Willis e arterie cerebrali.", "Una stenosi della carotide interna può dare attacchi ischemici transitori e ictus."),
+ 'arterie-arto-sup': ("Portano il sangue al braccio e alla mano", "Succlavia, ascellare, brachiale, radiale e ulnare con le arcate palmari.", "Il polso radiale si palpa al polso, lateralmente; la pressione si misura sulla brachiale."),
+ 'arterie-tronco': ("Portano il sangue alla parete del tronco e agli organi di addome e pelvi", "Rami dell'aorta toracica e addominale: intercostali, tripode celiaco, mesenteriche, renali, iliache e loro rami.", "L'aneurisma dell'aorta addominale si palpa come una massa pulsante sopra l'ombelico."),
+ 'arterie-arto-inf': ("Portano il sangue alla coscia, alla gamba e al piede", "Femorale, femorale profonda, poplitea, tibiali anteriore e posteriore, peroniera, dorsale del piede e arcata plantare.", "Nell'arteriopatia periferica i polsi pedidio e tibiale posteriore si indeboliscono o scompaiono."),
+ 'vene-testa': ("Riportano al cuore il sangue di encefalo, faccia e collo", "Seni venosi della dura madre, giugulari interna ed esterna, vene della faccia e del collo.", "Le vene della faccia comunicano con il seno cavernoso: un'infezione del naso può arrivarci."),
+ 'vene-arto-sup': ("Riportano al cuore il sangue di braccio e mano", "Vene profonde (radiali, ulnari, brachiali, ascellare, succlavia) e superficiali (cefalica, basilica, mediana del gomito).", "La vena mediana del gomito è quella dei prelievi."),
+ 'vene-tronco': ("Riportano al cuore il sangue di tronco e visceri", "Vena cava inferiore con le sue affluenti, vena porta con mesenteriche e splenica, vene iliache, sistema azygos.", "Nella cirrosi il sangue della vena porta trova vie alternative: varici esofagee e caput medusae."),
+ 'vene-arto-inf': ("Riportano al cuore il sangue di coscia, gamba e piede", "Vene profonde (femorale, poplitea, tibiali) e superficiali (grande e piccola safena).", "La trombosi venosa profonda colpisce queste vene; da qui partono gli emboli polmonari."),
+}
+for _k, (_q, _f, _kk) in TESTI_REG.items():
+    _tipo, _reg = _k.split('-', 1)
+    GRUPPI_CUORE.append((_k, None, {'n': ('Arterie ' if _tipo == 'arterie' else 'Vene ') + {'testa': 'della testa e del collo', 'arto-sup': "dell'arto superiore", 'tronco': 'del tronco', 'arto-inf': "dell'arto inferiore"}[_reg],
+                                    'l': ('Arteriae ' if _tipo == 'arterie' else 'Venae ') + REGIONI[_reg][1].lower(), 'r': 'Vasi del corpo',
+                                    'col': '#d9483b' if _tipo == 'arterie' else '#4a7fd4', 'q': _q, 'f': _f, 'k': _kk}))
+
+GRUPPI_POLMONI = [
  ('polmone-destro', r'lobe of right lung', {'n': 'Polmone destro', 'l': 'Pulmo dexter', 'r': 'Polmoni', 'col': '#f4b6c2',
    'q': 'Organo degli scambi respiratori diviso in tre lobi',
    'f': "Tre lobi (superiore, medio, inferiore) separati dalla scissura orizzontale e da quella obliqua; dieci segmenti broncopolmonari.",
@@ -204,25 +289,23 @@ GRUPPI2D = [
    'q': 'Conducono l\'aria dalla laringe fino agli alveoli',
    'f': "Trachea, bronchi principali, lobari e segmentari: le vie aeree inferiori, con anelli di cartilagine e mucosa con ciglia che spingono il muco verso l'alto.",
    'k': "Nell'asma i bronchi si restringono per la contrazione della muscolatura liscia e l'infiammazione della mucosa."}),
-]
 
+ ('rami-arterie-polmonari', r'lobar artery|artery of (left|right) lung|Pulmonary trunk|pulmonary trunk|pulmonary artery', {'n': 'Arterie polmonari e loro rami', 'l': 'Arteriae pulmonales', 'r': 'Vasi polmonari', 'col': '#4a7fd4',
+   'q': 'Seguono i bronchi e portano il sangue venoso ai segmenti',
+   'f': "Tronco e arterie polmonari con i rami lobari e segmentari: ogni segmento broncopolmonare ha la sua arteria, accanto al suo bronco.",
+   'k': "Nell'embolia polmonare il trombo si ferma in queste arterie: più è piccolo, più va lontano nei rami segmentari."}),
+ ('rami-vene-polmonari', r'pulmonary vein|vein of (left|right) lung', {'n': 'Vene polmonari e loro rami', 'l': 'Venae pulmonales', 'r': 'Vasi polmonari', 'col': '#d9483b',
+   'q': 'Raccolgono il sangue ossigenato tra i segmenti',
+   'f': "Vene dei segmenti che corrono tra un segmento e l'altro e confluiscono nelle quattro vene polmonari verso l'atrio sinistro.",
+   'k': "Le vene intersegmentali sono la guida del chirurgo per separare un segmento dall'altro."}),
+]
 # casi clinici del modulo (risposta: un gruppo o una struttura); scritti dall'AI, da verificare
-CASI = [
+CASI_CUORE = [
  {'id': 't1', 'clues': ["Uomo di 58 anni, fumatore: dolore al petto oppressivo da 40 minuti, irradiato al braccio sinistro.",
                         "L'ECG mostra il sopraslivellamento del tratto ST nelle derivazioni anteriori (V1-V4).",
                         "È occluso il ramo che scende nel solco interventricolare anteriore."],
   'a': 'Ramo interventricolare anteriore', 'opts': ['Ramo interventricolare anteriore', 'Arteria coronaria destra', 'Ramo circonflesso', 'Seno coronario'],
-  'bid': 't.anterior-interventricular-artery', 'r': "È l'infarto anteriore: il ramo interventricolare anteriore (discendente anteriore) irrora la parete anteriore del ventricolo sinistro e i due terzi anteriori del setto."},
- {'id': 't2', 'clues': ["Bambino di 3 anni: tosse improvvisa mentre mangiava arachidi, poi respiro sibilante.",
-                        "Alla radiografia un polmone è iperespanso per un effetto valvola.",
-                        "Il corpo estraneo è finito nel bronco più corto, largo e verticale."],
-  'a': 'Bronco principale destro', 'opts': ['Bronco principale destro', 'Bronco principale sinistro', 'Trachea', 'Bronco lobare superiore sinistro'],
-  'bid': 't.right-main-bronchus', 'r': "Il bronco principale destro è più verticale e largo del sinistro: i corpi estranei inalati ci finiscono più spesso."},
- {'id': 't3', 'clues': ["Donna di 70 anni con febbre e tosse: all'auscultazione crepitii davanti, sotto la quarta costa a destra.",
-                        "La radiografia di lato mostra un'opacità tra la scissura orizzontale e quella obliqua.",
-                        "È colpito il lobo che c'è solo a destra."],
-  'a': 'Lobo medio del polmone destro', 'opts': ['Lobo medio del polmone destro', 'Lobo superiore del polmone destro', 'Lobo inferiore del polmone sinistro', 'Lobo superiore del polmone sinistro'],
-  'bid': 't.middle-lobe-of-right-lung', 'r': "Il lobo medio sta tra scissura orizzontale e obliqua, davanti: si ausculta sulla parete anteriore destra."},
+  'bid': 'c.anterior-interventricular-artery', 'r': "È l'infarto anteriore: il ramo interventricolare anteriore (discendente anteriore) irrora la parete anteriore del ventricolo sinistro e i due terzi anteriori del setto."},
  {'id': 't4', 'clues': ["Donna di 45 anni dopo un lungo viaggio in aereo: dispnea improvvisa, dolore toracico e tachicardia.",
                         "Ha un polpaccio gonfio e dolente da qualche giorno.",
                         "Un trombo è arrivato nei vasi che portano il sangue dal cuore destro ai polmoni."],
@@ -232,7 +315,7 @@ CASI = [
                         "Nella fibrillazione la contrazione di una camera è inefficace e il sangue ristagna.",
                         "Il trombo si è formato nell'auricola della camera che riceve le vene polmonari."],
   'a': 'Atrio sinistro', 'opts': ['Atrio sinistro', 'Atrio destro', 'Ventricolo destro', 'Ventricolo sinistro'],
-  'bid': 't.left-atrium', 'r': "Il trombo dell'auricola sinistra passa nel ventricolo sinistro e nell'aorta e può raggiungere le arterie del cervello (ictus cardioembolico)."},
+  'bid': 'c.left-atrium', 'r': "Il trombo dell'auricola sinistra passa nel ventricolo sinistro e nell'aorta e può raggiungere le arterie del cervello (ictus cardioembolico)."},
  {'id': 't6', 'clues': ["Uomo di 50 anni con dolore toracico lacerante, irradiato tra le scapole.",
                         "La pressione è diversa tra il braccio destro e il sinistro.",
                         "Si è lacerata la parete del grande vaso che esce dal ventricolo sinistro."],
@@ -242,5 +325,30 @@ CASI = [
                         "Ha una lunga storia di bronchite cronica ostruttiva (BPCO).",
                         "Si è sfiancato il ventricolo che pompa contro la resistenza dei polmoni."],
   'a': 'Ventricolo destro', 'opts': ['Ventricolo destro', 'Ventricolo sinistro', 'Atrio sinistro', 'Aorta ascendente'],
-  'bid': 't.right-ventricle', 'r': "È il cuore polmonare: la malattia dei polmoni alza la pressione nelle arterie polmonari e il ventricolo destro si scompensa."},
+  'bid': 'c.right-ventricle', 'r': "È il cuore polmonare: la malattia dei polmoni alza la pressione nelle arterie polmonari e il ventricolo destro si scompensa."},
+
+]
+
+# casi del modulo Polmoni
+CASI_POLMONI = [
+ {'id': 't2', 'clues': ["Bambino di 3 anni: tosse improvvisa mentre mangiava arachidi, poi respiro sibilante.",
+                        "Alla radiografia un polmone è iperespanso per un effetto valvola.",
+                        "Il corpo estraneo è finito nel bronco più corto, largo e verticale."],
+  'a': 'Bronco principale destro', 'opts': ['Bronco principale destro', 'Bronco principale sinistro', 'Trachea', 'Bronco lobare superiore sinistro'],
+  'bid': 'p.right-main-bronchus', 'r': "Il bronco principale destro è più verticale e largo del sinistro: i corpi estranei inalati ci finiscono più spesso."},
+ {'id': 't3', 'clues': ["Donna di 70 anni con febbre e tosse: all'auscultazione crepitii davanti, sotto la quarta costa a destra.",
+                        "La radiografia di lato mostra un'opacità tra la scissura orizzontale e quella obliqua.",
+                        "È colpito il lobo che c'è solo a destra."],
+  'a': 'Lobo medio del polmone destro', 'opts': ['Lobo medio del polmone destro', 'Lobo superiore del polmone destro', 'Lobo inferiore del polmone sinistro', 'Lobo superiore del polmone sinistro'],
+  'bid': 'p.middle-lobe-of-right-lung', 'r': "Il lobo medio sta tra scissura orizzontale e obliqua, davanti: si ausculta sulla parete anteriore destra."},
+ {'id': 't8', 'clues': ["Uomo di 62 anni, forte fumatore: dolore alla spalla e al braccio destro, lungo il lato ulnare.",
+                        "Ha la palpebra destra abbassata e la pupilla destra piccola (sindrome di Horner).",
+                        "Il tumore sta all'apice di un polmone, sopra la clavicola, vicino al plesso brachiale e alla catena simpatica."],
+  'a': 'Lobo superiore del polmone destro', 'opts': ['Lobo superiore del polmone destro', 'Lobo medio del polmone destro', 'Lobo inferiore del polmone destro', 'Lobo inferiore del polmone sinistro'],
+  'bid': 'p.superior-lobe-of-right-lung', 'r': "È un tumore di Pancoast: all'apice del lobo superiore infiltra il plesso brachiale (C8-T1) e il ganglio stellato del simpatico."},
+ {'id': 't9', 'clues': ["Anziano allettato dopo un ictus, nutrito con difficoltà: febbre e tosse.",
+                        "Ha inalato del cibo stando sdraiato sulla schiena.",
+                        "Da supini il primo segmento in basso e dietro è quello in cima al lobo inferiore destro."],
+  'a': 'Bronco segmentario superiore del polmone destro (BVI)', 'opts': ['Bronco segmentario superiore del polmone destro (BVI)', 'Bronco lobare medio', 'Bronco segmentario apicale del polmone destro (BI)', 'Bronco principale sinistro'],
+  'bid': 'p.superior-segmental-bronchus-of-right-lung-bvi', 'r': "Da supini il materiale inalato scende nel bronco segmentario superiore del lobo inferiore (BVI), il più posteriore: polmonite ab ingestis. Da seduti va invece nei segmenti basali."},
 ]
