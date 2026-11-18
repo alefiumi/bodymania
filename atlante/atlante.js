@@ -380,7 +380,10 @@ function refresh(noPanel){
  const rs=roots();
  if(rs.length&&S.mv!=='shape')S.pts=drawPoints(rs,S.side);else{while(pts.children.length)pts.remove(pts.children[0]);S.pts=[];}
  for(const m of meshes){
-  m.visible=visible(m);if(!m.visible)continue;
+  m.visible=visible(m);
+  // parte nascosta: la sua copia nella memoria grafica si libera (si ricarica da sola, dai dati in memoria, quando torna visibile)
+  if(!m.visible){if(m.userData.gpu){m.geometry.dispose();m.userData.gpu=false;}continue;}
+  m.userData.gpu=true;
   const u=m.userData;
   m.material=m===S.part?M_SEL:u.layer==='ossa'&&S.bones==='ghost'?M_GHOST:u.layer==='muscoli'&&inFocus(m)?M_SEL:u.own;
  }
@@ -718,6 +721,7 @@ const TEETH=/(incisor|canine|molar|premolar)/i,BONE_SKIP=/(cartilage|cells of et
 const famOf=b=>b.replace(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\b/gi,'#').replace(/\b[CTL]\d+\b/,'#').replace(/\b(Proximal|Middle|Distal)\b/,'#');
 // quali candidati si vedono da fuori: disegno la scena da 26 direzioni con un colore per candidato e conto i pixel
 function seenFrom(cands,occl,W=200){
+ cands.forEach(m=>m.userData.gpu=true);occl.forEach(m=>m.userData.gpu=true); // disegnate qui: andranno liberate quando restano nascoste
  const H=W*2,rt=new THREE.WebGLRenderTarget(W,H),buf=new Uint8Array(W*H*4),cam=new THREE.PerspectiveCamera(30,W/H,0.03,20);
  const black=new THREE.MeshBasicMaterial({color:0}),saved=[],ids=new Map();
  scene.traverse(o=>{if(o.isMesh){saved.push([o,o.visible,o.material]);o.visible=false;}});
@@ -1114,7 +1118,9 @@ for(const ev of ['pointerdown','pointermove','pointerup','wheel','keydown','touc
 controls.addEventListener('change',()=>wake());new ResizeObserver(()=>wake()).observe(view);
 wakeHook=wake;wake(3000);
 function loop(now){
- if(!view.clientHeight)return; // scheda dell'app nascosta: niente disegno, si risparmia batteria
+ // scheda dell'app nascosta: niente disegno; dopo 20 s si libera anche la memoria grafica
+ if(!view.clientHeight){if(!idleSince)idleSince=now;else if(now-idleSince>20000)freeGPU();return;}
+ idleSince=0;if(freed){freed=false;for(const m of meshes)if(m.visible)m.userData.gpu=true;} // tornato visibile: le parti si ricaricano al disegno
  if(tween){const k=Math.min(1,(now-tween.s)/450),e=k*k*(3-2*k);
   camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.t0,tween.t1,e);if(k>=1)tween=null;wake(300);}
  const moved=controls.update();
@@ -1132,5 +1138,12 @@ function loop(now){
  if(now-last>=1000){$('fps').textContent=`${Math.round(frames*1000/(now-last))} fps · ${Math.round(renderer.info.render.triangles/1000)}k triangoli`;frames=0;last=now;}
 }
 renderer.setAnimationLoop(loop);
-document.addEventListener('visibilitychange',()=>{renderer.setAnimationLoop(document.hidden?null:loop);if(!document.hidden)wake();});
+// memoria grafica: con l'app in secondo piano (o l'atlante non in uso da 20 s) si libera tutta; i modelli restano in memoria
+// normale e al primo disegno si ricaricano solo le parti visibili. Così l'app pesa meno sugli altri programmi del telefono.
+let idleSince=0,freed=false;
+function freeGPU(){if(freed)return;for(const m of meshes){m.geometry.dispose();m.userData.gpu=false;}renderer.renderLists.dispose();freed=true;}
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){renderer.setAnimationLoop(null);freeGPU();}
+ else{renderer.setAnimationLoop(loop);for(const m of meshes)if(m.visible)m.userData.gpu=true;freed=false;wake();}
+});
 window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts,startGame,gameTap,poolOf,boneHit,distToArea,get GAME(){return GAME;}};

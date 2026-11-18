@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 62, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 62 (63 sul branch di sviluppo), contenuti
   `version` 10 (`corpo` 11, `cervello` 2, `cuore` 1, `polmoni` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -252,6 +252,9 @@ Con una sezione attiva il tocco scarta le intersezioni nella parte tagliata via 
 Disegno solo quando serve (`loop()`/`wake()` in fondo ad `atlante.js`): si ridisegna durante tocchi, movimenti della vista e per 1,5 s
 dopo ogni cambiamento (`refresh()`, caricamenti, messaggi dall'app); da fermo 0 fotogrammi, in secondo piano il ciclo si ferma
 (`visibilitychange`). Prima disegnava 60 volte al secondo anche fermo e il telefono si scaldava e rallentava anche le altre app.
+Memoria grafica: le parti nascoste (strati spenti) liberano subito la loro copia nella GPU (`m.userData.gpu`, `geometry.dispose()`:
+three.js la ricarica da sola dai dati in memoria quando tornano visibili); in secondo piano o con l'atlante non in uso da 20 s
+si libera tutta (`freeGPU()`).
 `organOf()` in `atlante.js`, `organo()` in `build/torace.py` e in `proietta_2d.mjs` usano le stesse regole: tenerle uguali.
 Colori: cuore destro blu e sinistro rosso; arterie polmonari blu e vene polmonari rosse (sangue venoso/ossigenato, come nei libri).
 Testi di cuore, vasi principali e polmoni in `build/torace.py` (scritti dall'AI, da verificare) con i nomi italiani corretti
