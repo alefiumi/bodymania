@@ -353,7 +353,7 @@ const boxOf=list=>{const b=new THREE.Box3();list.forEach(o=>b.expandByObject(o))
 // part = parte selezionata; lm = repere; mus = muscolo aperto (radice del nome) sul lato side; bones = on | ghost | off
 // combo = gruppo di muscoli aperto (zampa d'oca…); mv = vista del muscolo: both | shape | lines
 // cut = piano di sezione {ax, t}; lev = strati dell'encefalo tolti (0 = tutti presenti)
-const S={sys:null,lay:Object.fromEntries(Object.entries(SYS).map(([k,x])=>[k,Object.fromEntries(Object.keys(x.L).map(l=>[l,x.P[x.def].includes(l)]))])),cutOn:'brain',part:null,lm:null,mus:null,combo:null,side:'r',bones:'on',allLm:false,list:null,q:'',mv:'both',cut:{ax:null,t:0.5},lev:0};
+const S={on:{cuore:false,polmoni:false},solo:null,lay:Object.fromEntries(Object.entries(SYS).map(([k,x])=>[k,Object.fromEntries(Object.keys(x.L).map(l=>[l,x.P[x.def].includes(l)]))])),cutOn:'brain',part:null,lm:null,mus:null,combo:null,side:'r',bones:'on',allLm:false,list:null,q:'',mv:'both',cut:{ax:null,t:0.5},lev:0};
 let GAME=null; // partita in corso (gioco Trova la struttura nel 3D)
 const musOf=m=>m&&m.userData.root&&DATA.mus[m.userData.root]?m.userData.root:null;
 const roots=()=>S.combo?COMBO[S.combo].mus:S.mus?[S.mus]:[];
@@ -366,8 +366,11 @@ function inFocus(m){
 }
 function visible(m){
  const u=m.userData;if(u.hidden)return false;
+ // "Solo questo": resta solo l'encefalo o un apparato, tutto il resto (scheletro, muscoli, altri strati) sparisce
+ if(S.solo==='brain'&&u.layer!=='encefalo'&&u.layer!=='meningi')return false;
+ if(SYS[S.solo]&&!(u.org&&sysOf(u.org)===S.solo))return false;
  if(u.layer==='ossa')return S.bones!=='off';
- if(S.sys&&u.org){const X=SYS[S.sys],on=S.lay[S.sys];return Object.keys(X.L).some(l=>on[l]&&X.L[l].f(u));}
+ if(u.org&&S.on[sysOf(u.org)]){const k=sysOf(u.org),X=SYS[k],on=S.lay[k];return Object.keys(X.L).some(l=>on[l]&&X.L[l].f(u));}
  if(S.lev&&u.st>=0&&u.st<S.lev)return false;
  return V[u.layer]||(inFocus(m)&&S.mv!=='lines'&&!(S.mv==='areas'&&u.layer==='muscoli')); // areas: solo aree e linee, senza la forma (gioco)
 }
@@ -381,7 +384,7 @@ function refresh(noPanel){
  }
  // reperi: quelli dell'osso selezionato (o tutti, se richiesto) e quello aperto
  const want=new Set();
- if(S.bones==='on'){
+ if(S.bones==='on'&&!S.solo){
   if(S.allLm)LMS.forEach(l=>want.add(l));
   const bone=S.part&&S.part.userData.layer==='ossa'?S.part.userData.name:S.lm?S.lm.parent:null;
   if(bone)(lmByParent.get(bone)||[]).forEach(l=>want.add(l));
@@ -392,7 +395,7 @@ function refresh(noPanel){
  if(!noPanel)panel();
 }
 function applyCut(){
- const box=SYS[S.cutOn]?boxSys(S.cutOn):brainBox,ax=S.cut.ax&&box?AX[S.cut.ax]:null;
+ const box=SYS[S.cutOn]?boxSys(S.cutOn):S.cutOn==='body'?bodyBox():brainBox,ax=S.cut.ax&&box?AX[S.cut.ax]:null;
  if(ax){const p=box.min.clone().lerp(box.max,S.cut.t),n=new THREE.Vector3(...ax.n);cutPlane.setFromNormalAndCoplanarPoint(n,p);renderer.clippingPlanes=[cutPlane];}
  else renderer.clippingPlanes=[];
  // con il taglio si vede anche l'interno delle superfici: la sezione sembra piena
@@ -458,9 +461,9 @@ function panel(){
    <div id="levt" class="row">${levText()}</div>
    <div class="chips">${ST.map((s,i)=>chip(i===S.lev?'on':'',`data-lev="${i}"`,`${i+1}. ${s.n}`)).join('')}</div>
    <p class="note">Dura madre e aracnoide craniche hanno una forma schematica generata dall'app (la fonte ha solo falce e tentorio). Testi scritti dall'AI: da verificare.</p>
-   <div class="chips"><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
+   <div class="chips">${soloBtn('brain','l\'encefalo')}<button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(SYS[S.list]){
-  const X=SYS[S.list],on=S.lay[S.list],b=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
+  const K=S.list,X=SYS[K],on=S.lay[K],b=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
   const cur=Object.entries(X.P).find(([,l])=>Object.keys(X.L).every(k=>on[k]===l.includes(k)));
   h=`<div class="h">${X.ic} ${X.n}</div>${S.loading?'<p class="mut">Carico il modello…</p>':''}
    <div class="sub">Viste pronte</div><div class="chips">${Object.keys(X.P).map(k=>b(cur&&cur[0]===k,`data-spre="${k}"`,X.PN[k])).join('')}</div>
@@ -469,14 +472,14 @@ function panel(){
    <div class="sub">Sezione sui piani anatomici</div><div class="chips">${b(!S.cut.ax,'data-cut="none"','Nessuna')}${Object.entries(AX).map(([k,a])=>b(S.cut.ax===k,`data-cut="${k}"`,a.it)).join('')}</div>`+
    (S.cut.ax?`<input type="range" id="cutr" min="0" max="1000" value="${Math.round(S.cut.t*1000)}" style="width:100%"><div class="mut">${S.cut.ax==='axial'?'Sposta il piano dal basso in alto':S.cut.ax==='coronal'?'Sposta il piano da dietro in avanti':'Sposta il piano da destra a sinistra'}.${S.list==='cuore'?' Con la sezione coronale si vedono le camere e le valvole.':''}</div>`:'')+
    `<p class="note">${X.note}</p>
-   <div class="chips"><button class="chip" data-sysoff="1">Esci da ${X.n.toLowerCase()}</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
+   <div class="chips">${soloBtn(K,X.n.toLowerCase())}${Object.entries(SYS).filter(([k])=>k!==K).map(([k,x])=>`<button class="chip${S.on[k]?' on':''}" data-sys="${k}">${S.on[k]?'Insieme a: ':'Aggiungi '}${x.ic} ${x.n}</button>`).join('')}<button class="chip" data-sysoff="1">Esci da ${X.n.toLowerCase()}</button><button class="chip" data-go="layers">Strati</button><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='layers'){
   const on=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`,lay=k=>on(V[k],`data-layer="${k}"`,LAYERS[k].n);
   h=`<div class="h">Strati</div>${S.loading?'<p class="mut">Carico lo strato…</p>':''}
    <div class="sub">Ossa</div><div class="chips">${on(S.bones==='on','data-bones="on"','Visibili')}${on(S.bones==='ghost','data-bones="ghost"','Trasparenti')}${on(S.bones==='off','data-bones="off"','Nascoste')}${on(S.allLm,'data-lmt="1"','Tutti i reperi')}</div>
    <div class="sub">Apparato locomotore</div><div class="chips">${lay('muscoli')}${lay('fasce')}${lay('legamenti')}${lay('inserzioni')}</div>
    <div class="sub">Sistema nervoso</div><div class="chips">${lay('encefalo')}${lay('midollo')}${lay('nervi')}${lay('meningi')}${lay('sensi')}<button class="chip" data-go="brain">🧠 Sezioni e strati</button></div>
-   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}${Object.entries(SYS).map(([k,x])=>`<button class="chip${S.sys===k?' on':''}" data-sys="${k}">${x.ic} ${x.n}</button>`).join('')}</div>
+   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}${Object.entries(SYS).map(([k,x])=>`<button class="chip${S.on[k]?' on':''}" data-sys="${k}">${x.ic} ${x.n}</button>`).join('')}</div>
    ${offlineHtml()}
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='muscles'){
@@ -509,7 +512,7 @@ function panel(){
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else{
   h=`<div class="h">Atlante 3D</div><p class="mut">Tocca una parte per vederne il nome. Un dito ruota, due dita ingrandiscono e spostano, doppio tocco avvicina.</p>
-   <div class="chips"><button class="chip" data-go="layers">🧩 Strati</button><button class="chip" data-go="muscles">💪 Muscoli</button><button class="chip" data-go="brain">🧠 Encefalo</button><button class="chip" data-sys="cuore">🫀 Cuore e vasi</button><button class="chip" data-sys="polmoni">🫁 Polmoni</button><button class="chip" data-go="search">🔎 Cerca</button></div>`+FONTE;
+   <div class="chips"><button class="chip" data-go="layers">🧩 Strati</button><button class="chip" data-go="muscles">💪 Muscoli</button><button class="chip" data-go="brain">🧠 Encefalo</button><button class="chip" data-sys="cuore">🫀 Cuore e vasi</button><button class="chip" data-sys="polmoni">🫁 Polmoni</button><button class="chip" data-go="search">🔎 Cerca</button></div>`+cutHtml('body')+FONTE;
  }
  const keep=document.activeElement&&document.activeElement.id==='q';
  p.innerHTML=h;if(!keep)p.scrollTop=0;
@@ -517,6 +520,14 @@ function panel(){
 }
 
 /* ---------- azioni ---------- */
+// pulsante "Solo questo" (encefalo o un apparato) e sezioni sui piani anatomici (anche del corpo intero, nel pannello iniziale)
+const soloBtn=(k,n)=>`<button class="chip${S.solo===k?' on':''}" data-solo="${k}">${S.solo===k?'👁 Rimetti il resto del corpo':'👁 Solo '+n}</button>`;
+function cutHtml(on){
+ const cur=S.cutOn===on?S.cut.ax:null,b=(v,attr,txt)=>`<button class="chip${v?' on':''}" ${attr}>${txt}</button>`;
+ return `<div class="sub">Sezione del corpo intero</div><div class="chips">${b(!cur,'data-cutb="none"','Nessuna')}${Object.entries(AX).map(([k,a])=>b(cur===k,`data-cutb="${k}"`,a.it)).join('')}</div>`+
+  (cur?`<input type="range" id="cutr" min="0" max="1000" value="${Math.round(S.cut.t*1000)}" style="width:100%"><div class="mut">${cur==='axial'?'Sposta il piano dal basso in alto: si vede la parte inferiore, dall\'alto':cur==='coronal'?'Sposta il piano da dietro in avanti: si vede la parte posteriore, da davanti':'Sposta il piano da destra a sinistra: si vede la metà sinistra dal lato destro'}. Accendi gli strati (muscoli, visceri, encefalo…) per vederli tagliati.</div>`:'');
+}
+let bodyB=null;const bodyBox=()=>bodyB||(bodyB=boxOf(meshes.filter(m=>m.userData.layer==='ossa')));
 function levText(){return `<b>Strato più esterno visibile: ${ST[S.lev].n}</b><br><span class="mut">${ST[S.lev].t}</span>`;}
 function selectPart(m,fly=false){S.mus=S.combo=null;S.lm=null;S.part=m;S.list=null;if(m&&m.userData.side)S.side=m.userData.side;refresh();if(m&&fly)frameBox(boxOf([m]),0.2);}
 // distanza di un punto dalla superficie di una parte (vertice più vicino)
@@ -563,7 +574,7 @@ async function showMuscle(root,side=S.side,fly=true,combo=null){
 const showCombo=(k,side=S.side,fly=true)=>showMuscle(null,side,fly,k);
 // pannello dell'encefalo: carica encefalo e meningi, ossa trasparenti, avvicina la testa
 async function openBrain(){
- S.mus=S.combo=S.lm=S.part=null;S.list='brain';
+ S.mus=S.combo=S.lm=S.part=null;S.list='brain';if(S.solo&&S.solo!=='brain')S.solo=null;
  if(S.cutOn!=='brain'){S.cut.ax=null;S.cutOn='brain';}
  if(!FILES.encefalo||!FILES.encefalo.loaded||!FILES.meningi||!FILES.meningi.loaded){S.loading=true;panel();await Promise.all([loadFile('encefalo'),loadFile('meningi')]);S.loading=false;}
  if(!brainBox)brainBox=boxOf(meshes.filter(m=>m.userData.layer==='encefalo'&&m.userData.st===2));
@@ -573,20 +584,20 @@ async function openBrain(){
 }
 // un apparato (cuore e vasi, polmoni): carica i suoi file, mostra solo le sue parti (strati scelti), ossa trasparenti
 async function openSys(k){
- S.mus=S.combo=S.lm=S.part=null;S.list=k;
+ S.mus=S.combo=S.lm=S.part=null;S.list=k;if(S.solo&&S.solo!==k)S.solo=null;
  if(S.cutOn!==k){S.cut.ax=null;S.cutOn=k;}
  const files=k==='cuore'?['vasi']:['vasi','visceri'];
  if(files.some(f=>!FILES[f]||!FILES[f].loaded)){S.loading=true;panel();await Promise.all(files.map(loadFile));S.loading=false;}
- const first=S.sys!==k;S.sys=k;if(S.bones==='on')S.bones='ghost';
+ const first=!S.on[k];S.on[k]=true;if(S.bones==='on')S.bones='ghost';
  refresh();
- if(first)flySys();
+ if(first)flySys(k);
 }
 // inquadra l'apparato: tutto il corpo per i vasi di tutto il corpo, altrimenti l'organo
-function flySys(v='front'){
- const X=SYS[S.sys],cur=Object.entries(X.P).find(([,l])=>Object.keys(X.L).every(k=>S.lay[S.sys][k]===l.includes(k)));
+function flySys(K,v='front'){
+ const X=SYS[K],cur=Object.entries(X.P).find(([,l])=>Object.keys(X.L).every(k=>S.lay[K][k]===l.includes(k)));
  if(cur&&X.fly[cur[0]]==='body'){setView(v);return;}
- const box=boxSys(S.sys),c=box.getCenter(new THREE.Vector3()),r=box.getSize(new THREE.Vector3()).length()/2;
- const dist=r*(S.sys==='cuore'?1.3:0.9)/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
+ const box=boxSys(K),c=box.getCenter(new THREE.Vector3()),r=box.getSize(new THREE.Vector3()).length()/2;
+ const dist=r*(K==='cuore'?1.3:0.9)/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
  flyTo(c.clone().addScaledVector(new THREE.Vector3(...DIR[v]).normalize(),dist),c);
 }
 function flyBrain(v){
@@ -596,7 +607,8 @@ function flyBrain(v){
 }
 function setCut(ax){
  S.cut.ax=ax==='none'?null:ax;
- if(S.cut.ax&&SYS[S.cutOn]){S.cut.t=0.5;flySys(AX[S.cut.ax].v);}
+ if(S.cut.ax&&SYS[S.cutOn]){S.cut.t=0.5;flySys(S.cutOn,AX[S.cut.ax].v);}
+ else if(S.cut.ax&&S.cutOn==='body'){S.cut.t=S.cut.ax==='sagittal'?0.502:0.5;setView(AX[S.cut.ax].v);}
  else if(S.cut.ax){S.cut.t=S.cut.ax==='axial'?0.6:S.cut.ax==='sagittal'?0.52:0.5;/* sagittale appena a lato della falce: si vede la faccia mediale */flyBrain(AX[S.cut.ax].v);}
  refresh();
 }
@@ -788,13 +800,13 @@ async function startGame(set,extra){
  GAME={set,q:0,total:8,hearts:3,score:0,gain:0,cur:null,locked:false,used:new Set(),last:null,pool:null,marks:[]};
  document.body.classList.add('game');
  S.mus=S.combo=S.lm=S.part=null;S.list=null;S.cut.ax=null;S.lev=0;S.mv='both';
- for(const k in V)V[k]=false;S.bones='on';S.allLm=false;S.sys=null;meshes.forEach(m=>m.userData.hidden=false);
+ for(const k in V)V[k]=false;S.bones='on';S.allLm=false;S.on={cuore:false,polmoni:false};S.solo=null;meshes.forEach(m=>m.userData.hidden=false);
  S.loading=true;refresh();
  GAME.pool=await poolOf(set);
  if(set==='muscoli')V.muscoli=true;
  if(set==='reperi')S.allLm=true;
  if(set==='caso')V.muscoli=true;
- if(set==='cuore'||set==='polmoni'){S.sys=set;const X=SYS[set];for(const k in X.L)S.lay[set][k]=X.P[set==='cuore'?'base':'tutto'].includes(k);S.bones='ghost';S.cut.ax=null;}
+ if(set==='cuore'||set==='polmoni'){S.on[set]=true;const X=SYS[set];for(const k in X.L)S.lay[set][k]=X.P[set==='cuore'?'base':'tutto'].includes(k);S.bones='ghost';S.cut.ax=null;}
  if(set==='oi'||set==='ponte')await Promise.all([loadFile('muscoli'),loadFile('inserzioni')]);
  if(set==='nervi'){await loadFile('encefalo');V.nervi=true;V.encefalo=true;S.bones='ghost';
   meshes.forEach(m=>{if(m.userData.layer==='nervi'&&!crNum(m.userData))m.userData.hidden=true;}); // solo i 12 nervi cranici
@@ -898,7 +910,7 @@ function nextGameQ(){
  if(G.set==='nervi'){ // la base dell'encefalo vista da davanti e un po' dal basso, dove escono i nervi
   const c=brainBox.getCenter(new THREE.Vector3()),r=brainBox.getSize(new THREE.Vector3()).length()/2,dist=r*1.1/Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/Math.min(1,camera.aspect);
   flyTo(c.clone().addScaledVector(new THREE.Vector3(0,-0.55,1).normalize(),dist),c);
- }else if(G.set==='cuore'||G.set==='polmoni')flySys('front');
+ }else if(G.set==='cuore'||G.set==='polmoni')flySys(G.set,'front');
  else flyTo(center.clone().add(new THREE.Vector3(0,0,1).multiplyScalar(fitDist())),center.clone());
 }
 function gameTap(x,y){
@@ -940,7 +952,7 @@ function endGame(){
  const G=GAME,done=G.hearts>0&&G.q>=G.total;if(done)G.gain+=20;
  toApp({type:'end',done,set:G.set,score:G.score,total:G.q,gain:G.gain});G.over=true;G.cur=null;clearGameMarks();S.mus=null;refresh();
 }
-function quitGame(){if(GAME){clearGameMarks();if(SYS[GAME.set])S.sys=null;}GAME=null;S.mus=null;S.mv='both';S.bones='on';meshes.forEach(m=>m.userData.hidden=false);document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
+function quitGame(){if(GAME){clearGameMarks();if(SYS[GAME.set])S.on[GAME.set]=false;}GAME=null;S.mus=null;S.mv='both';S.bones='on';meshes.forEach(m=>m.userData.hidden=false);document.body.classList.remove('game');for(const k in V)V[k]=false;S.allLm=false;S.list=null;refresh();setView('front');}
 // risposta del gioco origine e inserzione: aree in blu (origine) e arancione (inserzione), testo della scheda
 function oiAnswer(G){
  const d=DATA.mus[G.cur.root],c=d.card,t=G.cur.k==='o'?c&&c.ot:c&&c.it;
@@ -1053,9 +1065,11 @@ $('panel').addEventListener('click',e=>{
  else if(d.levd)setLevel(Math.max(0,Math.min(ST.length-1,S.lev+ +d.levd)));
  else if(d.go==='brain')openBrain();
  else if(d.sys)openSys(d.sys);
- else if(d.slay){S.lay[S.sys][d.slay]=!S.lay[S.sys][d.slay];refresh();}
- else if(d.spre){const X=SYS[S.sys];for(const k in X.L)S.lay[S.sys][k]=X.P[d.spre].includes(k);refresh();flySys();}
- else if(d.sysoff){S.sys=null;if(SYS[S.cutOn])S.cut.ax=null;S.list='layers';refresh();}
+ else if(d.slay){S.lay[S.list][d.slay]=!S.lay[S.list][d.slay];refresh();}
+ else if(d.spre){const X=SYS[S.list];for(const k in X.L)S.lay[S.list][k]=X.P[d.spre].includes(k);refresh();flySys(S.list);}
+ else if(d.sysoff){S.on[S.list]=false;if(S.solo===S.list)S.solo=null;if(S.cutOn===S.list)S.cut.ax=null;S.list='layers';refresh();}
+ else if(d.solo){S.solo=S.solo===d.solo?null:d.solo;if(SYS[S.solo])S.on[S.solo]=true;refresh();}
+ else if(d.cutb){S.cutOn='body';setCut(d.cutb);}
  else if(d.go){S.mus=S.combo=S.lm=S.part=null;S.q='';S.list=d.go==='home'?null:d.go;refresh();if(d.go==='layers')offlineCheck();}
  else if(d.hide){if(S.part)S.part.userData.hidden=true;S.part=null;refresh();}
  else if(d.bones){S.bones=d.bones;refresh();}
