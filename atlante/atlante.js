@@ -114,7 +114,7 @@ function loadFile(file){
    geo.applyMatrix4(ok.matrixWorld).applyMatrix4(new THREE.Matrix4().makeScale(-1,1,1));
    if(geo.index){const ix=geo.index.array;for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t;}} // lo specchio inverte il verso delle facce
    geo.computeVertexNormals();bad.removeFromParent();bad.geometry=geo;bad.position.set(0,0,0);bad.rotation.set(0,0,0);bad.scale.set(1,1,1);bad.userData.fixed=true;scene.add(bad);}
-  FILES[file].loaded=true;
+  FILES[file].loaded=true;wakeHook();
   if(FILES.encefalo&&FILES.encefalo.loaded&&FILES.meningi&&FILES.meningi.loaded)makeShells();
   ok();
  },undefined,ko))};
@@ -374,7 +374,9 @@ function visible(m){
  if(S.lev&&u.st>=0&&u.st<S.lev)return false;
  return V[u.layer]||(inFocus(m)&&S.mv!=='lines'&&!(S.mv==='areas'&&u.layer==='muscoli')); // areas: solo aree e linee, senza la forma (gioco)
 }
+let wakeHook=()=>{};
 function refresh(noPanel){
+ wakeHook();
  const rs=roots();
  if(rs.length&&S.mv!=='shape')S.pts=drawPoints(rs,S.side);else{while(pts.children.length)pts.remove(pts.children[0]);S.pts=[];}
  for(const m of meshes){
@@ -1104,11 +1106,19 @@ controls.minDistance=height*0.04;controls.maxDistance=height*3.2;
 setView('front',false);$('msg').remove();refresh();
 toApp({type:'ready'}); // l'app può mandare la richiesta di una partita
 let frames=0,last=performance.now();
-renderer.setAnimationLoop(now=>{
+/* Disegno solo quando serve: prima si ridisegnava 60 volte al secondo anche a modello fermo, e il telefono si scaldava
+   (e poi rallentava tutto, anche le altre app). Ora si disegna mentre si tocca o la vista si muove e per 1,5 s dopo ogni
+   cambiamento (strati, pannello, partite, caricamenti); con l'app in secondo piano il ciclo si ferma del tutto. */
+let awake=0;const wake=(ms=1500)=>{awake=Math.max(awake,performance.now()+ms);};
+for(const ev of ['pointerdown','pointermove','pointerup','wheel','keydown','touchstart','touchmove','message','storage'])addEventListener(ev,()=>wake(),{passive:true});
+controls.addEventListener('change',()=>wake());new ResizeObserver(()=>wake()).observe(view);
+wakeHook=wake;wake(3000);
+function loop(now){
  if(!view.clientHeight)return; // scheda dell'app nascosta: niente disegno, si risparmia batteria
  if(tween){const k=Math.min(1,(now-tween.s)/450),e=k*k*(3-2*k);
-  camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.t0,tween.t1,e);if(k>=1)tween=null;}
- controls.update();
+  camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.t0,tween.t1,e);if(k>=1)tween=null;wake(300);}
+ const moved=controls.update();
+ if(!moved&&now>awake){frames=0;last=now;return;} // fermo: niente da ridisegnare
  // i reperi tengono una dimensione leggibile a qualsiasi zoom
  const px=2*Math.tan(THREE.MathUtils.degToRad(camera.fov)/2)/view.clientHeight;
  // con tutti i reperi accesi (o nel gioco) i pallini restano piccoli, sennò a corpo intero coprono lo scheletro
@@ -1120,5 +1130,7 @@ renderer.setAnimationLoop(now=>{
  if(outline&&!S.cut.ax)effect.render(scene,camera);else renderer.render(scene,camera);
  frames++;
  if(now-last>=1000){$('fps').textContent=`${Math.round(frames*1000/(now-last))} fps · ${Math.round(renderer.info.render.triangles/1000)}k triangoli`;frames=0;last=now;}
-});
+}
+renderer.setAnimationLoop(loop);
+document.addEventListener('visibilitychange',()=>{renderer.setAnimationLoop(document.hidden?null:loop);if(!document.hidden)wake();});
 window.__proto={DATA,S,V,LAYERS,meshes,byName,LMS,camera,controls,renderer,refresh,toggleLayer,showMuscle,showCombo,showLandmark,selectPart,findPart,pickPart,pickLandmark,setView,openBrain,setCut,setLevel,pts,startGame,gameTap,poolOf,boneHit,distToArea,get GAME(){return GAME;}};
