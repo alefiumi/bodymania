@@ -11,6 +11,7 @@ export function renderMenu(){
  const what=M.grpn?(app.grp?'per <b>gruppi</b>':'sulle <b>strutture singole</b>'):app.grp?(body?'per <b>gruppi</b> di ossa':'per <b>lobi e aree</b>'):(body?'sulle <b>ossa singole</b>':'su <b>giri e solchi</b>');
  $('panel').innerHTML=`<div class="h">Scegli una sfida</div><p class="mut">3 cuori a round. Ogni risposta giusta dà XP e fa salire la maestria (da beige a oro). Ora giochi ${what}: cambia in alto, dove scegli anche la vista.</p><div class="sub">Puzzle</div>`+
   mb('puzzle','🧩 Ricomponi','Rimetti al posto i pezzi mancanti (trascina o tocca)')+
+  mb('build','🧱 Componi','Puzzle vero: metti insieme i pezzi senza la sagoma del loro posto')+
   (body?mb('bridge','🌉 Tendine-ponte',"Collega l'osso di origine a quello di inserzione"):'')+
   (M.CASES&&M.CASES.length?mb('case','🩺 Caso clinico','Indizi progressivi: meno indizi usi, più XP'):'')+
   '<div class="sub">Quiz</div>'+mb('find','🎯 Trova la struttura','Tocca quella giusta sulla figura')+
@@ -28,10 +29,10 @@ export function renderMenu(){
   mb('3d-cuore','🫀 Cuore e grandi vasi','Tocca la camera, la coronaria o il grande vaso giusto')+
   mb('3d-polmoni','🫁 Polmoni','Tocca il lobo o il bronco giusto');
 }
-export const clearGhosts=()=>document.querySelectorAll('.bone.ghost').forEach(g=>g.classList.remove('ghost'));
+export const clearGhosts=()=>document.querySelectorAll('.bone.ghost,.bone.gone').forEach(g=>g.classList.remove('ghost','gone'));
 export function startGame(mode){
  baseView();app.G={mode,q:0,total:mode==='case'?6:8,hearts:3,score:0,gain:0,last:null,cur:null,locked:false,used:[],att:0,left:[]};
- if(mode==='puzzle')return startPuzzle();
+ if(mode==='puzzle'||mode==='build')return startPuzzle();
  nextQ();
 }
 export const gh=()=>{const G=app.G;return `<div class="gh"><span>${'❤️'.repeat(G.hearts)}${'🖤'.repeat(3-G.hearts)}</span><span>${Math.min(G.q+1,G.total)}/${G.total}</span></div>`;};
@@ -109,7 +110,7 @@ export function answerMusc(id){
 export function endGame(){
  const G=app.G;
  clearGhosts();clearMarks();
- const pz=G.mode==='puzzle',n=pz?G.att:G.q,done=G.hearts>0&&(pz?!G.left.length:G.q>=G.total),bonus=done?20:0;S.xp+=bonus;G.gain+=bonus;
+ const pz=G.mode==='puzzle'||G.mode==='build',n=pz?G.att:G.q,done=G.hearts>0&&(pz?!G.left.length:G.q>=G.total),bonus=done?20:0;S.xp+=bonus;G.gain+=bonus;
  queue.add({module:app.MOD.id,mode:G.mode,score:G.score,total:n,xp:G.gain});save();head();
  const acc=n?G.score/n:0,st=acc>=.9?3:acc>=.6?2:1;
  $('panel').innerHTML=`<div class="res"><div class="big">${'⭐'.repeat(st)}${'☆'.repeat(3-st)}</div><div class="h">${G.score}/${n} corrette</div><p>+${G.gain} XP${done?' (bonus round +20)':''}</p>${G.hearts<=0?'<p class="mut">Cuori finiti: ripassa nella sezione Esplora e riprova.</p>':''}<button class="btn again">Rigioca</button><button class="btn alt menu">Cambia sfida</button></div>`;

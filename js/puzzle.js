@@ -1,10 +1,11 @@
 /* Ricomponi: pezzi da rimettere al posto, con tocco o trascinamento.
+   Componi (mode 'build'): come Ricomponi ma i pezzi spariscono dalla figura, senza sagoma; vale la distanza dal posto vero.
    Ossa singole: i pezzi sono le ossa di un gruppo (mano, colonna, cranio…), con la figura ingrandita su quella zona.
    Gruppi: i pezzi sono gruppi interi. Si gioca nella vista attuale; cranio, mano e piede si giocano nella loro vista
    (laterale, palmare, dall'alto: `zv` del gruppo), che si può cambiare dal menu delle viste. */
 import {$,shuffle,pick} from './util.js';
 import {app,S,bone,save,touchStreak,head,bump,members,itemOf} from './state.js';
-import {els,clearMarks,refreshMastery,slotAt,svgEl,visible,visibleIn,focusItem,resetZoom,setView,hasView} from './figure.js';
+import {els,clearMarks,refreshMastery,slotAt,svgEl,svgPt,visible,visibleIn,focusItem,resetZoom,setView,hasView} from './figure.js';
 import {gh,endGame} from './game.js';
 
 // Il pezzo è la sagoma intera del lato destro (sf), anche delle parti coperte da altre ossa: una costa si vede intera.
@@ -36,12 +37,38 @@ export function startPuzzle(){
   G.left=shuffle(g.m.filter(visible)).slice(0,8);setTimeout(()=>focusItem(g.id,10,true),30);
  }
  G.total=G.left.length;G.sel=null;
- G.left.forEach(id=>els(id).forEach(e=>e.classList.add('ghost')));
+ // Componi: i pezzi spariscono del tutto (nessuna sagoma del posto); Ricomponi: restano in grigio
+ const free=G.mode==='build';
+ G.box=Object.fromEntries(G.left.map(id=>[id,box(id)])); // posto vero di ogni pezzo, misurato prima di nasconderlo
+ G.left.forEach(id=>els(id).forEach(e=>e.classList.add(free?'gone':'ghost')));
+ if(free)return puzzlePanel(app.grp?'Trascina ogni pezzo dove va: sulla figura non c\'è la sua sagoma. Il resto del corpo ti fa da riferimento.':`Zona: <b>${bone(G.zone).n}</b>. Trascina ogni pezzo dove va: sulla figura non c'è la sua sagoma, ti guidano le strutture intorno.`);
  puzzlePanel(app.grp?'Tocca (o trascina) un pezzo e portalo sul punto giusto della figura.':`Zona: <b>${bone(G.zone).n}</b>. Tocca (o trascina) un pezzo e portalo al suo posto.`);
 }
 function puzzlePanel(msg){
  const G=app.G;
  $('panel').innerHTML=gh()+`<div class="fb">${msg||''}</div><div class="tray">`+G.left.map(id=>`<div class="pc${G.sel===id?' on':''}" data-id="${id}">${thumb(id)}${bone(id).n}</div>`).join('')+'</div>';
+}
+// Componi: il pezzo va bene se il suo centro cade abbastanza vicino al suo centro vero (in pixel sullo schermo, o in proporzione
+// alla grandezza del pezzo per quelli grandi). Vicino ma non abbastanza: si perde il cuore ma si dice dove spostarlo.
+export function freeDrop(x,y){
+ const G=app.G,svg=svgEl();if(!G||!G.sel||G.locked||!svg)return;
+ const r=svg.getBoundingClientRect();if(x<r.left||x>r.right||y<r.top||y>r.bottom)return;
+ const pid=G.sel,b=G.box[pid]||box(pid),p=svgPt(x,y),k=svg.getScreenCTM().a,cx=b.x+b.w/2,cy=b.y+b.h/2;
+ const d=Math.hypot(p.x-cx,p.y-cy),tol=Math.max(22/k,0.18*Math.hypot(b.w,b.h));G.att++;touchStreak();
+ if(d<=tol){
+  els(pid).forEach(g=>{g.classList.remove('gone');g.classList.add('ok');setTimeout(()=>g.classList.remove('ok'),700);});
+  G.left=G.left.filter(x=>x!==pid);G.sel=null;G.score++;G.q=G.score;G.gain+=10;S.xp+=10;S.ok++;bump(pid,1);
+  save();head();refreshMastery();
+  if(!G.left.length)return endGame();
+  return puzzlePanel(`✅ <b>${bone(pid).n}</b> – ${bone(pid).f}`);
+ }
+ G.hearts--;S.ko++;bump(pid,-1);save();head();refreshMastery();
+ // segno rosso dove è stato lasciato, per un attimo
+ const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('r',6/k);dot.setAttribute('fill','#ef4444');
+ const ov=svg.querySelector('#ov');if(ov){ov.appendChild(dot);setTimeout(()=>dot.remove(),900);}
+ if(G.hearts<=0)return endGame();
+ const near=d<=tol*2.5,dir=[cy<p.y-tol/2?'più in alto':cy>p.y+tol/2?'più in basso':'',cx<p.x-tol/2?'più a sinistra':cx>p.x+tol/2?'più a destra':''].filter(Boolean).join(' e ');
+ puzzlePanel(near?`🤏 <b>${bone(pid).n}</b>: ci sei quasi, va un po' ${dir||'più in là'}.`:`❌ <b>${bone(pid).n}</b> non va lì. Pensa a cosa gli sta vicino e riprova.`);
 }
 export function placeAttempt(tid){
  const G=app.G;
@@ -65,7 +92,7 @@ const target=g=>g?itemOf(g.dataset.id):null;
 let drag=null;
 $('panel').addEventListener('pointerdown',e=>{
  const G=app.G;
- const pc=e.target.closest('.pc');if(!pc||!G||G.mode!=='puzzle'||G.locked)return;
+ const pc=e.target.closest('.pc');if(!pc||!G||(G.mode!=='puzzle'&&G.mode!=='build')||G.locked)return;
  drag={id:pc.dataset.id,x:e.clientX,y:e.clientY,el:null};G.sel=drag.id;
  document.querySelectorAll('.pc').forEach(p=>p.classList.toggle('on',p===pc));
  try{pc.setPointerCapture(e.pointerId);}catch(_){}
@@ -75,10 +102,11 @@ $('panel').addEventListener('pointermove',e=>{
  if(!drag.el&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){const f=document.createElement('div');f.id='flt';f.innerHTML=thumb(drag.id);drag.size=floatSize(drag.id);f.style.width=f.style.height=drag.size+'px';document.body.appendChild(f);drag.el=f;}
  // il centro del pezzo sta 42 px sopra il dito, che così non lo copre: è lì che verrà lasciato
  if(drag.el){drag.el.style.left=(e.clientX-drag.size/2)+'px';drag.el.style.top=(e.clientY-42-drag.size/2)+'px';
-  document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const t=target(slotAt(e.clientX,e.clientY-42,app.G.sel));if(t)els(t,true).forEach(x=>x.classList.add('hov'));}
+  if(app.G.mode==='puzzle'){document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const t=target(slotAt(e.clientX,e.clientY-42,app.G.sel));if(t)els(t,true).forEach(x=>x.classList.add('hov'));}}
 });
 $('panel').addEventListener('pointerup',e=>{
  if(!drag)return;const d=drag;drag=null;
+ if(d.el&&app.G.mode==='build'){d.el.remove();freeDrop(e.clientX,e.clientY-42);return;}
  if(d.el){d.el.remove();document.querySelectorAll('.bone.hov').forEach(x=>x.classList.remove('hov'));const t=target(slotAt(e.clientX,e.clientY-42,app.G.sel));if(t)placeAttempt(t);}
 });
 $('panel').addEventListener('pointercancel',()=>{if(drag&&drag.el)drag.el.remove();drag=null;});

@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 60, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 60 (61 sul branch di sviluppo), contenuti
   `version` 10 (`corpo` 11, `cervello` 2, `cuore` 1, `polmoni` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -136,7 +136,9 @@ Contenuto del gioco:
   Trova: con le singole si sceglie prima il gruppo, e per le ossa piccole la figura si ingrandisce sulla zona. Ricomponi: con le
   singole i pezzi sono le ossa di un gruppo (zona ingrandita), con i gruppi sono gruppi interi. Maestria: chiavi diverse per
   singole (`o.femur`, `b.precentral-gyrus`) e gruppi (gli id dei vecchi 22 gruppi: `femore`, `carpo`… e dei lobi).
-- Modalità: Ricomponi (puzzle con trascinamento), Tendine-ponte, Caso clinico (indizi progressivi),
+- Modalità: Ricomponi (puzzle con trascinamento), Componi (`build`: puzzle vero, i pezzi della zona spariscono senza sagoma e
+  si posano dove si pensa che vadano; giusto se il centro cade entro max(22 px, 18% della diagonale del pezzo) dal centro vero,
+  `freeDrop()` in `puzzle.js`; posti misurati prima di nasconderli, `G.box`; vicino ma fuori: "ci sei quasi" con la direzione), Tendine-ponte, Caso clinico (indizi progressivi),
   Trova la struttura, Origine e inserzione, Funzione → struttura, Nervi cranici, Misto.
 - Zoom e pan sulla figura (pulsanti, pizzico, rotella), XP, livelli, serie di giorni, maestria per struttura.
 - Salvataggio locale: `localStorage`, chiave `bodymania-v1`. **L'account è facoltativo**: senza account si gioca e si

@@ -63,6 +63,7 @@ nav button.on{color:var(--acc);box-shadow:inset 0 2px 0 var(--acc)}
 .bone.sel{--c:#7dd3fc}.bone.org{--c:#60a5fa}.bone.ins{--c:#fb923c}.bone.ok{--c:#4ade80}.bone.bad{--c:#f87171}
 .bone.sel .f,.bone.org .f,.bone.ins .f,.bone.ok .f,.bone.bad .f{stroke:#111;stroke-width:1.4}
 .bone.ghost{opacity:.3;--c:#9aa5aa}
+.bone.gone{display:none} /* Componi: il pezzo non c'è, nemmeno la sagoma */
 /* viste dei vasi di tutto il corpo: vasi sottili, il bordo ha il loro colore (grigio coprirebbe il rosso e il blu) */
 .view.thin .bone:not(.sel):not(.org):not(.ins):not(.ok):not(.bad):not(.hov) .f{stroke:var(--c)}
 .bone.ghost.bad{opacity:1;--c:#f87171}

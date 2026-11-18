@@ -4,7 +4,7 @@ import {app,S,save,saveGrp,head,touchStreak,bump,queue,itemOf} from './state.js'
 import {buildFig,boneAt,slotAt,clearMarks,refreshMastery,resetZoom,zoomAt,showMuscle,muscleHtml,takePan,setView,focusItem,baseView,viewMenu,closeViewMenu,doubleTapZoom} from './figure.js';
 import {renderExplore,showNc,selectBone} from './explore.js';
 import {renderMenu,clearGhosts,startGame,nextQ,answerFind,answerMusc,answerBridge,answerFunc,answerNc,answerCase,bridgePrompt,casePanel} from './game.js';
-import {placeAttempt} from './puzzle.js';
+import {placeAttempt,freeDrop} from './puzzle.js';
 import {renderProg} from './progress.js';
 import {renderSocial,loadSocial,setSocialOpen} from './social.js';
 import {showInstall,promptInstall,installNow} from './install.js';
@@ -62,7 +62,7 @@ $('fig').addEventListener('click',e=>{
   setView(v);if(!(app.tab==='play'&&app.G&&app.G.focus))resetZoom(true);
   if(app.tab==='explore'&&app.sel)selectBone(app.sel);
   // in gioco, con la figura ingrandita su una zona, la si ritrova anche nell'altra vista (la mano dorsale è speculare)
-  else if(app.tab==='play'&&app.G&&app.G.focus)setTimeout(()=>focusItem(app.G.focus,app.G.mode==='puzzle'?10:14,true),30);return;}
+  else if(app.tab==='play'&&app.G&&app.G.focus)setTimeout(()=>focusItem(app.G.focus,(app.G.mode==='puzzle'||app.G.mode==='build')?10:14,true),30);return;}
  if(e.target.closest('#vmenu'))return;
  closeViewMenu();
  // singole o gruppi: cambia le voci dei giochi, quindi la partita in corso ricomincia dal menu
@@ -79,6 +79,7 @@ $('fig').addEventListener('click',e=>{
 const DBL=260;let tap=null;
 function tapAt(x,y){
  // sid: struttura singola toccata; con i gruppi la voce è il suo gruppo
+ if(app.tab==='play'&&app.G&&app.G.mode==='build'){if(app.G.sel)freeDrop(x,y);return;} // Componi: si mette il pezzo scelto dove si tocca
  const G=app.G,g=app.tab==='play'&&G&&G.mode==='puzzle'&&G.sel?slotAt(x,y,G.sel):boneAt(x,y);if(!g)return;const sid=g.dataset.id;
  if(app.tab==='explore')selectBone(itemOf(sid));
  else if(app.tab==='play'&&G){
