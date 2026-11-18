@@ -172,7 +172,7 @@ nav button.dot:after{content:"";position:absolute;top:5px;left:calc(50% + 8px);w
 .lb b{font-size:14px;white-space:nowrap}
 .lb .pb{display:flex;gap:6px;align-items:center}
 .gap{text-align:center;color:var(--mut);padding:2px}
-.soq{font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;margin-bottom:4px}
+.soq{display:block;font:inherit;font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);width:100%;margin-bottom:4px}
 .err{color:var(--bad)}
 /* privacy: consenso alla registrazione, pulsante di cancellazione dell'account */
 .cons{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;text-align:left;margin:2px 0 6px;color:var(--mut)}
