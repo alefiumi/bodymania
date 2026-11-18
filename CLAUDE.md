@@ -16,7 +16,7 @@ App web gamificata per studiare anatomia muscolo-scheletrica e neurologia di bas
   o documentazione senza motivo.
 
 ## Situazione al 20/11/2026
-- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 57, contenuti
+- **Online** su `alefiumi.github.io/bodymania`: GitHub Pages pubblica dal branch `pwa`. App `APP_VERSION` 57 (58 sul branch di sviluppo), contenuti
   `version` 10 (`corpo` 11, `cervello` 2, `cuore` 1, `polmoni` 1). Usata dall'autore e da circa 40 amici.
 - **Come si lavora**: le modifiche si fanno e si salvano sul branch di sviluppo della sessione (ultimo: `pwa-259gcu`); si
   pubblica solo quando l'autore dice "pubblica", portando `pwa` avanti allo stesso commit (solo avanzamento, mai riscrivere).
@@ -240,7 +240,8 @@ Cuore e vasi (🫀) e Polmoni (🫁), separati come voluto dall'autore (`SYS` e 
 nel pannello Strati): ogni apparato mostra solo le sue parti, con strati da accendere (cuore e vasi: arterie, vene, grandi vasi della
 base, cuore, coronarie e vene del cuore, valvole e muscoli papillari; polmoni: pleura trasparente, lobi, trachea e bronchi, vasi
 polmonari), viste pronte (fra cui "Solo il cuore", come l'encefalo) e le sezioni sul riquadro dell'organo (`S.cutOn`).
-I due apparati si accendono anche insieme (`S.on`, pulsante "Aggiungi …" nel pannello). Nei pannelli di encefalo e apparati
+I due apparati si accendono anche insieme (`S.on`, pulsante "Aggiungi …" nel pannello) e dal pannello Strati come strati
+(`toggleSys()`, senza aprire il loro pannello). Nei pannelli di encefalo e apparati
 "👁 Solo …" (`S.solo`) toglie tutto il resto (scheletro, muscoli, altri strati) e si rimette con lo stesso pulsante.
 Nel pannello iniziale dell'atlante: "Sezione del corpo intero" assiale, coronale e sagittale con cursore (`cutHtml('body')`).
 `organOf()` in `atlante.js`, `organo()` in `build/torace.py` e in `proietta_2d.mjs` usano le stesse regole: tenerle uguali.

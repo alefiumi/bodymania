@@ -479,7 +479,7 @@ function panel(){
    <div class="sub">Ossa</div><div class="chips">${on(S.bones==='on','data-bones="on"','Visibili')}${on(S.bones==='ghost','data-bones="ghost"','Trasparenti')}${on(S.bones==='off','data-bones="off"','Nascoste')}${on(S.allLm,'data-lmt="1"','Tutti i reperi')}</div>
    <div class="sub">Apparato locomotore</div><div class="chips">${lay('muscoli')}${lay('fasce')}${lay('legamenti')}${lay('inserzioni')}</div>
    <div class="sub">Sistema nervoso</div><div class="chips">${lay('encefalo')}${lay('midollo')}${lay('nervi')}${lay('meningi')}${lay('sensi')}<button class="chip" data-go="brain">🧠 Sezioni e strati</button></div>
-   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}${Object.entries(SYS).map(([k,x])=>`<button class="chip${S.on[k]?' on':''}" data-sys="${k}">${x.ic} ${x.n}</button>`).join('')}</div>
+   <div class="sub">Altri sistemi</div><div class="chips">${lay('vasi')}${lay('visceri')}${Object.entries(SYS).map(([k,x])=>`<button class="chip${S.on[k]?' on':''}" data-systog="${k}">${x.ic} ${x.n}</button>`).join('')}</div><p class="mut">Strati e sezioni di cuore e polmoni: pulsanti 🫀 e 🫁 nella barra in alto.</p>
    ${offlineHtml()}
    <div class="chips"><button class="chip" data-go="home">Chiudi</button></div>`;
  }else if(S.list==='muscles'){
@@ -591,6 +591,13 @@ async function openSys(k){
  const first=!S.on[k];S.on[k]=true;if(S.bones==='on')S.bones='ghost';
  refresh();
  if(first)flySys(k);
+}
+// accende o spegne un apparato dal pannello Strati, come uno strato (senza aprire il suo pannello)
+async function toggleSys(k){
+ if(S.on[k]){S.on[k]=false;if(S.solo===k)S.solo=null;if(S.cutOn===k)S.cut.ax=null;refresh();return;}
+ const files=k==='cuore'?['vasi']:['vasi','visceri'];
+ if(files.some(f=>!FILES[f]||!FILES[f].loaded)){S.loading=true;panel();await Promise.all(files.map(loadFile));S.loading=false;}
+ S.on[k]=true;refresh();
 }
 // inquadra l'apparato: tutto il corpo per i vasi di tutto il corpo, altrimenti l'organo
 function flySys(K,v='front'){
@@ -1069,6 +1076,7 @@ $('panel').addEventListener('click',e=>{
  else if(d.spre){const X=SYS[S.list];for(const k in X.L)S.lay[S.list][k]=X.P[d.spre].includes(k);refresh();flySys(S.list);}
  else if(d.sysoff){S.on[S.list]=false;if(S.solo===S.list)S.solo=null;if(S.cutOn===S.list)S.cut.ax=null;S.list='layers';refresh();}
  else if(d.solo){S.solo=S.solo===d.solo?null:d.solo;if(SYS[S.solo])S.on[S.solo]=true;refresh();}
+ else if(d.systog)toggleSys(d.systog);
  else if(d.cutb){S.cutOn='body';setCut(d.cutb);}
  else if(d.go){S.mus=S.combo=S.lm=S.part=null;S.q='';S.list=d.go==='home'?null:d.go;refresh();if(d.go==='layers')offlineCheck();}
  else if(d.hide){if(S.part)S.part.userData.hidden=true;S.part=null;refresh();}
