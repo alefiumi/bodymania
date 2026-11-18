@@ -640,7 +640,9 @@ async function findPart(name){
 
 /* ---------- tocco ---------- */
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),tmp=new THREE.Vector3();
-function pickPart(x,y){const r=renderer.domElement.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);const h=ray.intersectObjects(pickables(),false)[0];return h?h.object:null;}
+// con una sezione attiva il raggio salta la parte tagliata via (non disegnata): si tocca quello che si vede sul taglio
+const kept=hs=>renderer.clippingPlanes.length?hs.filter(h=>cutPlane.distanceToPoint(h.point)>=0):hs;
+function pickPart(x,y){const r=renderer.domElement.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);const h=kept(ray.intersectObjects(pickables(),false))[0];return h?h.object:null;}
 // il repere visibile più vicino al dito, entro 22 px e non coperto
 function pickLandmark(x,y){
  const r=renderer.domElement.getBoundingClientRect();let best=null,bd=22;
@@ -650,7 +652,7 @@ function pickLandmark(x,y){
   const d=Math.hypot((tmp.x+1)/2*r.width+r.left-x,(1-tmp.y)/2*r.height+r.top-y);
   if(d>=bd)continue;
   ray.set(camera.position,tmp.copy(l.mesh.position).sub(camera.position).normalize());
-  const h=ray.intersectObjects(pickables(),false)[0],dist=camera.position.distanceTo(l.mesh.position);
+  const h=kept(ray.intersectObjects(pickables(),false))[0],dist=camera.position.distanceTo(l.mesh.position);
   if(h&&h.distance<dist-0.008)continue;
   bd=d;best=l;
  }
@@ -871,7 +873,7 @@ const gameDots=new THREE.Group();scene.add(gameDots);
 function gameDot(p,mat){const m=new THREE.Mesh(ball,mat);m.position.copy(p);m.scale.setScalar(0.006);m.renderOrder=12;gameDots.add(m);}
 // punto dell'osso sotto il dito
 function boneHit(x,y){const r=renderer.domElement.getBoundingClientRect();ndc.set((x-r.left)/r.width*2-1,-(y-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
- return ray.intersectObjects(meshes.filter(m=>m.visible&&m.userData.layer==='ossa'),false)[0]||null;}
+ return kept(ray.intersectObjects(meshes.filter(m=>m.visible&&m.userData.layer==='ossa'),false))[0]||null;}
 // distanza di un punto da un'area (triangoli nel mondo); prima scarta le aree lontane con il riquadro
 const triA=new THREE.Vector3(),triB=new THREE.Vector3(),triC=new THREE.Vector3(),tri=new THREE.Triangle(),cp=new THREE.Vector3(),abox=new THREE.Box3();
 function distToArea(m,p,max){
